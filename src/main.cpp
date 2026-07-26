@@ -1,6 +1,5 @@
 #include <print>
 
-int main()
-{
-    std::println("lumen-engine");
+int main() {
+	std::println("lumen-engine");
 }
