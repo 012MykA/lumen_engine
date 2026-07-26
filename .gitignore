@@ -1,0 +1,15 @@
+# Build outputs
+build/
+out/
+bin/
+
+# IDE & Tools
+.vscode/
+.vs/
+*.user
+
+# Local CMake Presets
+CMakeUserPresets.json
+
+# vcpkg local cache
+vcpkg_installed/
