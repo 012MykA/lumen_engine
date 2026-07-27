@@ -143,7 +143,7 @@ IncludeCategories:
 IndentCaseLabels: true
 # IndentExternBlock: AfterExternBlock
 # IndentGotoLabels: true
-# IndentPPDirectives: None
+IndentPPDirectives: BeforeHash
 # IndentRequiresClause: true
 IndentWidth: 4
 # IndentWrappedFunctionNames: false
@@ -181,7 +181,7 @@ ObjCBlockIndentWidth: 4
 # ObjCBreakBeforeNestedBlockParam: true
 # ObjCSpaceAfterProperty: false
 # ObjCSpaceBeforeProtocolList: true
-# PPIndentWidth: -1
+PPIndentWidth: 4
 PackConstructorInitializers: NextLine
 # PenaltyBreakAssignment: 2
 # PenaltyBreakBeforeFirstCallParameter: 19
