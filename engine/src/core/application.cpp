@@ -4,8 +4,6 @@
 
 namespace lm {
 
-Application::Application(const ApplicationCommandLineArgs &args) {
-	std::println("Lumen Application created!");
-}
+Application::Application(const ApplicationCommandLineArgs &args) {}
 
 } // namespace lm
