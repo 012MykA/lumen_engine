@@ -206,7 +206,7 @@ RemoveSemicolon: true
 # SeparateDefinitionBlocks: Leave
 # ShortNamespaceLines: 1
 # SkipMacroDefinitionBody: false
-# SortIncludes: CaseSensitive
+SortIncludes: CaseSensitive
 # SortJavaStaticImport: Before
 # SortUsingDeclarations: LexicographicNumeric
 # SpaceAfterCStyleCast: false
