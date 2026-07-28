@@ -4,29 +4,33 @@
 
 #include <cassert>
 #include <memory>
-#include <string_view>
+#include <string>
 #include <vector>
 
 namespace lm {
 
 struct LUMEN_API ApplicationCommandLineArgs {
+	std::vector<std::string> args;
+
 	ApplicationCommandLineArgs(int argc, char **argv) : args(argv, argv + argc) {}
 
-	std::vector<std::string_view> args;
-	std::string_view operator[](size_t idx) const { return args[idx]; }
+	const std::string &operator[](size_t idx) const { return args[idx]; }
 };
 
 class LUMEN_API Application {
 public:
 	explicit Application(const ApplicationCommandLineArgs &args);
-	virtual ~Application() = default;
+	virtual ~Application();
 
 	virtual void run() = 0;
+
+private:
+	ApplicationCommandLineArgs m_Args;
 
 private:
 	static inline Application *s_Instance = nullptr;
 };
 
-std::unique_ptr<Application> CreateApplication(ApplicationCommandLineArgs args);
+std::unique_ptr<Application> CreateApplication(const ApplicationCommandLineArgs &args);
 
 } // namespace lm

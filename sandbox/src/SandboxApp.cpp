@@ -23,7 +23,7 @@ public:
 	}
 };
 
-std::unique_ptr<lm::Application> lm::CreateApplication(lm::ApplicationCommandLineArgs args) {
+std::unique_ptr<lm::Application> lm::CreateApplication(const lm::ApplicationCommandLineArgs &args) {
 	constexpr std::string_view buildType =
 #if defined(LUMEN_DYNAMIC_LINK)
 			"Dynamic Library";

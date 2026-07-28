@@ -12,9 +12,12 @@ target_link_libraries(${PROJECT_NAME}
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 
 if (WIN32 AND BUILD_SHARED_LIBS)
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:lumen_engine>
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    )
+    get_target_property(ENGINE_TYPE lumen_engine TYPE)
+    if (ENGINE_TYPE STREQUAL "SHARED_LIBRARY")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:lumen_engine>
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        )
+    endif()
 endif()

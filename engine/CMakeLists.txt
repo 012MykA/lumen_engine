@@ -32,7 +32,6 @@ target_include_directories(${LUMEN_ENGINE_BINARY_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/${LUMEN_ENGINE_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 

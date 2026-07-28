@@ -9,7 +9,7 @@
 
 namespace lm {
 
-int Main(int argc, char **argv) {
+inline int Main(int argc, char **argv) {
 	try {
 		auto app = lm::CreateApplication({ argc, argv });
 
@@ -27,7 +27,7 @@ int Main(int argc, char **argv) {
 
 #if defined(LUMEN_PLATFORM_WINDOWS) && defined(LUMEN_BUILD_WINDOWS_APP)
 
-#include <Windows.h>
+	#include <Windows.h>
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow) {
 	return lm::Main(__argc, __argv);
