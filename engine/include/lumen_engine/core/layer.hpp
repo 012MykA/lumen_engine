@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lumen_engine/core/export.hpp"
+#include "lumen_engine/events/event.hpp"
 
 #include <string>
 
@@ -14,6 +15,7 @@ public:
 	virtual void OnAttach() {}
 	virtual void OnDetach() {}
 
+	virtual void OnEvent(Event &e) {}
 	virtual void OnUpdate(float ts) {}
 	virtual void OnRender() {}
 	virtual void OnUIRender() {}

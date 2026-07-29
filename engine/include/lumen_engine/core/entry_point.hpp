@@ -29,7 +29,7 @@ inline int Main(int argc, char **argv) {
 
 	#include <Windows.h>
 
-int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow) {
+int WINMAIN WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow) {
 	return lm::Main(__argc, __argv);
 }
 

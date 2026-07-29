@@ -1,6 +1,8 @@
 #pragma once
 
 #include "lumen_engine/core/export.hpp"
+#include "lumen_engine/core/window.hpp"
+#include "lumen_engine/events/window_events.hpp"
 
 #include <memory>
 #include <string>
@@ -21,12 +23,30 @@ public:
 	explicit Application(const ApplicationCommandLineArgs &args);
 	virtual ~Application();
 
+	Application(const Application &) = delete;
+	Application &operator=(const Application &) = delete;
+
+	Application(Application &&) = delete;
+	Application &operator=(Application &&) = delete;
+
 	void Run();
 	void Close();
+
+	Window *CreateWindow(const WindowDesc &desc);
+
+	void OnEvent(Window *sender, Event &e);
+
+	static Application &Get() { return *s_Instance; }
+
+private:
+	bool OnWindowClose(Window *sender, WindowCloseEvent &e);
 
 private:
 	ApplicationCommandLineArgs m_Args;
 	bool m_Running{ true };
+
+	std::vector<std::unique_ptr<Window>> m_Windows;
+	std::vector<Window *> m_WindowsToDelete;
 
 private:
 	static inline Application *s_Instance{ nullptr };

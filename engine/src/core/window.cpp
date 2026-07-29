@@ -1,0 +1,24 @@
+#include "lumen_engine/core/window.hpp"
+
+#include "platform/glfw/glfw_window.hpp"
+
+namespace lm {
+
+std::unique_ptr<Window> Window::Create(const WindowDesc &desc) {
+	return std::make_unique<GlfwWindowDriver>(desc);
+}
+
+void Window::OnEvent(Event &e) {
+	for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it) {
+		if (e.handled) {
+			break;
+		}
+		(*it)->OnEvent(e);
+	}
+
+	if (m_EventCallback) {
+		m_EventCallback(e);
+	}
+}
+
+} // namespace lm

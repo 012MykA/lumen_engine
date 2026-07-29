@@ -22,12 +22,23 @@ else()
     message(FATAL_ERROR "Unknown platform!")
 endif()
 
-
 add_library(${LUMEN_ENGINE_BINARY_NAME}
     src/core/application.cpp
     src/core/layer.cpp
     src/core/layer_stack.cpp
+    src/core/window.cpp
+
     src/events/event.cpp
+
+    src/platform/glfw/glfw_context.cpp
+    src/platform/glfw/glfw_window.cpp
+)
+
+# External
+find_package(glfw3 CONFIG REQUIRED)
+
+target_link_libraries(${LUMEN_ENGINE_BINARY_NAME}
+    glfw
 )
 
 target_include_directories(${LUMEN_ENGINE_BINARY_NAME}

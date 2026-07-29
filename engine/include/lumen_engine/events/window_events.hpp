@@ -22,7 +22,7 @@ public:
 	uint32_t GetWidth() const { return m_Width; }
 	uint32_t GetHeight() const { return m_Height; }
 	std::string ToString() const override {
-		return std::format("WindowResizeEvent: {}, {}", m_Width, m_Height);
+		return std::format("WindowResize: {}, {}", m_Width, m_Height);
 	}
 
 	EVENT_CLASS_TYPE(WindowResize)
@@ -50,12 +50,10 @@ public:
 
 class LUMEN_API WindowMovedEvent : public Event {
 public:
-	using WindowCoord = int32_t;
+	WindowMovedEvent(int32_t x, int32_t y) : m_PositionX{ x }, m_PositionY{ y } {}
 
-	WindowMovedEvent(WindowCoord x, WindowCoord y) : m_PositionX{ x }, m_PositionY{ y } {}
-
-	WindowCoord GetX() const { return m_PositionX; }
-	WindowCoord GetY() const { return m_PositionY; }
+	int32_t GetX() const { return m_PositionX; }
+	int32_t GetY() const { return m_PositionY; }
 	virtual std::string ToString() const override {
 		return std::format("WindowMoved: {}, {}", m_PositionX, m_PositionY);
 	}
@@ -64,7 +62,7 @@ public:
 	EVENT_CLASS_CATEGORY(Window)
 
 private:
-	WindowCoord m_PositionX, m_PositionY;
+	int32_t m_PositionX, m_PositionY;
 };
 
 } // namespace lm
