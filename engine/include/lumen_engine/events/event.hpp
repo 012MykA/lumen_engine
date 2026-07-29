@@ -17,25 +17,24 @@ enum class EventCategory : uint32_t {
 	Input = 1 << 2,
 	Keyboard = 1 << 3,
 	Mouse = 1 << 4,
-	MouseButton = 1 << 5,
 };
 
-inline constexpr EventCategory operator|(EventCategory a, EventCategory b) {
+constexpr EventCategory operator|(EventCategory a, EventCategory b) {
 	using T = std::underlying_type_t<EventCategory>;
 	return static_cast<EventCategory>(static_cast<T>(a) | static_cast<T>(b));
 }
 
-inline constexpr EventCategory operator&(EventCategory a, EventCategory b) {
+constexpr EventCategory operator&(EventCategory a, EventCategory b) {
 	using T = std::underlying_type_t<EventCategory>;
 	return static_cast<EventCategory>(static_cast<T>(a) & static_cast<T>(b));
 }
 
-inline constexpr EventCategory operator~(EventCategory e) {
+constexpr EventCategory operator~(EventCategory e) {
 	using T = std::underlying_type_t<EventCategory>;
 	return static_cast<EventCategory>(~static_cast<T>(e));
 }
 
-inline constexpr bool HasCategory(EventCategory flags, EventCategory category) {
+constexpr bool HasCategory(EventCategory flags, EventCategory category) {
 	return (flags & category) == category;
 }
 
@@ -62,7 +61,7 @@ enum class EventType {
 	MouseButtonReleased,
 };
 
-inline constexpr std::string_view EventTypeToString(EventType type) noexcept {
+constexpr std::string_view EventTypeToString(EventType type) noexcept {
 	using namespace std::string_view_literals;
 
 	switch (type) { // clang-format off
@@ -110,7 +109,7 @@ public:
 		return EventType::type; \
 	} \
 	virtual EventType GetEventType() const override { \
-		return EventType::type; \
+		return GetStaticType(); \
 	} \
 	virtual std::string_view GetName() const override { \
 		return #type; \
@@ -118,7 +117,7 @@ public:
 
 #define EVENT_CLASS_CATEGORY(category) \
 	virtual EventCategory GetCategoryFlags() const override { \
-		return category; \
+		return EventCategory::category; \
 	}
 
 } // namespace lm
