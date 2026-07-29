@@ -9,11 +9,11 @@
 
 namespace lm {
 
-struct LUMEN_API ApplicationCommandLineArgs {	
+struct LUMEN_API ApplicationCommandLineArgs {
 	ApplicationCommandLineArgs(int argc, char **argv) : args(argv, argv + argc) {}
 
 	const std::string &operator[](size_t idx) const { return args[idx]; }
-	
+
 	std::vector<std::string> args;
 };
 
@@ -28,7 +28,7 @@ private:
 	ApplicationCommandLineArgs m_Args;
 
 private:
-	static inline Application *s_Instance = nullptr;
+	static inline Application *s_Instance{ nullptr };
 };
 
 std::unique_ptr<Application> CreateApplication(const ApplicationCommandLineArgs &args);
