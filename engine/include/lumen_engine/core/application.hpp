@@ -2,7 +2,6 @@
 
 #include "lumen_engine/core/export.hpp"
 
-#include <cassert>
 #include <memory>
 #include <string>
 #include <vector>
@@ -22,7 +21,7 @@ public:
 	explicit Application(const ApplicationCommandLineArgs &args);
 	virtual ~Application();
 
-	virtual void run() = 0;
+	void Run();
 
 private:
 	ApplicationCommandLineArgs m_Args;

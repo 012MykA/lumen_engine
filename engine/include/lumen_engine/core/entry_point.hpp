@@ -13,7 +13,7 @@ inline int Main(int argc, char **argv) {
 	try {
 		auto app = lm::CreateApplication({ argc, argv });
 
-		app->run();
+		app->Run();
 
 	} catch (const std::exception &e) {
 		std::println(stderr, "Citical error: {}", e.what());
