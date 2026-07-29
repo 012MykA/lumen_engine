@@ -25,6 +25,8 @@ endif()
 
 add_library(${LUMEN_ENGINE_BINARY_NAME}
     src/core/application.cpp
+    src/core/layer.cpp
+    src/core/layer_stack.cpp
     src/events/event.cpp
 )
 
