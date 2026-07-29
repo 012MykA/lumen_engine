@@ -4,29 +4,39 @@
 
 #include <cstdint>
 #include <iostream>
+#include <string>
 #include <string_view>
+#include <type_traits>
 
 namespace lm {
 
-enum EventCategory : uint32_t {
-	EventCategoryNone = 0,
-	EventCategoryApplication = 1 << 0,
-	EventCategoryInput = 1 << 1,
-	EventCategoryKeyboard = 1 << 2,
-	EventCategoryMouse = 1 << 3,
-	EventCategoryMouseButton = 1 << 4,
+enum class EventCategory : uint32_t {
+	None = 0,
+	Application = 1 << 0,
+	Window = 1 << 1,
+	Input = 1 << 2,
+	Keyboard = 1 << 3,
+	Mouse = 1 << 4,
+	MouseButton = 1 << 5,
 };
 
-inline EventCategory operator|(EventCategory a, EventCategory b) {
-	return static_cast<EventCategory>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+inline constexpr EventCategory operator|(EventCategory a, EventCategory b) {
+	using T = std::underlying_type_t<EventCategory>;
+	return static_cast<EventCategory>(static_cast<T>(a) | static_cast<T>(b));
 }
 
-inline EventCategory operator&(EventCategory a, EventCategory b) {
-	return static_cast<EventCategory>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+inline constexpr EventCategory operator&(EventCategory a, EventCategory b) {
+	using T = std::underlying_type_t<EventCategory>;
+	return static_cast<EventCategory>(static_cast<T>(a) & static_cast<T>(b));
 }
 
-inline EventCategory operator~(EventCategory e) {
-	return static_cast<EventCategory>(~static_cast<uint32_t>(e));
+inline constexpr EventCategory operator~(EventCategory e) {
+	using T = std::underlying_type_t<EventCategory>;
+	return static_cast<EventCategory>(~static_cast<T>(e));
+}
+
+inline constexpr bool HasCategory(EventCategory flags, EventCategory category) {
+	return (flags & category) == category;
 }
 
 enum class EventType {
@@ -52,7 +62,7 @@ enum class EventType {
 	MouseButtonReleased,
 };
 
-constexpr std::string_view EventTypeToString(EventType type) noexcept {
+inline constexpr std::string_view EventTypeToString(EventType type) noexcept {
 	using namespace std::string_view_literals;
 
 	switch (type) { // clang-format off
@@ -85,7 +95,9 @@ public:
 	virtual ~Event() = default;
 
 	virtual EventType GetEventType() const = 0;
-	virtual uint32_t GetCategoryFlags() const = 0;
+	virtual EventCategory GetCategoryFlags() const = 0;
+	virtual std::string_view GetName() const = 0;
+	virtual std::string ToString() const { return std::string(GetName()); }
 
 	bool IsInCategory(EventCategory category) const;
 
@@ -99,10 +111,13 @@ public:
 	} \
 	virtual EventType GetEventType() const override { \
 		return EventType::type; \
+	} \
+	virtual std::string_view GetName() const override { \
+		return #type; \
 	}
 
 #define EVENT_CLASS_CATEGORY(category) \
-	virtual uint32_t GetCategoryFlags() const override { \
+	virtual EventCategory GetCategoryFlags() const override { \
 		return category; \
 	}
 

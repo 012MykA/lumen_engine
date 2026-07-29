@@ -3,7 +3,7 @@
 namespace lm {
 
 bool Event::IsInCategory(EventCategory category) const {
-	return GetCategoryFlags() & category;
+	return HasCategory(GetCategoryFlags(), category);
 }
 
 } // namespace lm
