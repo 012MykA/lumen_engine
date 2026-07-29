@@ -9,12 +9,12 @@
 
 namespace lm {
 
-struct LUMEN_API ApplicationCommandLineArgs {
-	std::vector<std::string> args;
-
+struct LUMEN_API ApplicationCommandLineArgs {	
 	ApplicationCommandLineArgs(int argc, char **argv) : args(argv, argv + argc) {}
 
 	const std::string &operator[](size_t idx) const { return args[idx]; }
+	
+	std::vector<std::string> args;
 };
 
 class LUMEN_API Application {
