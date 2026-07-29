@@ -22,9 +22,11 @@ public:
 	virtual ~Application();
 
 	void Run();
+	void Close();
 
 private:
 	ApplicationCommandLineArgs m_Args;
+	bool m_Running{ true };
 
 private:
 	static inline Application *s_Instance{ nullptr };

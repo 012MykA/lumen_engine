@@ -21,13 +21,17 @@ void Application::Run() {
 	constexpr std::array frames = { '|', '/', '-', '\\' };
 	size_t frame_index = 0;
 
-	while (true) {
+	while (m_Running) {
 		std::print("\r{} Running", frames[frame_index]);
 		std::fflush(stdout);
 
 		frame_index = (frame_index + 1) % frames.size();
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
+}
+
+void Application::Close() {
+	m_Running = false;
 }
 
 } // namespace lm

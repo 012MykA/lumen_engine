@@ -41,15 +41,15 @@ constexpr bool HasCategory(EventCategory flags, EventCategory category) {
 enum class EventType {
 	None = 0,
 
+	AppTick,
+	AppUpdate,
+	AppRender,
+
 	WindowClose,
 	WindowResize,
 	WindowFocus,
 	WindowLostFocus,
 	WindowMoved,
-
-	AppTick,
-	AppUpdate,
-	AppRender,
 
 	KeyPressed,
 	KeyReleased,
