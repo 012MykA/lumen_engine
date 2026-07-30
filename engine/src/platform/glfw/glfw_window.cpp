@@ -52,7 +52,7 @@ std::string_view GlfwWindowDriver::GetTitle() const {
 	return glfwGetWindowTitle(m_Handle);
 }
 
-void GlfwWindowDriver::SetSize(WindowExtent extent) {
+void GlfwWindowDriver::SetExtent(WindowExtent extent) {
 	glfwSetWindowSize(m_Handle, static_cast<int>(extent.width), static_cast<int>(extent.height));
 }
 

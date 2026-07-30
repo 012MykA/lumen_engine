@@ -40,6 +40,7 @@ public:
 
 private:
 	bool OnWindowClose(Window *sender, WindowCloseEvent &e);
+	bool OnWindowFocus(Window *sender, WindowFocusEvent &e);
 
 private:
 	ApplicationCommandLineArgs m_Args;

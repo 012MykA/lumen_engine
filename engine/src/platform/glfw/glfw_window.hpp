@@ -17,8 +17,10 @@ public:
 	void SetTitle(std::string_view title) override;
 	std::string_view GetTitle() const override;
 
-	void SetSize(WindowExtent extent) override;
+	void SetExtent(WindowExtent extent) override;
 	WindowExtent GetExtent() const override;
+
+	void *GetNativeWindow() const override { return m_Handle; }
 
 private:
 	void InitCallbacks();

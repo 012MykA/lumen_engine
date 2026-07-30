@@ -10,3 +10,8 @@
 #include "lumen_engine/events/event.hpp"
 #include "lumen_engine/events/event_dispatcher.hpp"
 #include "lumen_engine/events/window_events.hpp"
+
+// io
+#include "lumen_engine/io/input.hpp"
+#include "lumen_engine/io/key_codes.hpp"
+#include "lumen_engine/io/mouse_codes.hpp"

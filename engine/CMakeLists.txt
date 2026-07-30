@@ -31,6 +31,7 @@ add_library(${LUMEN_ENGINE_BINARY_NAME}
     src/events/event.cpp
 
     src/platform/glfw/glfw_context.cpp
+    src/platform/glfw/glfw_input.cpp
     src/platform/glfw/glfw_window.cpp
 )
 

@@ -1,6 +1,7 @@
 #include "lumen_engine/core/application.hpp"
 
 #include "lumen_engine/events/event_dispatcher.hpp"
+#include "lumen_engine/io/input.hpp"
 
 #include <algorithm>
 #include <array>
@@ -59,6 +60,9 @@ Window *Application::CreateWindow(const WindowDesc &desc) {
 	});
 
 	m_Windows.push_back(std::move(window));
+
+	Input::SetActiveWindow(windowPtr);
+
 	return windowPtr;
 }
 
@@ -67,6 +71,9 @@ void Application::OnEvent(Window *sender, Event &e) {
 	dp.Dispatch<WindowCloseEvent>([this, sender](WindowCloseEvent &event) {
 		return OnWindowClose(sender, event);
 	});
+	dp.Dispatch<WindowFocusEvent>([this, sender](WindowFocusEvent &event) {
+		return OnWindowFocus(sender, event);
+	});
 }
 
 bool Application::OnWindowClose(Window *sender, WindowCloseEvent &e) {
@@ -74,6 +81,12 @@ bool Application::OnWindowClose(Window *sender, WindowCloseEvent &e) {
 	if (it == m_WindowsToDelete.end()) {
 		m_WindowsToDelete.push_back(sender);
 	}
+
+	return true;
+}
+
+bool Application::OnWindowFocus(Window *sender, WindowFocusEvent &e) {
+	Input::SetActiveWindow(sender);
 
 	return true;
 }
