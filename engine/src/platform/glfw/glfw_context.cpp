@@ -2,28 +2,29 @@
 
 #include <GLFW/glfw3.h>
 
+#include <print>
+
 namespace lm {
 
 bool GlfwContext::Init() {
-	if (s_Initialized) {
-		return true;
+	if (s_RefCount++ == 0) {
+		glfwSetErrorCallback([](int code, const char *desc) {
+			std::println(stderr, "GLFW Error ({}): {}", code, desc);
+		});
+
+		if (!glfwInit()) {
+			s_RefCount--;
+			return false;
+		}
 	}
 
-	if (!glfwInit()) {
-		return false;
-	}
-
-	s_Initialized = true;
 	return true;
 }
 
 void GlfwContext::Shutdown() {
-	if (!s_Initialized) {
-		return;
+	if (s_RefCount > 0 && --s_RefCount == 0) {
+		glfwTerminate();
 	}
-
-	glfwTerminate();
-	s_Initialized = false;
 }
 
 } // namespace lm

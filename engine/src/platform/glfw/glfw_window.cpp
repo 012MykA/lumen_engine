@@ -13,6 +13,8 @@ GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) : m_Width(desc.width)
 		throw std::runtime_error("failed to initialize GLFW");
 	}
 
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
 	m_Handle = glfwCreateWindow(
 			static_cast<int>(m_Width),
 			static_cast<int>(m_Height),
@@ -30,6 +32,7 @@ GlfwWindowDriver::~GlfwWindowDriver() {
 	if (m_Handle) {
 		glfwDestroyWindow(m_Handle);
 	}
+	GlfwContext::Shutdown();
 }
 
 void GlfwWindowDriver::OnUpdate() {
