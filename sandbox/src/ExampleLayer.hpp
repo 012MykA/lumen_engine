@@ -6,5 +6,5 @@ class ExampleLayer : public lm::Layer {
 public:
 	ExampleLayer() : Layer("ExampleLayer") {}
 
-	virtual void OnEvent(lm::Event &e) override;
+	void OnEvent(lm::Event &e) override;
 };

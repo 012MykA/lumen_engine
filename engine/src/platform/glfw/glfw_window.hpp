@@ -11,14 +11,14 @@ public:
 	GlfwWindowDriver(const WindowDesc &desc);
 	~GlfwWindowDriver();
 
-	virtual void OnUpdate() override;
-	virtual bool ShouldClose() const override;
+	void OnUpdate() override;
+	bool ShouldClose() const override;
 
-	virtual void SetTitle(std::string_view title) override;
-	virtual std::string_view GetTitle() const override;
+	void SetTitle(std::string_view title) override;
+	std::string_view GetTitle() const override;
 
-	virtual void SetSize(WindowExtent extent) override;
-	virtual WindowExtent GetExtent() const override;
+	void SetSize(WindowExtent extent) override;
+	WindowExtent GetExtent() const override;
 
 private:
 	void InitCallbacks();

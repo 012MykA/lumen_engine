@@ -54,7 +54,7 @@ public:
 
 	int32_t GetX() const { return m_PositionX; }
 	int32_t GetY() const { return m_PositionY; }
-	virtual std::string ToString() const override {
+	std::string ToString() const override {
 		return std::format("WindowMoved: {}, {}", m_PositionX, m_PositionY);
 	}
 
