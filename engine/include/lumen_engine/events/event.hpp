@@ -117,7 +117,7 @@ public:
 
 #define EVENT_CLASS_CATEGORY(category) \
 	virtual EventCategory GetCategoryFlags() const override { \
-		return EventCategory::category; \
+		return category; \
 	}
 
 } // namespace lm

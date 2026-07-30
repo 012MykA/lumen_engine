@@ -13,7 +13,7 @@ public:
 	WindowCloseEvent() = default;
 
 	EVENT_CLASS_TYPE(WindowClose)
-	EVENT_CLASS_CATEGORY(Window)
+	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
 class LUMEN_API WindowResizeEvent : public Event {
@@ -26,7 +26,7 @@ public:
 	}
 
 	EVENT_CLASS_TYPE(WindowResize)
-	EVENT_CLASS_CATEGORY(Window)
+	EVENT_CLASS_CATEGORY(EventCategory::Window)
 
 private:
 	WindowExtent m_Extent;
@@ -37,7 +37,7 @@ public:
 	WindowFocusEvent() = default;
 
 	EVENT_CLASS_TYPE(WindowFocus)
-	EVENT_CLASS_CATEGORY(Window)
+	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
 class LUMEN_API WindowLostFocusEvent : public Event {
@@ -45,7 +45,7 @@ public:
 	WindowLostFocusEvent() = default;
 
 	EVENT_CLASS_TYPE(WindowLostFocus)
-	EVENT_CLASS_CATEGORY(Window)
+	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
 class LUMEN_API WindowMovedEvent : public Event {
@@ -59,7 +59,7 @@ public:
 	}
 
 	EVENT_CLASS_TYPE(WindowMoved)
-	EVENT_CLASS_CATEGORY(Window)
+	EVENT_CLASS_CATEGORY(EventCategory::Window)
 
 private:
 	int32_t m_PositionX, m_PositionY;
