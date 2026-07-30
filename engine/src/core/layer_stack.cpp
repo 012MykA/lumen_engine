@@ -5,24 +5,23 @@
 namespace lm {
 
 LayerStack::~LayerStack() {
-	for (Layer *layer : m_Layers) {
-		layer->OnDetach();
-		delete layer;
+	for (auto it = m_Layers.rbegin(); it != m_Layers.rend(); ++it) {
+		(*it)->OnDetach();
 	}
 }
 
-void LayerStack::PushLayer(Layer *layer) {
-	m_Layers.emplace(m_Layers.begin() + m_LayerInsertIndex, layer);
-	m_LayerInsertIndex++;
+void LayerStack::PushLayer(std::shared_ptr<Layer> layer) {
 	layer->OnAttach();
+	m_Layers.emplace(m_Layers.begin() + m_LayerInsertIndex, std::move(layer));
+	m_LayerInsertIndex++;
 }
 
-void LayerStack::PushOverlay(Layer *overlay) {
-	m_Layers.emplace_back(overlay);
+void LayerStack::PushOverlay(std::shared_ptr<Layer> overlay) {
 	overlay->OnAttach();
+	m_Layers.emplace_back(std::move(overlay));
 }
 
-void LayerStack::PopLayer(Layer *layer) {
+void LayerStack::PopLayer(const std::shared_ptr<Layer> &layer) {
 	auto it = std::find(m_Layers.begin(), m_Layers.end(), layer);
 	if (it != m_Layers.begin() + m_LayerInsertIndex) {
 		layer->OnDetach();
@@ -31,7 +30,7 @@ void LayerStack::PopLayer(Layer *layer) {
 	}
 }
 
-void LayerStack::PopOverlay(Layer *overlay) {
+void LayerStack::PopOverlay(const std::shared_ptr<Layer> &overlay) {
 	auto it = std::find(m_Layers.begin(), m_Layers.end(), overlay);
 	if (it != m_Layers.end()) {
 		overlay->OnDetach();

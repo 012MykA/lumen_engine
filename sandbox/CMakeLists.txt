@@ -3,6 +3,7 @@ project(sandbox)
 
 add_executable(${PROJECT_NAME}
     src/SandboxApp.cpp
+    src/ExampleLayer.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

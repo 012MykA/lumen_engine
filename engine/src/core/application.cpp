@@ -6,28 +6,12 @@
 #include <array>
 #include <cassert>
 #include <chrono>
-#include <print>
 #include <thread>
 
 namespace lm {
-
-class TestLayer : public Layer {
-public:
-	TestLayer() : Layer("TestLayer") {}
-
-	virtual void OnEvent(Event &e) override {
-		std::println("{}", e.ToString());
-	}
-};
-
 Application::Application(const ApplicationCommandLineArgs &args) : m_Args(args) {
 	assert(!s_Instance && "Application already exists!");
 	s_Instance = this;
-
-	auto mainWin = CreateWindow(WindowDesc{});
-	mainWin->GetLayerStack().PushLayer(new TestLayer{});
-
-	auto secWin = CreateWindow(WindowDesc{});
 }
 
 Application::~Application() {
@@ -35,9 +19,17 @@ Application::~Application() {
 }
 
 void Application::Run() {
+	auto lastTime = std::chrono::steady_clock::now();
+
 	while (m_Running) {
+		auto now = std::chrono::steady_clock::now();
+		float ts = std::chrono::duration<float>(now - lastTime).count();
+		lastTime = now;
+
 		for (auto &window : m_Windows) {
 			window->OnUpdate();
+			window->UpdateLayers(ts);
+			window->RenderLayers();
 		}
 
 		if (!m_WindowsToDelete.empty()) {

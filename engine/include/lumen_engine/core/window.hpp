@@ -25,8 +25,11 @@ public:
 
 	virtual ~Window() = default;
 
-	void OnEvent(Event &e);
 	virtual void OnUpdate() = 0;
+	void UpdateLayers(float ts);
+	void RenderLayers();
+
+	void OnEvent(Event &e);
 
 	virtual bool ShouldClose() const = 0;
 	virtual uint32_t GetWidth() const = 0;
