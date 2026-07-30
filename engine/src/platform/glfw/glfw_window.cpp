@@ -121,6 +121,12 @@ void GlfwWindowDriver::InitCallbacks() {
 		}
 	});
 
+	glfwSetCharCallback(m_Handle, [](GLFWwindow *window, unsigned int codepoint) {
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+		KeyTypedEvent e{ static_cast<KeyCode>(codepoint) };
+		self->OnEvent(e);
+	});
+
 	glfwSetCursorPosCallback(m_Handle, [](GLFWwindow *window, double xpos, double ypos) {
 		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
 		MouseMovedEvent e{ static_cast<float>(xpos), static_cast<float>(ypos) };
