@@ -1,9 +1,12 @@
 #include "glfw_window.hpp"
 
+#include "lumen_engine/events/keyboard_events.hpp"
+#include "lumen_engine/events/mouse_events.hpp"
 #include "lumen_engine/events/window_events.hpp"
 
 #include "platform/glfw/glfw_context.hpp"
 
+#include <format>
 #include <stdexcept>
 
 namespace lm {
@@ -64,21 +67,21 @@ WindowExtent GlfwWindowDriver::GetExtent() const {
 
 void GlfwWindowDriver::InitCallbacks() {
 	glfwSetWindowCloseCallback(m_Handle, [](GLFWwindow *window) {
-		auto self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
 
 		WindowCloseEvent e{};
 		self->OnEvent(e);
 	});
 
 	glfwSetWindowSizeCallback(m_Handle, [](GLFWwindow *window, int width, int height) {
-		auto self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
 
 		WindowResizeEvent e{ WindowExtent{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) } };
 		self->OnEvent(e);
 	});
 
 	glfwSetWindowFocusCallback(m_Handle, [](GLFWwindow *window, int focused) {
-		auto self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
 
 		if (focused) {
 			WindowFocusEvent e{};
@@ -90,10 +93,71 @@ void GlfwWindowDriver::InitCallbacks() {
 	});
 
 	glfwSetWindowPosCallback(m_Handle, [](GLFWwindow *window, int xpos, int ypos) {
-		auto self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
 
 		WindowMovedEvent e{ xpos, ypos };
 		self->OnEvent(e);
+	});
+
+	glfwSetKeyCallback(m_Handle, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+
+		switch (action) {
+			case GLFW_PRESS: {
+				KeyPressedEvent e{ static_cast<KeyCode>(key), 0 };
+				self->OnEvent(e);
+				break;
+			}
+			case GLFW_RELEASE: {
+				KeyReleasedEvent e{ static_cast<KeyCode>(key) };
+				self->OnEvent(e);
+				break;
+			}
+			case GLFW_REPEAT: {
+				KeyPressedEvent e{ static_cast<KeyCode>(key), static_cast<uint32_t>(1) };
+				self->OnEvent(e);
+				break;
+			}
+			default: {
+				throw std::runtime_error{
+					std::format("Unknown 'action' from GLFW in glfwSetKeyCallback: {}", action)
+				};
+			}
+		}
+	});
+
+	glfwSetCursorPosCallback(m_Handle, [](GLFWwindow *window, double xpos, double ypos) {
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+		MouseMovedEvent e{ static_cast<float>(xpos), static_cast<float>(ypos) };
+		self->OnEvent(e);
+	});
+
+	glfwSetScrollCallback(m_Handle, [](GLFWwindow *window, double xoffset, double yoffset) {
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+		MouseScrolledEvent e{ static_cast<float>(xoffset), static_cast<float>(yoffset) };
+		self->OnEvent(e);
+	});
+
+	glfwSetMouseButtonCallback(m_Handle, [](GLFWwindow *window, int button, int action, int mods) {
+		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
+
+		switch (action) {
+			case GLFW_PRESS: {
+				MouseButtonPressedEvent e{ static_cast<MouseCode>(button) };
+				self->OnEvent(e);
+				break;
+			}
+			case GLFW_RELEASE: {
+				MouseButtonReleasedEvent e{ static_cast<MouseCode>(button) };
+				self->OnEvent(e);
+				break;
+			}
+			default: {
+				throw std::runtime_error{
+					std::format("Unknown 'action' from GLFW in glfwSetKeyCallback: {}", action)
+				};
+			}
+		}
 	});
 }
 

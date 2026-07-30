@@ -5,7 +5,6 @@
 
 #include <cstdint>
 #include <format>
-#include <type_traits> // std::underlying_type
 
 namespace lm {
 
@@ -18,7 +17,7 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Keyboard | EventCategory::Input)
 
 protected:
-	KeyEvent(Keycode key) : m_Key{ key } {}
+	KeyEvent(KeyCode key) : m_Key{ key } {}
 
 protected:
 	KeyCode m_Key;
@@ -31,8 +30,7 @@ public:
 	uint32_t GetRepeatCount() const { return m_RepeatCount; }
 
 	std::string ToString() const override {
-		using T = std::underlying_type<KeyCode>;
-		return std::format("KeyPressedEvent: {}", static_cast<T>(m_Key));
+		return std::format("KeyPressedEvent: {}, repeatCount={}", m_Key, m_RepeatCount);
 	}
 
 	EVENT_CLASS_TYPE(KeyPressed);
@@ -43,11 +41,10 @@ private:
 
 class KeyReleasedEvent : public KeyEvent {
 public:
-	KeyPressedEvent(KeyCode key) : KeyEvent{ key } {}
+	KeyReleasedEvent(KeyCode key) : KeyEvent{ key } {}
 
 	std::string ToString() const override {
-		using T = std::underlying_type<KeyCode>;
-		return std::format("KeyReleasedEvent: {}", static_cast<T>(m_Key));
+		return std::format("KeyReleasedEvent: {}", m_Key);
 	}
 
 	EVENT_CLASS_TYPE(KeyReleased);
@@ -58,8 +55,7 @@ public:
 	KeyTypedEvent(KeyCode key) : KeyEvent{ key } {}
 
 	std::string ToString() const override {
-		using T = std::underlying_type<KeyCode>;
-		return std::format("KeyTypedEvent: {}", static_cast<T>(m_Key));
+		return std::format("KeyTypedEvent: {}", m_Key);
 	}
 
 	EVENT_CLASS_TYPE(KeyTyped);

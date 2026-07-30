@@ -87,7 +87,6 @@ bool Application::OnWindowClose(Window *sender, WindowCloseEvent &e) {
 
 bool Application::OnWindowFocus(Window *sender, WindowFocusEvent &e) {
 	Input::SetActiveWindow(sender);
-
 	return true;
 }
 

@@ -4,7 +4,6 @@
 #include "lumen_engine/io/mouse_codes.hpp"
 
 #include <format>
-#include <type_traits> // for std::underlying_type
 #include <utility> // for std::pair
 
 namespace lm {
@@ -67,8 +66,7 @@ public:
 	MouseButtonPressedEvent(MouseCode button) : MouseButtonEvent{ button } {}
 
 	std::string ToString() const override {
-		using T = std::underlying_type<MouseCode>;
-		return std::format("MouseButtonPressedEvent: {}", static_cast<T>(m_Button));
+		return std::format("MouseButtonPressedEvent: {}", m_Button);
 	}
 
 	EVENT_CLASS_TYPE(MouseButtonPressed)
@@ -79,8 +77,7 @@ public:
 	MouseButtonReleasedEvent(MouseCode button) : MouseButtonEvent{ button } {}
 
 	std::string ToString() const override {
-		using T = std::underlying_type<MouseCode>;
-		return std::format("MouseButtonReleasedEvent: {}", static_cast<T>(m_Button));
+		return std::format("MouseButtonReleasedEvent: {}", m_Button);
 	}
 
 	EVENT_CLASS_TYPE(MouseButtonReleased)

@@ -5,16 +5,9 @@
 ExampleLayer::ExampleLayer() : Layer("ExampleLayer") {}
 
 void ExampleLayer::OnEvent(lm::Event &e) {
-	std::println("{}", e.ToString());
-
-	if (e.IsInCategory(lm::EventCategory::Input)) {
-		// TODO: key & mouse events;
-		// std::println("Input handled: {}", e.ToString());
+	if (e.GetEventType() == lm::EventType::MouseScrolled) {
+		std::println("Mouse scrolled: {}", e.ToString());
 	}
 }
 
-void ExampleLayer::OnUpdate(float ts) {
-	if (lm::Input::IsKeyPressed(lm::Key::W)) {
-		std::println("W pressed!");
-	}
-}
+void ExampleLayer::OnUpdate(float ts) {}
