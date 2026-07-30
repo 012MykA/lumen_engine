@@ -1,10 +1,11 @@
 #pragma once
 
+#include "lumen_engine/core/export.hpp"
 #include "lumen_engine/core/window.hpp"
 #include "lumen_engine/events/event.hpp"
 
 #include <cstdint>
-#include <format>
+#include <string>
 
 namespace lm {
 
@@ -18,13 +19,11 @@ public:
 
 class LUMEN_API WindowResizeEvent : public Event {
 public:
-	WindowResizeEvent(WindowExtent extent) : m_Extent{ extent } {}
+	WindowResizeEvent(WindowExtent extent);
 
 	WindowExtent GetExtent() const { return m_Extent; }
 
-	std::string ToString() const override {
-		return std::format("WindowResize: {}, {}", m_Extent.width, m_Extent.height);
-	}
+	std::string ToString() const override;
 
 	EVENT_CLASS_TYPE(WindowResize)
 	EVENT_CLASS_CATEGORY(EventCategory::Window)
@@ -57,9 +56,7 @@ public:
 	int32_t GetX() const { return m_PositionX; }
 	int32_t GetY() const { return m_PositionY; }
 
-	std::string ToString() const override {
-		return std::format("WindowMoved: {}, {}", m_PositionX, m_PositionY);
-	}
+	std::string ToString() const override;
 
 	EVENT_CLASS_TYPE(WindowMoved)
 	EVENT_CLASS_CATEGORY(EventCategory::Window)

@@ -1,43 +1,40 @@
 #pragma once
 
+#include "lumen_engine/core/export.hpp"
 #include "lumen_engine/events/event.hpp"
 #include "lumen_engine/io/mouse_codes.hpp"
 
-#include <format>
+#include <string>
 #include <utility> // for std::pair
 
 namespace lm {
 
-class MouseMovedEvent : public Event {
+class LUMEN_API MouseMovedEvent : public Event {
 public:
-	MouseMovedEvent(float xPos, float yPos) : m_PositionX{ xPos }, m_PositionY{ yPos } {}
+	MouseMovedEvent(float xPos, float yPos);
 
 	std::pair<float, float> GetPosition() const { return { m_PositionX, m_PositionY }; }
 	float GetX() const { return m_PositionX; }
 	float GetY() const { return m_PositionY; }
 
-	std::string ToString() const override {
-		return std::format("MouseMovedEvent: {}, {}", m_PositionX, m_PositionY);
-	}
+	std::string ToString() const override;
 
 	EVENT_CLASS_TYPE(MouseMoved)
 	EVENT_CLASS_CATEGORY(EventCategory::Mouse | EventCategory::Input)
 
-public:
+private:
 	float m_PositionX, m_PositionY;
 };
 
-class MouseScrolledEvent : public Event {
+class LUMEN_API MouseScrolledEvent : public Event {
 public:
-	MouseScrolledEvent(float xOffset, float yOffset) : m_OffsetX{ xOffset }, m_OffsetY{ yOffset } {}
+	MouseScrolledEvent(float xOffset, float yOffset);
 
 	std::pair<float, float> GetOffset() const { return { m_OffsetX, m_OffsetY }; }
 	float GetX() const { return m_OffsetX; }
 	float GetY() const { return m_OffsetY; }
 
-	std::string ToString() const override {
-		return std::format("MouseScrolledEvent: {}, {}", m_OffsetX, m_OffsetY);
-	}
+	std::string ToString() const override;
 
 	EVENT_CLASS_TYPE(MouseScrolled)
 	EVENT_CLASS_CATEGORY(EventCategory::Mouse | EventCategory::Input)
@@ -46,7 +43,7 @@ private:
 	float m_OffsetX, m_OffsetY;
 };
 
-class MouseButtonEvent : public Event {
+class LUMEN_API MouseButtonEvent : public Event {
 public:
 	virtual ~MouseButtonEvent() = default;
 
@@ -55,30 +52,26 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Mouse | EventCategory::Input)
 
 protected:
-	MouseButtonEvent(MouseCode button) : m_Button{ button } {}
+	MouseButtonEvent(MouseCode button);
 
 protected:
 	MouseCode m_Button;
 };
 
-class MouseButtonPressedEvent : public MouseButtonEvent {
+class LUMEN_API MouseButtonPressedEvent : public MouseButtonEvent {
 public:
-	MouseButtonPressedEvent(MouseCode button) : MouseButtonEvent{ button } {}
+	MouseButtonPressedEvent(MouseCode button);
 
-	std::string ToString() const override {
-		return std::format("MouseButtonPressedEvent: {}", m_Button);
-	}
+	std::string ToString() const override;
 
 	EVENT_CLASS_TYPE(MouseButtonPressed)
 };
 
-class MouseButtonReleasedEvent : public MouseButtonEvent {
+class LUMEN_API MouseButtonReleasedEvent : public MouseButtonEvent {
 public:
-	MouseButtonReleasedEvent(MouseCode button) : MouseButtonEvent{ button } {}
+	MouseButtonReleasedEvent(MouseCode button);
 
-	std::string ToString() const override {
-		return std::format("MouseButtonReleasedEvent: {}", m_Button);
-	}
+	std::string ToString() const override;
 
 	EVENT_CLASS_TYPE(MouseButtonReleased)
 };

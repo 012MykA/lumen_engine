@@ -29,6 +29,9 @@ add_library(${LUMEN_ENGINE_BINARY_NAME}
     src/core/window.cpp
 
     src/events/event.cpp
+    src/events/keyboard_events.cpp
+    src/events/mouse_events.cpp
+    src/events/window_events.cpp
 
     src/platform/glfw/glfw_context.cpp
     src/platform/glfw/glfw_input.cpp
