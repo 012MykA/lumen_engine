@@ -118,11 +118,6 @@ void GlfwWindowDriver::InitCallbacks() {
 				self->OnEvent(e);
 				break;
 			}
-			default: {
-				throw std::runtime_error{
-					std::format("Unknown 'action' from GLFW in glfwSetKeyCallback: {}", action)
-				};
-			}
 		}
 	});
 
@@ -151,11 +146,6 @@ void GlfwWindowDriver::InitCallbacks() {
 				MouseButtonReleasedEvent e{ static_cast<MouseCode>(button) };
 				self->OnEvent(e);
 				break;
-			}
-			default: {
-				throw std::runtime_error{
-					std::format("Unknown 'action' from GLFW in glfwSetKeyCallback: {}", action)
-				};
 			}
 		}
 	});
