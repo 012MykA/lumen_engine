@@ -4,7 +4,7 @@
 
 class ExampleLayer : public lm::Layer {
 public:
-	ExampleLayer() : Layer("ExampleLayer") {}
+	ExampleLayer();
 
 	void OnEvent(lm::Event &e) override;
 	void OnUpdate(float ts) override;

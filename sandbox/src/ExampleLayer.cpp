@@ -2,6 +2,8 @@
 
 #include <print>
 
+ExampleLayer::ExampleLayer() : Layer("ExampleLayer") {}
+
 void ExampleLayer::OnEvent(lm::Event &e) {
 	std::println("{}", e.ToString());
 

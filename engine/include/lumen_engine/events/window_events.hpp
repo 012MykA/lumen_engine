@@ -21,6 +21,7 @@ public:
 	WindowResizeEvent(WindowExtent extent) : m_Extent{ extent } {}
 
 	WindowExtent GetExtent() const { return m_Extent; }
+
 	std::string ToString() const override {
 		return std::format("WindowResize: {}, {}", m_Extent.width, m_Extent.height);
 	}
@@ -52,8 +53,10 @@ class LUMEN_API WindowMovedEvent : public Event {
 public:
 	WindowMovedEvent(int32_t x, int32_t y) : m_PositionX{ x }, m_PositionY{ y } {}
 
+	std::pair<float, float> GetPosition() const { return { m_PositionX, m_PositionY }; }
 	int32_t GetX() const { return m_PositionX; }
 	int32_t GetY() const { return m_PositionY; }
+
 	std::string ToString() const override {
 		return std::format("WindowMoved: {}, {}", m_PositionX, m_PositionY);
 	}

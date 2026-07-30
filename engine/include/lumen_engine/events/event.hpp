@@ -61,34 +61,6 @@ enum class EventType {
 	MouseButtonReleased,
 };
 
-constexpr std::string_view EventTypeToString(EventType type) noexcept {
-	using namespace std::string_view_literals;
-
-	switch (type) { // clang-format off
-        case EventType::None:                   return "None"sv;
-        
-		case EventType::WindowClose:            return "WindowClose"sv;
-		case EventType::WindowResize:           return "WindowResize"sv;
-		case EventType::WindowFocus:            return "WindowFocus"sv;
-		case EventType::WindowLostFocus:        return "WindowLostFocus"sv;
-		case EventType::WindowMoved:            return "WindowMoved"sv;
-
-		case EventType::AppTick:                return "AppTick"sv;
-		case EventType::AppUpdate:              return "AppUpdate"sv;
-		case EventType::AppRender:              return "AppRender"sv;
-
-		case EventType::KeyPressed:             return "KeyPressed"sv;
-		case EventType::KeyReleased:            return "KeyReleased"sv;
-		case EventType::KeyTyped:               return "KeyTyped"sv;
-
-		case EventType::MouseMoved:             return "MouseMoved"sv;
-		case EventType::MouseScrolled:          return "MouseScrolled"sv;
-		case EventType::MouseButtonPressed:     return "MouseButtonPressed"sv;
-		case EventType::MouseButtonReleased:    return "MouseButtonReleased"sv;
-	} // clang-format on
-	return "Unknown"sv;
-}
-
 class LUMEN_API Event {
 public:
 	virtual ~Event() = default;
