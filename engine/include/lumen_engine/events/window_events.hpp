@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lumen_engine/core/window.hpp"
 #include "lumen_engine/events/event.hpp"
 
 #include <cstdint>
@@ -17,19 +18,18 @@ public:
 
 class LUMEN_API WindowResizeEvent : public Event {
 public:
-	WindowResizeEvent(uint32_t width, uint32_t height) : m_Width{ width }, m_Height{ height } {}
+	WindowResizeEvent(WindowExtent extent) : m_Extent{ extent } {}
 
-	uint32_t GetWidth() const { return m_Width; }
-	uint32_t GetHeight() const { return m_Height; }
+	WindowExtent GetExtent() const { return m_Extent; }
 	std::string ToString() const override {
-		return std::format("WindowResize: {}, {}", m_Width, m_Height);
+		return std::format("WindowResize: {}, {}", m_Extent.width, m_Extent.height);
 	}
 
 	EVENT_CLASS_TYPE(WindowResize)
 	EVENT_CLASS_CATEGORY(Window)
 
 private:
-	uint32_t m_Width, m_Height;
+	WindowExtent m_Extent;
 };
 
 class LUMEN_API WindowFocusEvent : public Event {

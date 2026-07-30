@@ -96,7 +96,7 @@ public:
 	virtual EventType GetEventType() const = 0;
 	virtual EventCategory GetCategoryFlags() const = 0;
 	virtual std::string_view GetName() const = 0;
-	virtual std::string ToString() const { return std::string(GetName()); }
+	virtual std::string ToString() const { return std::string{ GetName() }; }
 
 	bool IsInCategory(EventCategory category) const;
 

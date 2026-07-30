@@ -8,20 +8,21 @@
 
 namespace lm {
 
-GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) : m_Width(desc.width), m_Height(desc.height) {
+GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) {
 	if (!GlfwContext::Init()) {
-		throw std::runtime_error("failed to initialize GLFW");
+		throw std::runtime_error{ "failed to initialize GLFW" };
 	}
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, desc.resizable ? GLFW_TRUE : GLFW_FALSE);
 
 	m_Handle = glfwCreateWindow(
-			static_cast<int>(m_Width),
-			static_cast<int>(m_Height),
-			desc.title.c_str(),
-			nullptr, nullptr);
+			static_cast<int>(desc.extent.width),
+			static_cast<int>(desc.extent.height),
+			desc.title.c_str(), nullptr, nullptr);
 	if (!m_Handle) {
-		throw std::runtime_error("failed to create window");
+		GlfwContext::Shutdown();
+		throw std::runtime_error{ "failed to create window" };
 	}
 
 	glfwSetWindowUserPointer(m_Handle, this);
@@ -43,6 +44,24 @@ bool GlfwWindowDriver::ShouldClose() const {
 	return glfwWindowShouldClose(m_Handle);
 }
 
+void GlfwWindowDriver::SetTitle(std::string_view title) {
+	glfwSetWindowTitle(m_Handle, std::string{ title }.c_str());
+}
+
+std::string_view GlfwWindowDriver::GetTitle() const {
+	return glfwGetWindowTitle(m_Handle);
+}
+
+void GlfwWindowDriver::SetSize(WindowExtent extent) {
+	glfwSetWindowSize(m_Handle, static_cast<int>(extent.width), static_cast<int>(extent.height));
+}
+
+WindowExtent GlfwWindowDriver::GetExtent() const {
+	int w, h;
+	glfwGetFramebufferSize(m_Handle, &w, &h);
+	return { static_cast<uint32_t>(w), static_cast<uint32_t>(h) };
+}
+
 void GlfwWindowDriver::InitCallbacks() {
 	glfwSetWindowCloseCallback(m_Handle, [](GLFWwindow *window) {
 		auto self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
@@ -53,10 +72,8 @@ void GlfwWindowDriver::InitCallbacks() {
 
 	glfwSetWindowSizeCallback(m_Handle, [](GLFWwindow *window, int width, int height) {
 		auto self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
-		self->m_Width = static_cast<uint32_t>(width);
-		self->m_Height = static_cast<uint32_t>(height);
 
-		WindowResizeEvent e{ self->m_Width, self->m_Height };
+		WindowResizeEvent e{ WindowExtent{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) } };
 		self->OnEvent(e);
 	});
 

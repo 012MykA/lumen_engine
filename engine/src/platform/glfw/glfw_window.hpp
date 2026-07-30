@@ -14,16 +14,17 @@ public:
 	virtual void OnUpdate() override;
 	virtual bool ShouldClose() const override;
 
-	virtual uint32_t GetWidth() const override { return m_Width; }
-	virtual uint32_t GetHeight() const override { return m_Height; }
-	virtual void *GetNativeWindow() const override { return m_Handle; }
+	virtual void SetTitle(std::string_view title) override;
+	virtual std::string_view GetTitle() const override;
+
+	virtual void SetSize(WindowExtent extent) override;
+	virtual WindowExtent GetExtent() const override;
 
 private:
 	void InitCallbacks();
 
 private:
 	GLFWwindow *m_Handle{ nullptr };
-	uint32_t m_Width, m_Height;
 };
 
 } // namespace lm

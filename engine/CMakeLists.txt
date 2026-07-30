@@ -35,7 +35,7 @@ add_library(${LUMEN_ENGINE_BINARY_NAME}
 )
 
 # External
-find_package(glfw3 CONFIG REQUIRED)
+find_package(glfw3 3.4 CONFIG REQUIRED)
 
 target_link_libraries(${LUMEN_ENGINE_BINARY_NAME}
     glfw

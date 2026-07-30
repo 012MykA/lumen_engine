@@ -12,9 +12,16 @@
 
 namespace lm {
 
+struct WindowExtent {
+	uint32_t width{}, height{};
+
+	bool operator==(const WindowExtent &) const = default;
+};
+
 struct WindowDesc {
 	std::string title = "Lumen Engine";
-	uint32_t width{ 1280 }, height{ 720 };
+	WindowExtent extent{ 1280, 720 };
+	bool resizable{ true };
 };
 
 class LUMEN_API Window {
@@ -28,13 +35,15 @@ public:
 	virtual void OnUpdate() = 0;
 	void UpdateLayers(float ts);
 	void RenderLayers();
-
 	void OnEvent(Event &e);
 
 	virtual bool ShouldClose() const = 0;
-	virtual uint32_t GetWidth() const = 0;
-	virtual uint32_t GetHeight() const = 0;
-	virtual void *GetNativeWindow() const = 0;
+
+	virtual void SetTitle(std::string_view title) = 0;
+	virtual std::string_view GetTitle() const = 0;
+
+	virtual void SetSize(WindowExtent extent) = 0;
+	virtual WindowExtent GetExtent() const = 0;
 
 	void SetEventCallback(const EventCallbackFn &callback) { m_EventCallback = callback; }
 	LayerStack &GetLayerStack() { return m_LayerStack; }
