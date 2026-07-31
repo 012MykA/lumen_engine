@@ -33,6 +33,8 @@ add_library(${LUMEN_ENGINE_BINARY_NAME}
     src/events/mouse_events.cpp
     src/events/window_events.cpp
 
+    src/io/log.cpp
+
     src/platform/glfw/glfw_context.cpp
     src/platform/glfw/glfw_input.cpp
     src/platform/glfw/glfw_window.cpp
@@ -40,9 +42,15 @@ add_library(${LUMEN_ENGINE_BINARY_NAME}
 
 # External
 find_package(glfw3 3.4 CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
 
 target_link_libraries(${LUMEN_ENGINE_BINARY_NAME}
-    glfw
+    PUBLIC
+        spdlog::spdlog
+    PRIVATE
+        glfw
+        Vulkan::Vulkan
 )
 
 target_include_directories(${LUMEN_ENGINE_BINARY_NAME}

@@ -16,7 +16,7 @@ public:
 
 private:
 	GlfwContext() = default;
-	static inline int32_t s_RefCount{ 0 };
+	inline static int32_t s_RefCount{ 0 };
 };
 
 } // namespace lm

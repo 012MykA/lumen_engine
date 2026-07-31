@@ -1,22 +1,21 @@
 #pragma once
 
 #include "lumen_engine/core/application.hpp"
-#include "lumen_engine/core/export.hpp"
+#include "lumen_engine/io/log.hpp"
 
-#include <iostream>
-#include <print>
 #include <stdexcept>
 
 namespace lm {
 
 inline int Main(int argc, char **argv) {
+	Log::Init();
+
 	try {
 		auto app = lm::CreateApplication({ argc, argv });
-
 		app->Run();
 
 	} catch (const std::exception &e) {
-		std::println(stderr, "Citical error: {}", e.what());
+		LUMEN_CRITICAL("\n\tCitical error: {}", e.what());
 		return EXIT_FAILURE;
 	}
 

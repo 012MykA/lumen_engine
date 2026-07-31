@@ -52,7 +52,7 @@ class LUMEN_API WindowMovedEvent : public Event {
 public:
 	WindowMovedEvent(int32_t x, int32_t y) : m_PositionX{ x }, m_PositionY{ y } {}
 
-	std::pair<float, float> GetPosition() const { return { m_PositionX, m_PositionY }; }
+	std::pair<int32_t, int32_t> GetPosition() const { return { m_PositionX, m_PositionY }; }
 	int32_t GetX() const { return m_PositionX; }
 	int32_t GetY() const { return m_PositionY; }
 

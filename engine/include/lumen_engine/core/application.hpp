@@ -50,7 +50,7 @@ private:
 	std::vector<Window *> m_WindowsToDelete;
 
 private:
-	static inline Application *s_Instance{ nullptr };
+	inline static Application *s_Instance{ nullptr };
 };
 
 std::unique_ptr<Application> CreateApplication(const ApplicationCommandLineArgs &args);

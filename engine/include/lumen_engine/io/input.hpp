@@ -26,7 +26,7 @@ public:
 
 private:
 	Input() = default;
-	static inline Window *s_ActiveWindow{ nullptr };
+	inline static Window *s_ActiveWindow{ nullptr };
 };
 
 } // namespace lm
