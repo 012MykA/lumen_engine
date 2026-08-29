@@ -27,18 +27,18 @@ private:
 
 // clang-format off
 	// Core log macros
-    #define LUMEN_TRACE(...)			::lm::Log::GetEngineLogger()->trace(__VA_ARGS__)
-    #define LUMEN_INFO(...)				::lm::Log::GetEngineLogger()->info(__VA_ARGS__)
-    #define LUMEN_WARN(...)				::lm::Log::GetEngineLogger()->warn(__VA_ARGS__)
-    #define LUMEN_ERROR(...)			::lm::Log::GetEngineLogger()->error(__VA_ARGS__)
-    #define LUMEN_CRITICAL(...)			::lm::Log::GetEngineLogger()->critical(__VA_ARGS__)
+    #define LUMEN_CORE_TRACE(...)		::lm::Log::GetEngineLogger()->trace(__VA_ARGS__)
+    #define LUMEN_CORE_INFO(...)		::lm::Log::GetEngineLogger()->info(__VA_ARGS__)
+    #define LUMEN_CORE_WARN(...)		::lm::Log::GetEngineLogger()->warn(__VA_ARGS__)
+    #define LUMEN_CORE_ERROR(...)		::lm::Log::GetEngineLogger()->error(__VA_ARGS__)
+    #define LUMEN_CORE_CRITICAL(...)	::lm::Log::GetEngineLogger()->critical(__VA_ARGS__)
 
     // Client log macros
-    #define APP_TRACE(...)              ::lm::Log::GetAppLogger()->trace(__VA_ARGS__)
-    #define APP_INFO(...)               ::lm::Log::GetAppLogger()->info(__VA_ARGS__)
-    #define APP_WARN(...)               ::lm::Log::GetAppLogger()->warn(__VA_ARGS__)
-    #define APP_ERROR(...)              ::lm::Log::GetAppLogger()->error(__VA_ARGS__)
-    #define APP_CRITICAL(...)           ::lm::Log::GetAppLogger()->critical(__VA_ARGS__)
+    #define LUMEN_TRACE(...)			::lm::Log::GetAppLogger()->trace(__VA_ARGS__)
+    #define LUMEN_INFO(...)				::lm::Log::GetAppLogger()->info(__VA_ARGS__)
+    #define LUMEN_WARN(...)				::lm::Log::GetAppLogger()->warn(__VA_ARGS__)
+    #define LUMEN_ERROR(...)			::lm::Log::GetAppLogger()->error(__VA_ARGS__)
+    #define LUMEN_CRITICAL(...)			::lm::Log::GetAppLogger()->critical(__VA_ARGS__)
 // clang-format on
 
 #else
@@ -51,10 +51,10 @@ private:
 	#define LUMEN_CORE_CRITICAL(...)
 
 	// Client log macros
-	#define APP_TRACE(...)
-	#define APP_INFO(...)
-	#define APP_WARN(...)
-	#define APP_ERROR(...)
-	#define APP_CRITICAL(...)
+	#define LUMEN_TRACE(...)
+	#define LUMEN_INFO(...)
+	#define LUMEN_WARN(...)
+	#define LUMEN_ERROR(...)
+	#define LUMEN_CRITICAL(...)
 
 #endif
