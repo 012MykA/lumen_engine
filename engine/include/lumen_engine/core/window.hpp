@@ -2,27 +2,14 @@
 
 #include "lumen_engine/core/export.hpp"
 #include "lumen_engine/core/layer_stack.hpp"
+#include "lumen_engine/core/window_desc.hpp"
 #include "lumen_engine/events/event.hpp"
 
-#include <cstdint>
 #include <functional>
 #include <memory>
-#include <string>
 #include <string_view>
 
 namespace lm {
-
-struct WindowExtent {
-	uint32_t width{}, height{};
-
-	bool operator==(const WindowExtent &) const = default;
-};
-
-struct WindowDesc {
-	std::string title = "Lumen Engine";
-	WindowExtent extent{ 1280, 720 };
-	bool resizable{ true };
-};
 
 class LUMEN_API Window {
 public:

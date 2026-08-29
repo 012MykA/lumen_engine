@@ -1,6 +1,8 @@
 #include "lumen_engine/core/application.hpp"
 
+#include "lumen_engine/core/window.hpp"
 #include "lumen_engine/events/event_dispatcher.hpp"
+#include "lumen_engine/events/window_events.hpp"
 #include "lumen_engine/io/input.hpp"
 
 #include <algorithm>
@@ -10,6 +12,7 @@
 #include <thread>
 
 namespace lm {
+
 Application::Application(const ApplicationCommandLineArgs &args) : m_Args(args) {
 	assert(!s_Instance && "Application already exists!");
 	s_Instance = this;

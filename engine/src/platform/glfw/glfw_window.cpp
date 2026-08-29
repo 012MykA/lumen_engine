@@ -18,6 +18,7 @@ GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) {
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, desc.resizable ? GLFW_TRUE : GLFW_FALSE);
+	glfwWindowHint(GLFW_FOCUSED, desc.focused ? GLFW_TRUE : GLFW_FALSE);
 
 	m_Handle = glfwCreateWindow(
 			static_cast<int>(desc.extent.width),

@@ -1,8 +1,6 @@
 #pragma once
 
 #include "lumen_engine/core/export.hpp"
-#include "lumen_engine/core/window.hpp"
-#include "lumen_engine/events/window_events.hpp"
 
 #include <memory>
 #include <string>
@@ -17,6 +15,13 @@ struct LUMEN_API ApplicationCommandLineArgs {
 
 	std::vector<std::string> args;
 };
+
+class Window;
+struct WindowDesc;
+
+class Event;
+class WindowCloseEvent;
+class WindowFocusEvent;
 
 class LUMEN_API Application {
 public:
