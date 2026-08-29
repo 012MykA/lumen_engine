@@ -2,7 +2,7 @@
 
 #include "lumen_engine/windowing/window.hpp"
 
-#include <GLFW/glfw3.h>
+class GLFWwindow;
 
 namespace lm {
 
@@ -20,7 +20,7 @@ public:
 	void SetExtent(WindowExtent extent) override;
 	WindowExtent GetExtent() const override;
 
-	void *GetNativeWindow() const override { return m_Handle; }
+	void *GetNativeWindow() const override;
 
 private:
 	void InitCallbacks();

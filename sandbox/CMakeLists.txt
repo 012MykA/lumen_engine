@@ -4,6 +4,7 @@ project(sandbox)
 add_executable(${PROJECT_NAME}
     src/sandbox_app.cpp
     src/example_layer.cpp
+    src/vulkan_renderer_layer.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

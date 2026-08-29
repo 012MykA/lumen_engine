@@ -6,6 +6,16 @@
 
 #include "platform/glfw/glfw_context.hpp"
 
+#if defined(LUMEN_PLATFORM_WINDOWS)
+	#define GLFW_EXPOSE_NATIVE_WIN32
+#elif defined(LUMEN_PLATFORM_LINUX)
+	#define GLFW_EXPOSE_NATIVE_X11
+	#define GLFW_EXPOSE_NATIVE_WAYLAND
+#endif
+
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
+
 #include <format>
 #include <stdexcept>
 
@@ -64,6 +74,22 @@ WindowExtent GlfwWindowDriver::GetExtent() const {
 	int w, h;
 	glfwGetFramebufferSize(m_Handle, &w, &h);
 	return { static_cast<uint32_t>(w), static_cast<uint32_t>(h) };
+}
+
+void *GlfwWindowDriver::GetNativeWindow() const {
+#if defined(LUMEN_PLATFORM_WINDOWS)
+	return reinterpret_cast<void *>(glfwGetWin32Window(m_Handle));
+#elif defined(LUMEN_PLATFORM_LINUX)
+	int platform = glfwGetPlatform();
+	if (platform == GLFW_PLATFORM_WAYLAND) {
+		return reinterpret_cast<void *>(glfwGetWaylandWindow(m_Handle));
+	} else if (platform == GLFW_PLATFORM_X11) {
+		return reinterpret_cast<void *>(static_cast<uintptr_t>(glfwGetX11Window(m_Handle)));
+	}
+	return nullptr;
+#else
+	return nullptr;
+#endif
 }
 
 void GlfwWindowDriver::InitCallbacks() {
