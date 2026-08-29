@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 project(engine)
 
-set(LUMEN_ENGINE_NAME "lumen_engine")
-set(LUMEN_ENGINE_BINARY_NAME "lumen_engine")
-
 option(BUILD_SHARED_LIBS "Build libraries as shared" ON)
 
 # Platform
@@ -22,62 +19,29 @@ else()
     message(FATAL_ERROR "Unknown platform!")
 endif()
 
-add_library(${LUMEN_ENGINE_BINARY_NAME}
-    src/core/application.cpp
-    src/core/layer.cpp
-    src/core/layer_stack.cpp
+add_library(engine_common INTERFACE)
 
-    src/events/event.cpp
-    src/events/keyboard_events.cpp
-    src/events/mouse_events.cpp
-    src/events/window_events.cpp
-
-    src/io/log.cpp
-
-    src/platform/glfw/glfw_context.cpp
-    src/platform/glfw/glfw_input.cpp
-    src/platform/glfw/glfw_window.cpp
-
-    src/windowing/window.cpp
-    src/windowing/window_manager.cpp
+target_compile_definitions(engine_common INTERFACE
+    ${LUMEN_PLATFORM_DEF}
+    $<$<BOOL:${BUILD_SHARED_LIBS}>:LUMEN_DYNAMIC_LINK>
+    $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:LUMEN_STATIC_LINK>
 )
+target_compile_features(engine_common INTERFACE cxx_std_23)
+add_library(engine::common ALIAS engine_common)
 
-# External
-find_package(glfw3 3.4 CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
+add_subdirectory(core)
+add_subdirectory(events)
+add_subdirectory(windowing)
+add_subdirectory(io)
+add_subdirectory(app)
 
-target_link_libraries(${LUMEN_ENGINE_BINARY_NAME}
-    PUBLIC
-        spdlog::spdlog
-    PRIVATE
-        glfw
+add_library(lumen_engine INTERFACE)
+target_link_libraries(lumen_engine INTERFACE
+    engine::core
+    engine::events
+    engine::windowing
+    engine::io
+    engine::app
 )
-
-target_include_directories(${LUMEN_ENGINE_BINARY_NAME}
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-    
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-target_compile_definitions(${LUMEN_ENGINE_BINARY_NAME}
-    PUBLIC
-        ${LUMEN_PLATFORM_DEF}
-)
-
-if (BUILD_SHARED_LIBS)
-    target_compile_definitions(${LUMEN_ENGINE_BINARY_NAME}
-        PUBLIC
-            LUMEN_DYNAMIC_LINK
-        PRIVATE
-            LUMEN_BUILD_DLL
-    )
-else()
-    target_compile_definitions(${LUMEN_ENGINE_BINARY_NAME}
-        PUBLIC
-            LUMEN_STATIC_LINK
-    )
-endif()
-
-target_compile_features(${LUMEN_ENGINE_BINARY_NAME} PUBLIC cxx_std_23)
+target_include_directories(lumen_engine INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_library(lumen::engine ALIAS lumen_engine)
