@@ -43,14 +43,12 @@ add_library(${LUMEN_ENGINE_BINARY_NAME}
 # External
 find_package(glfw3 3.4 CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-find_package(Vulkan REQUIRED)
 
 target_link_libraries(${LUMEN_ENGINE_BINARY_NAME}
     PUBLIC
         spdlog::spdlog
     PRIVATE
         glfw
-        Vulkan::Vulkan
 )
 
 target_include_directories(${LUMEN_ENGINE_BINARY_NAME}
