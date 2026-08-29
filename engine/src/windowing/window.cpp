@@ -1,4 +1,4 @@
-#include "lumen_engine/core/window.hpp"
+#include "lumen_engine/windowing/window.hpp"
 
 #include "platform/glfw/glfw_window.hpp"
 

@@ -1,5 +1,5 @@
-#include "lumen_engine/core/window.hpp"
 #include "lumen_engine/io/input.hpp"
+#include "lumen_engine/windowing/window.hpp"
 
 #include <GLFW/glfw3.h>
 

@@ -2,8 +2,8 @@
 
 #include "lumen_engine/core/export.hpp"
 #include "lumen_engine/core/layer_stack.hpp"
-#include "lumen_engine/core/window_desc.hpp"
 #include "lumen_engine/events/event.hpp"
+#include "lumen_engine/windowing/window_desc.hpp"
 
 #include <functional>
 #include <memory>

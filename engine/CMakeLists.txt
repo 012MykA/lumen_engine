@@ -26,7 +26,6 @@ add_library(${LUMEN_ENGINE_BINARY_NAME}
     src/core/application.cpp
     src/core/layer.cpp
     src/core/layer_stack.cpp
-    src/core/window.cpp
 
     src/events/event.cpp
     src/events/keyboard_events.cpp
@@ -38,6 +37,9 @@ add_library(${LUMEN_ENGINE_BINARY_NAME}
     src/platform/glfw/glfw_context.cpp
     src/platform/glfw/glfw_input.cpp
     src/platform/glfw/glfw_window.cpp
+
+    src/windowing/window.cpp
+    src/windowing/window_manager.cpp
 )
 
 # External

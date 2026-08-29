@@ -1,9 +1,9 @@
 #include "lumen_engine/core/application.hpp"
 
-#include "lumen_engine/core/window.hpp"
 #include "lumen_engine/events/event_dispatcher.hpp"
 #include "lumen_engine/events/window_events.hpp"
 #include "lumen_engine/io/input.hpp"
+#include "lumen_engine/windowing/window.hpp"
 
 #include <algorithm>
 #include <array>
@@ -30,23 +30,15 @@ void Application::Run() {
 		float ts = std::chrono::duration<float>(now - lastTime).count();
 		lastTime = now;
 
-		for (auto &window : m_Windows) {
+		for (auto &window : m_WindowManager) {
 			window->OnUpdate();
 			window->UpdateLayers(ts);
 			window->RenderLayers();
 		}
 
-		if (!m_WindowsToDelete.empty()) {
-			for (Window *toDelete : m_WindowsToDelete) {
-				std::erase_if(m_Windows, [toDelete](const auto &w) {
-					return w.get() == toDelete;
-				});
-			}
-			m_WindowsToDelete.clear();
-
-			if (m_Windows.empty()) {
-				Close();
-			}
+		m_WindowManager.ProcessPendingDestructions();
+		if (m_WindowManager.IsEmpty()) {
+			Close();
 		}
 	}
 }
@@ -56,17 +48,11 @@ void Application::Close() {
 }
 
 Window *Application::CreateWindow(const WindowDesc &desc) {
-	auto window = Window::Create(desc);
-	Window *windowPtr = window.get();
-	window->SetEventCallback([this, windowPtr](Event &e) {
-		OnEvent(windowPtr, e);
+	Window *window = m_WindowManager.CreateWindow(desc, [this](Window *sender, Event &e) {
+		OnWindowEvent(sender, e);
 	});
-
-	m_Windows.push_back(std::move(window));
-
-	Input::SetActiveWindow(windowPtr);
-
-	return windowPtr;
+	Input::SetActiveWindow(window);
+	return window;
 }
 
 void Application::OnEvent(Window *sender, Event &e) {
@@ -79,12 +65,14 @@ void Application::OnEvent(Window *sender, Event &e) {
 	});
 }
 
-bool Application::OnWindowClose(Window *sender, WindowCloseEvent &e) {
-	auto it = std::find(m_WindowsToDelete.begin(), m_WindowsToDelete.end(), sender);
-	if (it == m_WindowsToDelete.end()) {
-		m_WindowsToDelete.push_back(sender);
-	}
+void Application::OnWindowEvent(Window *sender, Event &e) {
+	EventDispatcher dp(e);
+	dp.Dispatch<WindowCloseEvent>([this, sender](auto &ev) { return OnWindowClose(sender, ev); });
+	dp.Dispatch<WindowFocusEvent>([this, sender](auto &ev) { return OnWindowFocus(sender, ev); });
+}
 
+bool Application::OnWindowClose(Window *sender, WindowCloseEvent &e) {
+	m_WindowManager.MarkForDestruction(sender);
 	return true;
 }
 

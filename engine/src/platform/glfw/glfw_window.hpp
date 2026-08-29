@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lumen_engine/core/window.hpp"
+#include "lumen_engine/windowing/window.hpp"
 
 #include <GLFW/glfw3.h>
 
