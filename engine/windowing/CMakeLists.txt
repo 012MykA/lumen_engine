@@ -5,7 +5,7 @@ add_library(engine_windowing
     src/window.cpp
     
     src/platform/glfw/glfw_context.cpp
-    src/platform/glfw/glfw_window.cpp
+    src/platform/glfw/glfw_window_driver.cpp
 )
 
 target_include_directories(engine_windowing
