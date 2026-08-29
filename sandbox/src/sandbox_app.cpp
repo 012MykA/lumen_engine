@@ -1,4 +1,4 @@
-#include "example_layer.hpp"
+#include "vulkan_renderer_layer.hpp"
 
 #include <lumen_engine/app/entry_point.hpp>
 
@@ -17,8 +17,8 @@ public:
 #endif
 		std::println("Built as: {}", buildType);
 
-		m_MainWindow = CreateWindow(lm::WindowDesc{});
-		m_MainWindow->GetLayerStack().PushLayer<ExampleLayer>();
+		m_MainWindow = CreateWindow({});
+		m_MainWindow->PushLayer<VulkanRendererLayer>(m_MainWindow);
 	}
 
 private:

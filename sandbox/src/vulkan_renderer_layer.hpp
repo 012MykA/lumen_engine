@@ -1,6 +1,7 @@
 #pragma once
 
 #include <lumen_engine/lumen_engine.hpp>
+#include <vulkan/vulkan.h>
 
 class VulkanRendererLayer : public lm::Layer {
 public:
@@ -13,4 +14,6 @@ public:
 
 private:
 	lm::Window *m_Window;
+	VkInstance m_Instance;
+	VkDebugUtilsMessengerEXT m_DebugMessenger;
 };

@@ -1,14 +1,16 @@
 cmake_minimum_required(VERSION 3.23)
 project(sandbox)
 
+find_package(Vulkan REQUIRED)
+
 add_executable(${PROJECT_NAME}
     src/sandbox_app.cpp
-    src/example_layer.cpp
     src/vulkan_renderer_layer.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
     lumen::engine
+    Vulkan::Vulkan
 )
 
 if (WIN32 AND BUILD_SHARED_LIBS)

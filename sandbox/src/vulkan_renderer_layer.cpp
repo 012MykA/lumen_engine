@@ -3,6 +3,7 @@
 VulkanRendererLayer::VulkanRendererLayer(lm::Window *window) : Layer{ "VulkanRendererLayer" }, m_Window{ window } {}
 
 void VulkanRendererLayer::OnAttach() {
+    
 }
 
 void VulkanRendererLayer::OnDetach() {
