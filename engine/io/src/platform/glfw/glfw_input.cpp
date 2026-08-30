@@ -5,11 +5,16 @@
 
 namespace lm {
 
+// TODO: Rework input system
+/*
+Because Window::GetNativeHandle() now returns OS native window handle not GLFW
+*/
+
 bool Input::IsKeyPressed(KeyCode key) {
 	if (!s_ActiveWindow) {
 		return false;
 	}
-	auto *handle = static_cast<GLFWwindow *>(s_ActiveWindow->GetNativeWindow());
+	auto *handle = static_cast<GLFWwindow *>(s_ActiveWindow->GetNativeHandle());
 	int state = glfwGetKey(handle, static_cast<int>(key));
 	return state == GLFW_PRESS || state == GLFW_REPEAT;
 }
@@ -18,7 +23,7 @@ bool lm::Input::IsMouseButtonPressed(MouseCode button) {
 	if (!s_ActiveWindow) {
 		return false;
 	}
-	auto *handle = static_cast<GLFWwindow *>(s_ActiveWindow->GetNativeWindow());
+	auto *handle = static_cast<GLFWwindow *>(s_ActiveWindow->GetNativeHandle());
 	int state = glfwGetMouseButton(handle, static_cast<int>(button));
 	return state == GLFW_PRESS;
 }
@@ -27,7 +32,7 @@ std::pair<float, float> Input::GetMousePosition() {
 	if (!s_ActiveWindow) {
 		return { 0.0f, 0.0f };
 	}
-	auto *handle = static_cast<GLFWwindow *>(s_ActiveWindow->GetNativeWindow());
+	auto *handle = static_cast<GLFWwindow *>(s_ActiveWindow->GetNativeHandle());
 	double x, y;
 	glfwGetCursorPos(handle, &x, &y);
 	return { static_cast<float>(x), static_cast<float>(y) };

@@ -5,15 +5,12 @@
 #if defined(LUMEN_PLATFORM_WINDOWS)
 	#define VK_USE_PLATFORM_WIN32_KHR
 #else
-	#warning "Unsupported platform"
+	#error "Unsupported platform"
 #endif
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
-#include <format>
 #include <optional>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 struct QueueFamilyIndices {
@@ -22,9 +19,7 @@ struct QueueFamilyIndices {
 	std::optional<uint32_t> computeFamily;
 
 	bool IsComplete() const {
-		return graphicsFamily.has_value() &&
-				presentFamily.has_value() &&
-				computeFamily.has_value();
+		return graphicsFamily.has_value() && presentFamily.has_value() && computeFamily.has_value();
 	}
 };
 
@@ -32,53 +27,80 @@ class VulkanRendererLayer final : public lm::Layer {
 public:
 	explicit VulkanRendererLayer(lm::Window *window);
 
-	virtual void OnAttach() override;
-	virtual void OnDetach() override;
-	virtual void OnEvent(lm::Event &e) override;
-	virtual void OnRender() override;
+	void OnAttach() override;
+	void OnDetach() override;
+	void OnEvent(lm::Event &e) override;
+	void OnRender() override;
 
 private:
-	const std::vector<const char *> k_RequiredInstanceLayers = { "VK_LAYER_KHRONOS_validation" };
+	// --- Requirements ---
+	static constexpr uint32_t k_RequiredVulkanVersion = VK_API_VERSION_1_3;
+	static constexpr bool k_EnableValidation = true;
+
+	const std::vector<const char *> k_RequiredInstanceLayers = {
+		"VK_LAYER_KHRONOS_validation",
+	};
 	const std::vector<const char *> k_RequiredInstanceExtensions = {
 		VK_KHR_SURFACE_EXTENSION_NAME,
-#if defined(LUMEN_PLATFORM_WINDOWS)
 		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-#else
-	#warning "Unsupported platform"
-#endif
+		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
-	const std::vector<const char *> k_RequiredDeviceExtensions = {};
-	const bool k_EnableValidation = true;
+	const std::vector<const char *> k_RequiredDeviceExtensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
+	};
 
+	// --- Init ---
 	void CreateInstance();
 	void SetupDebugMessenger();
+	void CreateSurface();
 	void PickPhysicalDevice();
-	bool IsDeviceSuitable(VkPhysicalDevice device) const;
+	void CreateDevice();
 
-	// Helper functions
+	// --- Query available ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;
 	std::vector<VkExtensionProperties> EnumerateInstanceExtensions() const;
 	std::vector<VkPhysicalDevice> EnumeratePhysicalDevices() const;
+	std::vector<VkExtensionProperties> EnumerateDeviceExtensions(VkPhysicalDevice device) const;
 
+	// --- Filter ---
 	std::vector<const char *> FilterSupportedInstanceLayers(const std::vector<const char *> &wanted, bool required) const;
 	std::vector<const char *> FilterSupportedInstanceExtensions(const std::vector<const char *> &wanted, bool required) const;
+	std::vector<const char *> FilterSupportedDeviceExtensions(VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const;
 
-	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
+	// --- Device suitability ---
+	struct DeviceFeatureChain {
+		VkPhysicalDeviceVulkan11Features vulkan11Features{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+		VkPhysicalDeviceVulkan13Features vulkan13Features{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+		VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT };
+		VkPhysicalDeviceFeatures2 features2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
-	// Print
-	void PrintEnabledInstanceLayers(const std::vector<const char *> &enabled) const;
-	void PrintEnabledInstanceExtensions(const std::vector<const char *> &enabled) const;
-
-private:
-	struct Context {
-		VkInstance instance = VK_NULL_HANDLE;
-		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
-		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-		VkDevice device = VK_NULL_HANDLE;
-		VkQueue queue = VK_NULL_HANDLE;
+		void Link() {
+			features2.pNext = &extendedDynamicStateFeatures;
+			extendedDynamicStateFeatures.pNext = &vulkan13Features;
+			vulkan13Features.pNext = &vulkan11Features;
+			vulkan11Features.pNext = nullptr;
+		}
 	};
+
+	void QueryDeviceFeatures(VkPhysicalDevice device, DeviceFeatureChain &outChain) const;
+	bool SupportsRequiredDeviceExtensions(VkPhysicalDevice device) const;
+	bool IsDeviceSuitable(VkPhysicalDevice device) const;
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
 
 private:
 	lm::Window *m_Window;
-	Context m_Context;
+
+	struct Context {
+		VkInstance instance = VK_NULL_HANDLE;
+		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+		VkDevice device = VK_NULL_HANDLE;
+
+		VkQueue graphicsQueue = VK_NULL_HANDLE;
+		VkQueue presentQueue = VK_NULL_HANDLE;
+		VkQueue computeQueue = VK_NULL_HANDLE;
+	} m_Context;
 };

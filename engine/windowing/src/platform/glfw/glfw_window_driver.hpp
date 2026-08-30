@@ -20,7 +20,7 @@ public:
 	void SetExtent(WindowExtent extent) override;
 	WindowExtent GetExtent() const override;
 
-	void *GetNativeWindow() const override;
+	void *GetNativeHandle() const override;
 
 private:
 	void InitCallbacks();

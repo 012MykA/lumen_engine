@@ -76,7 +76,7 @@ WindowExtent GlfwWindowDriver::GetExtent() const {
 	return { static_cast<uint32_t>(w), static_cast<uint32_t>(h) };
 }
 
-void *GlfwWindowDriver::GetNativeWindow() const {
+void *GlfwWindowDriver::GetNativeHandle() const {
 #if defined(LUMEN_PLATFORM_WINDOWS)
 	return reinterpret_cast<void *>(glfwGetWin32Window(m_Handle));
 #elif defined(LUMEN_PLATFORM_LINUX)

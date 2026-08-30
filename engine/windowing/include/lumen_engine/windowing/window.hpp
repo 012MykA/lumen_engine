@@ -32,7 +32,7 @@ public:
 	virtual void SetExtent(WindowExtent extent) = 0;
 	virtual WindowExtent GetExtent() const = 0;
 
-	virtual void *GetNativeWindow() const = 0;
+	virtual void *GetNativeHandle() const = 0;
 
 	void SetEventCallback(const EventCallbackFn &callback) { m_EventCallback = callback; }
 	LayerStack &GetLayerStack() { return m_LayerStack; }
