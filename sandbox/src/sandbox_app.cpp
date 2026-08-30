@@ -4,6 +4,10 @@
 
 #include <print>
 
+#ifdef CreateWindow
+	#undef CreateWindow
+#endif
+
 class SandboxApp : public lm::Application {
 public:
 	explicit SandboxApp(const lm::ApplicationCommandLineArgs &args) : lm::Application(args) {

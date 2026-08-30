@@ -15,7 +15,7 @@ inline int Main(int argc, char **argv) {
 		app->Run();
 
 	} catch (const std::exception &e) {
-		LUMEN_CRITICAL("\n\tCitical error: {}", e.what());
+		LUMEN_CORE_CRITICAL("Citical error: {}", e.what());
 		return EXIT_FAILURE;
 	}
 
