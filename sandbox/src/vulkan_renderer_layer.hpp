@@ -23,6 +23,12 @@ struct QueueFamilyIndices {
 	}
 };
 
+struct SwapchainSupportDetails {
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
+};
+
 class VulkanRendererLayer final : public lm::Layer {
 public:
 	explicit VulkanRendererLayer(lm::Window *window);
@@ -42,7 +48,9 @@ private:
 	};
 	const std::vector<const char *> k_RequiredInstanceExtensions = {
 		VK_KHR_SURFACE_EXTENSION_NAME,
+#if defined(LUMEN_PLATFORM_WINDOWS)
 		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+#endif
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
 	const std::vector<const char *> k_RequiredDeviceExtensions = {
@@ -50,12 +58,16 @@ private:
 		VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 	};
 
+	// --- Runtime ---
+	bool OnWindowResize(lm::WindowExtent extent);
+
 	// --- Init ---
 	void CreateInstance();
 	void SetupDebugMessenger();
 	void CreateSurface();
 	void PickPhysicalDevice();
 	void CreateDevice();
+	void CreateSwapchain();
 
 	// --- Query available ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;
@@ -88,6 +100,12 @@ private:
 	bool IsDeviceSuitable(VkPhysicalDevice device) const;
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
 
+	// Swapchain
+	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const;
+	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const;
+	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
+	uint32_t ChooseSwapMinImageCount(const VkSurfaceCapabilitiesKHR &capabilities) const;
+
 private:
 	lm::Window *m_Window;
 
@@ -97,10 +115,15 @@ private:
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+		QueueFamilyIndices queueFamilyIndices;
 		VkDevice device = VK_NULL_HANDLE;
 
 		VkQueue graphicsQueue = VK_NULL_HANDLE;
 		VkQueue presentQueue = VK_NULL_HANDLE;
 		VkQueue computeQueue = VK_NULL_HANDLE;
+
+		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+		VkExtent2D swapchainExtent = { 0, 0 };
+		VkSurfaceFormatKHR swapchainSurfaceFormat = VK_FORMAT_UNDEFINED;
 	} m_Context;
 };

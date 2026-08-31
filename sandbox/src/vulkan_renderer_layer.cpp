@@ -1,18 +1,25 @@
 #include "vulkan_renderer_layer.hpp"
+#ifdef max
+	#undef max
+#endif
 
 #include <vulkan/vk_enum_string_helper.h>
 
 #include <algorithm>
+#include <array>
+#include <cassert>
 #include <format>
+#include <limits>
 #include <ranges>
 #include <set>
 #include <stdexcept>
 #include <string>
 
-#define CHECK_VK(result) \
+#define CHECK_VK(x) \
 	do { \
-		if (result != VK_SUCCESS) { \
-			throw std::runtime_error(std::format("Vulkan error: {} at {}:{}", string_VkResult(result), __FILE__, __LINE__)); \
+		VkResult res = x; \
+		if (res != VK_SUCCESS) { \
+			throw std::runtime_error(std::format("Vulkan error: {} at {}:{}", string_VkResult(res), __FILE__, __LINE__)); \
 		} \
 	} while (0)
 
@@ -82,9 +89,11 @@ void VulkanRendererLayer::OnAttach() {
 	CreateSurface();
 	PickPhysicalDevice();
 	CreateDevice();
+	CreateSwapchain();
 }
 
 void VulkanRendererLayer::OnDetach() {
+	vkDestroySwapchainKHR(m_Context.device, m_Context.swapchain, nullptr);
 	vkDestroyDevice(m_Context.device, nullptr);
 	vkDestroySurfaceKHR(m_Context.instance, m_Context.surface, nullptr);
 	if (m_Context.debugMessenger != VK_NULL_HANDLE) {
@@ -93,12 +102,21 @@ void VulkanRendererLayer::OnDetach() {
 	vkDestroyInstance(m_Context.instance, nullptr);
 }
 
-void VulkanRendererLayer::OnEvent(lm::Event & /*e*/) {}
+void VulkanRendererLayer::OnEvent(lm::Event &e) {
+	lm::EventDispatcher dp(e);
+	dp.Dispatch<lm::WindowResizeEvent>([this](auto &e) { return OnWindowResize(e.GetExtent()); });
+}
+
 void VulkanRendererLayer::OnRender() {}
 
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------
+
+bool VulkanRendererLayer::OnWindowResize(lm::WindowExtent extent) {
+	LUMEN_CORE_TRACE("VulkanRendererLayer: Framebuffer resized({}, {})", extent.width, extent.height);
+	return false;
+}
 
 void VulkanRendererLayer::CreateInstance() {
 	constexpr VkApplicationInfo appInfo{
@@ -162,7 +180,8 @@ void VulkanRendererLayer::PickPhysicalDevice() {
 }
 
 void VulkanRendererLayer::CreateDevice() {
-	QueueFamilyIndices indices = FindQueueFamilies(m_Context.physicalDevice);
+	m_Context.queueFamilyIndices = FindQueueFamilies(m_Context.physicalDevice);
+	const QueueFamilyIndices &indices = m_Context.queueFamilyIndices;
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	std::set<uint32_t> uniqueQueueFamilies = {
@@ -204,6 +223,52 @@ void VulkanRendererLayer::CreateDevice() {
 	vkGetDeviceQueue(m_Context.device, indices.graphicsFamily.value(), 0, &m_Context.graphicsQueue);
 	vkGetDeviceQueue(m_Context.device, indices.presentFamily.value(), 0, &m_Context.presentQueue);
 	vkGetDeviceQueue(m_Context.device, indices.computeFamily.value(), 0, &m_Context.computeQueue);
+}
+
+void VulkanRendererLayer::CreateSwapchain() {
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	CHECK_VK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Context.physicalDevice, m_Context.surface, &surfaceCapabilities));
+	m_Context.swapchainExtent = ChooseSwapExtent(surfaceCapabilities);
+	uint32_t minImageCount = ChooseSwapMinImageCount(surfaceCapabilities);
+
+	uint32_t formatCount = 0;
+	CHECK_VK(vkGetPhysicalDeviceSurfaceFormatsKHR(m_Context.physicalDevice, m_Context.surface, &formatCount, nullptr));
+	std::vector<VkSurfaceFormatKHR> availableFormats(formatCount);
+	CHECK_VK(vkGetPhysicalDeviceSurfaceFormatsKHR(m_Context.physicalDevice, m_Context.surface, &formatCount, availableFormats.data()));
+	m_Context.swapchainSurfaceFormat = ChooseSwapSurfaceFormat(availableFormats);
+
+	uint32_t presentModeCount = 0;
+	CHECK_VK(vkGetPhysicalDeviceSurfacePresentModesKHR(m_Context.physicalDevice, m_Context.surface, &presentModeCount, nullptr));
+	std::vector<VkPresentModeKHR> availablePresentModes(presentModeCount);
+	CHECK_VK(vkGetPhysicalDeviceSurfacePresentModesKHR(m_Context.physicalDevice, m_Context.surface, &presentModeCount, availablePresentModes.data()));
+	VkPresentModeKHR presentMode = ChooseSwapPresentMode(availablePresentModes);
+
+	const QueueFamilyIndices &indices = m_Context.queueFamilyIndices;
+	std::array<uint32_t, 2> queueFamilyIndices = {
+		indices.graphicsFamily.value(),
+		indices.presentFamily.value(),
+	};
+	bool sameFamily = indices.graphicsFamily.value() == indices.presentFamily.value();
+
+	VkSwapchainCreateInfoKHR createInfo{
+		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+		.surface = m_Context.surface,
+		.minImageCount = minImageCount,
+		.imageFormat = m_Context.swapchainSurfaceFormat.format,
+		.imageColorSpace = m_Context.swapchainSurfaceFormat.colorSpace,
+		.imageExtent = m_Context.swapchainExtent,
+		.imageArrayLayers = 1,
+		.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		.imageSharingMode = sameFamily ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT,
+		.queueFamilyIndexCount = sameFamily ? 0 : static_cast<uint32_t>(queueFamilyIndices.size()),
+		.pQueueFamilyIndices = sameFamily ? nullptr : queueFamilyIndices.data(),
+		.preTransform = surfaceCapabilities.currentTransform,
+		.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+		.presentMode = presentMode,
+		.clipped = VK_TRUE,
+		.oldSwapchain = m_Context.swapchain,
+	};
+	CHECK_VK(vkCreateSwapchainKHR(m_Context.device, &createInfo, nullptr, &m_Context.swapchain));
 }
 
 // ---------------------------------------------------------------------------
@@ -304,30 +369,75 @@ QueueFamilyIndices VulkanRendererLayer::FindQueueFamilies(VkPhysicalDevice devic
 	std::vector<VkQueueFamilyProperties> families(count);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, families.data());
 
+	bool foundCombinedGraphicsPresent = false;
+	bool foundDedicatedCompute = false;
+
 	for (uint32_t i = 0; i < count; ++i) {
 		const auto &family = families[i];
-
-		if (!indices.graphicsFamily.has_value() && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-			indices.graphicsFamily = i;
-		}
+		bool hasGraphics = (family.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
+		bool hasCompute = (family.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
 
 		VkBool32 presentSupport = VK_FALSE;
 		CHECK_VK(vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Context.surface, &presentSupport));
-		if (presentSupport) {
-			if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-				indices.presentFamily = i;
-				indices.graphicsFamily = i;
-			} else if (!indices.presentFamily.has_value()) {
-				indices.presentFamily = i;
-			}
+
+		// Graphics fallback
+		if (!foundCombinedGraphicsPresent && !indices.graphicsFamily.has_value() && hasGraphics) {
+			indices.graphicsFamily = i;
 		}
 
-		if ((family.queueFlags & VK_QUEUE_COMPUTE_BIT) && !(family.queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+		// Present fallback
+		if (!foundCombinedGraphicsPresent && presentSupport && !indices.presentFamily.has_value()) {
+			indices.presentFamily = i;
+		}
+
+		// Prefered Graphics & Present
+		if (!foundCombinedGraphicsPresent && hasGraphics && presentSupport) {
+			indices.graphicsFamily = i;
+			indices.presentFamily = i;
+			foundCombinedGraphicsPresent = true;
+		}
+
+		// Compute
+		if (!foundDedicatedCompute && hasCompute && !hasGraphics) {
 			indices.computeFamily = i;
-		} else if (!indices.computeFamily.has_value() && (family.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+			foundDedicatedCompute = true;
+		} else if (!foundDedicatedCompute && !indices.computeFamily.has_value() && hasCompute) {
 			indices.computeFamily = i;
 		}
 	}
 
 	return indices;
+}
+
+VkSurfaceFormatKHR VulkanRendererLayer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const {
+	const auto formatIt = std::ranges::find_if(availableFormats, [](const auto &fmt) {
+		return fmt.format == VK_FORMAT_B8G8R8A8_SRGB && fmt.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+	});
+	return formatIt != availableFormats.end() ? *formatIt : availableFormats[0];
+}
+
+VkPresentModeKHR VulkanRendererLayer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const {
+	assert(std::ranges::any_of(availablePresentModes, [](const VkPresentModeKHR &mode) { return mode == VK_PRESENT_MODE_FIFO_KHR; }));
+	return std::ranges::any_of(availablePresentModes, [](const VkPresentModeKHR &mode) { return mode == VK_PRESENT_MODE_MAILBOX_KHR; })
+			? VK_PRESENT_MODE_MAILBOX_KHR
+			: VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D VulkanRendererLayer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const {
+	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+		return capabilities.currentExtent;
+	}
+	lm::WindowExtent extent = m_Window->GetExtent();
+	return {
+		std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+		std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height),
+	};
+}
+
+uint32_t VulkanRendererLayer::ChooseSwapMinImageCount(const VkSurfaceCapabilitiesKHR &capabilities) const {
+	uint32_t minImageCount = std::max(capabilities.minImageCount, 3u);
+	if ((capabilities.maxImageCount > 0) && (minImageCount > capabilities.maxImageCount)) {
+		minImageCount = capabilities.maxImageCount;
+	}
+	return minImageCount;
 }
