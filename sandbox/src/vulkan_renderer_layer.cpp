@@ -90,6 +90,7 @@ void VulkanRendererLayer::OnAttach() {
 	PickPhysicalDevice();
 	CreateDevice();
 	CreateSwapchain();
+	CreateImageViews();
 }
 
 void VulkanRendererLayer::OnDetach() {
@@ -269,6 +270,33 @@ void VulkanRendererLayer::CreateSwapchain() {
 		.oldSwapchain = m_Context.swapchain,
 	};
 	CHECK_VK(vkCreateSwapchainKHR(m_Context.device, &createInfo, nullptr, &m_Context.swapchain));
+
+	uint32_t swapchainImageCount;
+	vkGetSwapchainImagesKHR(m_Context.device, m_Context.swapchain, &swapchainImageCount, nullptr);
+	m_Context.swapchainImages.resize(swapchainImageCount);
+	vkGetSwapchainImagesKHR(m_Context.device, m_Context.swapchain, &swapchainImageCount, m_Context.swapchainImages.data());
+}
+
+void VulkanRendererLayer::CreateImageViews() {
+	assert(m_Context.swapchainImageViews.empty());
+	VkImageViewCreateInfo createInfo{
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = m_Context.swapchainSurfaceFormat.format,
+		.subresourceRange{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+		},
+	};
+
+	size_t imageCount = m_Context.swapchainImages.size();
+	m_Context.swapchainImageViews.resize(imageCount);
+	for (size_t i = 0; i < imageCount; ++i) {
+		createInfo.image = m_Context.swapchainImages[i];
+		vkCreateImageView(m_Context.device, &createInfo, nullptr, &m_Context.swapchainImageViews[i]);
+	}
 }
 
 // ---------------------------------------------------------------------------

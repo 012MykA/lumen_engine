@@ -68,6 +68,7 @@ private:
 	void PickPhysicalDevice();
 	void CreateDevice();
 	void CreateSwapchain();
+	void CreateImageViews();
 
 	// --- Query available ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;
@@ -125,5 +126,7 @@ private:
 		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 		VkExtent2D swapchainExtent = { 0, 0 };
 		VkSurfaceFormatKHR swapchainSurfaceFormat = VK_FORMAT_UNDEFINED;
+		std::vector<VkImage> swapchainImages;
+		std::vector<VkImageView> swapchainImageViews;
 	} m_Context;
 };
