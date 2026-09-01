@@ -2,11 +2,11 @@
 
 #include <lumen_engine/app/entry_point.hpp>
 
-#include <print>
-
 #ifdef CreateWindow
 	#undef CreateWindow
 #endif
+
+static void SetWindowDarkMode(lm::Window *window);
 
 class SandboxApp : public lm::Application {
 public:
@@ -19,9 +19,11 @@ public:
 #else
 				"Unknown";
 #endif
-		std::println("Built as: {}", buildType);
+		LUMEN_TRACE("Built as: {}", buildType);
 
 		m_MainWindow = CreateWindow({});
+		SetWindowDarkMode(m_MainWindow);
+
 		m_MainWindow->PushLayer<VulkanRendererLayer>(m_MainWindow);
 	}
 
@@ -32,3 +34,18 @@ private:
 std::unique_ptr<lm::Application> lm::CreateApplication(const lm::ApplicationCommandLineArgs &args) {
 	return std::make_unique<SandboxApp>(args);
 }
+
+#if defined(LUMEN_PLATFORM_WINDOWS)
+	#include <Windows.h>
+
+	#include <dwmapi.h>
+	#pragma comment(lib, "dwmapi.lib")
+
+void SetWindowDarkMode(lm::Window *window) {
+	HWND hwnd = static_cast<HWND>(window->GetNativeHandle());
+	BOOL useDarkMode = TRUE;
+	DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
+}
+#else
+void SetWindowDarkMode(lm::Window *window, char value) {}
+#endif

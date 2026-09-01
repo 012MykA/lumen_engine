@@ -136,5 +136,8 @@ private:
 		VkSurfaceFormatKHR swapchainSurfaceFormat = VK_FORMAT_UNDEFINED;
 		std::vector<VkImage> swapchainImages;
 		std::vector<VkImageView> swapchainImageViews;
+
+		VkPipelineLayout graphicsPipelineLayout;
+		VkPipeline graphicsPipeline;
 	} m_Context;
 };
