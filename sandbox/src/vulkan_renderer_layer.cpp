@@ -107,7 +107,45 @@ void VulkanRendererLayer::OnEvent(lm::Event &e) {
 	dp.Dispatch<lm::WindowResizeEvent>([this](auto &e) { return OnWindowResize(e.GetExtent()); });
 }
 
-void VulkanRendererLayer::OnRender() {}
+void VulkanRendererLayer::OnRender() {
+	constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
+
+	CHECK_VK(vkWaitForFences(m_Context.device, 1, &m_Context.drawFence, VK_TRUE, noTimeout));
+	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.drawFence));
+
+	uint32_t imageIndex;
+	CHECK_VK(vkAcquireNextImageKHR(m_Context.device, m_Context.swapchain, noTimeout,
+			m_Context.presentCompleteSemaphore, VK_NULL_HANDLE, &imageIndex));
+
+	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffer, 0));
+	RecordCommandBuffer(imageIndex);
+
+	vkQueueWaitIdle(m_Context.graphicsQueue);
+
+	VkPipelineStageFlags waitDestinationStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	const VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &m_Context.presentCompleteSemaphore,
+		.pWaitDstStageMask = &waitDestinationStageMask,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &m_Context.commandBuffer,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &m_Context.renderFinishedSemaphore,
+	};
+	CHECK_VK(vkQueueSubmit(m_Context.graphicsQueue, 1, &submitInfo, m_Context.drawFence));
+
+	VkPresentInfoKHR presentInfo{
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &m_Context.renderFinishedSemaphore,
+		.swapchainCount = 1,
+		.pSwapchains = &m_Context.swapchain,
+		.pImageIndices = &imageIndex,
+		.pResults = nullptr,
+	};
+	CHECK_VK(vkQueuePresentKHR(m_Context.presentQueue, &presentInfo));
+}
 
 // ---------------------------------------------------------------------------
 // Initialization
@@ -443,6 +481,8 @@ void VulkanRendererLayer::CreateSyncObjects() {
 }
 
 void VulkanRendererLayer::Cleanup() {
+	vkDeviceWaitIdle(m_Context.device);
+
 	vkDestroyFence(m_Context.device, m_Context.drawFence, nullptr);
 	vkDestroySemaphore(m_Context.device, m_Context.renderFinishedSemaphore, nullptr);
 	vkDestroySemaphore(m_Context.device, m_Context.presentCompleteSemaphore, nullptr);
@@ -660,10 +700,99 @@ VkShaderModule VulkanRendererLayer::CreateShaderModule(const std::vector<uint32_
 	return shaderModule;
 }
 
-void VulkanRendererLayer::RecordCommandBuffer(uint32_t /*imageIndex*/) {
-	VkCommandBufferBeginInfo beginInfo;
-	vkBeginCommandBuffer(m_Context.commandBuffer, &beginInfo);
+void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
+	VkCommandBuffer cmd = m_Context.commandBuffer;
+
+	VkCommandBufferBeginInfo beginInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
 	{
+		TransitionImageLayout(
+				m_Context.swapchainImages[imageIndex],
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_ACCESS_2_NONE,
+				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+		VkClearValue clearColor{ .color = { 0.1f, 0.1f, 0.1f, 1.0f } };
+		VkRenderingAttachmentInfo colorAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.imageView = m_Context.swapchainImageViews[imageIndex],
+			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.clearValue = clearColor,
+		};
+		VkRenderingInfo renderingInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+			.renderArea{ .offset = { 0, 0 }, .extent = m_Context.swapchainExtent },
+			.layerCount = 1,
+			.colorAttachmentCount = 1,
+			.pColorAttachments = &colorAttachment,
+		};
+		vkCmdBeginRendering(cmd, &renderingInfo);
+		{
+			VkViewport viewport{
+				.x = 0.0f,
+				.y = 0.0f,
+				.width = static_cast<float>(m_Context.swapchainExtent.width),
+				.height = static_cast<float>(m_Context.swapchainExtent.height),
+				.minDepth = 0.0f,
+				.maxDepth = 1.0f
+			};
+			VkRect2D scissor{ .offset = { 0, 0 }, .extent = m_Context.swapchainExtent };
+			vkCmdSetViewport(cmd, 0, 1, &viewport);
+			vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context.graphicsPipeline);
+			vkCmdDraw(cmd, 3, 1, 0, 0);
+		}
+		vkCmdEndRendering(cmd);
+
+		TransitionImageLayout(
+				m_Context.swapchainImages[imageIndex],
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_ACCESS_2_NONE,
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT);
 	}
-	vkEndCommandBuffer(m_Context.commandBuffer);
+	CHECK_VK(vkEndCommandBuffer(cmd));
+}
+
+void VulkanRendererLayer::TransitionImageLayout(
+		VkImage image,
+		VkImageLayout oldLayout,
+		VkImageLayout newLayout,
+		VkAccessFlags2 srcAccessMask,
+		VkAccessFlags2 dstAccessMask,
+		VkPipelineStageFlags2 srcStageMask,
+		VkPipelineStageFlags2 dstStageMask) const {
+	VkImageMemoryBarrier2 barrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		.srcStageMask = srcStageMask,
+		.srcAccessMask = srcAccessMask,
+		.dstStageMask = dstStageMask,
+		.dstAccessMask = dstAccessMask,
+		.oldLayout = oldLayout,
+		.newLayout = newLayout,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.image = image,
+		.subresourceRange{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+		},
+	};
+	VkDependencyInfo dependencyInfo{
+		.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+		.imageMemoryBarrierCount = 1,
+		.pImageMemoryBarriers = &barrier,
+	};
+	vkCmdPipelineBarrier2(m_Context.commandBuffer, &dependencyInfo);
 }

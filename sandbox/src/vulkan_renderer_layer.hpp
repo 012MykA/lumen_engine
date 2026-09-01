@@ -121,6 +121,15 @@ private:
 	// Command buffer
 	void RecordCommandBuffer(uint32_t imageIndex);
 
+	void TransitionImageLayout(
+			VkImage index,
+			VkImageLayout oldLayout,
+			VkImageLayout newLayout,
+			VkAccessFlags2 srcAccessMasks,
+			VkAccessFlags2 dstAccessMask,
+			VkPipelineStageFlags2 srcStageMask,
+			VkPipelineStageFlags2 dstStageMask) const;
+
 private:
 	lm::Window *m_Window;
 
