@@ -58,6 +58,8 @@ private:
 		VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 	};
 
+	static constexpr uint32_t k_MaxFramesInFlight = 3;
+
 	// --- Runtime ---
 	bool OnWindowResize(lm::WindowExtent extent);
 
@@ -71,7 +73,7 @@ private:
 	void CreateImageViews();
 	void CreateGraphicsPipeline();
 	void CreateCommandPool();
-	void CreateCommandBuffer();
+	void CreateCommandBuffers();
 	void CreateSyncObjects();
 
 	// --- Shutdown ---
@@ -121,14 +123,15 @@ private:
 	// Command buffer
 	void RecordCommandBuffer(uint32_t imageIndex);
 
-	void TransitionImageLayout(
+	static void TransitionImageLayout(
 			VkImage index,
+			VkCommandBuffer cmd,
 			VkImageLayout oldLayout,
 			VkImageLayout newLayout,
 			VkAccessFlags2 srcAccessMasks,
 			VkAccessFlags2 dstAccessMask,
 			VkPipelineStageFlags2 srcStageMask,
-			VkPipelineStageFlags2 dstStageMask) const;
+			VkPipelineStageFlags2 dstStageMask);
 
 private:
 	lm::Window *m_Window;
@@ -156,10 +159,11 @@ private:
 		VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
-		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+		std::vector<VkCommandBuffer> commandBuffers;
 
-		VkSemaphore presentCompleteSemaphore = VK_NULL_HANDLE;
-		VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
-		VkFence drawFence = VK_NULL_HANDLE;
+		std::vector<VkSemaphore> presentCompleteSemaphores;
+		std::vector<VkSemaphore> renderFinishedSemaphores;
+		std::vector<VkFence> inFlightFences;
 	} m_Context;
+	uint32_t frameIndex = 0;
 };

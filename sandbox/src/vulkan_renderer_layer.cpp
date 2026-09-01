@@ -94,7 +94,7 @@ void VulkanRendererLayer::OnAttach() {
 	CreateImageViews();
 	CreateGraphicsPipeline();
 	CreateCommandPool();
-	CreateCommandBuffer();
+	CreateCommandBuffers();
 	CreateSyncObjects();
 }
 
@@ -110,41 +110,41 @@ void VulkanRendererLayer::OnEvent(lm::Event &e) {
 void VulkanRendererLayer::OnRender() {
 	constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
 
-	CHECK_VK(vkWaitForFences(m_Context.device, 1, &m_Context.drawFence, VK_TRUE, noTimeout));
-	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.drawFence));
+	CHECK_VK(vkWaitForFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex], VK_TRUE, noTimeout));
+	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex]));
 
 	uint32_t imageIndex;
 	CHECK_VK(vkAcquireNextImageKHR(m_Context.device, m_Context.swapchain, noTimeout,
-			m_Context.presentCompleteSemaphore, VK_NULL_HANDLE, &imageIndex));
+			m_Context.presentCompleteSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex));
 
-	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffer, 0));
+	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffers[frameIndex], 0));
 	RecordCommandBuffer(imageIndex);
-
-	vkQueueWaitIdle(m_Context.graphicsQueue);
 
 	VkPipelineStageFlags waitDestinationStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 	const VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &m_Context.presentCompleteSemaphore,
+		.pWaitSemaphores = &m_Context.presentCompleteSemaphores[frameIndex],
 		.pWaitDstStageMask = &waitDestinationStageMask,
 		.commandBufferCount = 1,
-		.pCommandBuffers = &m_Context.commandBuffer,
+		.pCommandBuffers = &m_Context.commandBuffers[frameIndex],
 		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &m_Context.renderFinishedSemaphore,
+		.pSignalSemaphores = &m_Context.renderFinishedSemaphores[imageIndex],
 	};
-	CHECK_VK(vkQueueSubmit(m_Context.graphicsQueue, 1, &submitInfo, m_Context.drawFence));
+	CHECK_VK(vkQueueSubmit(m_Context.graphicsQueue, 1, &submitInfo, m_Context.inFlightFences[frameIndex]));
 
 	VkPresentInfoKHR presentInfo{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &m_Context.renderFinishedSemaphore,
+		.pWaitSemaphores = &m_Context.renderFinishedSemaphores[imageIndex],
 		.swapchainCount = 1,
 		.pSwapchains = &m_Context.swapchain,
 		.pImageIndices = &imageIndex,
 		.pResults = nullptr,
 	};
 	CHECK_VK(vkQueuePresentKHR(m_Context.presentQueue, &presentInfo));
+
+	frameIndex = (frameIndex + 1) % k_MaxFramesInFlight;
 }
 
 // ---------------------------------------------------------------------------
@@ -460,33 +460,53 @@ void VulkanRendererLayer::CreateCommandPool() {
 	CHECK_VK(vkCreateCommandPool(m_Context.device, &createInfo, nullptr, &m_Context.commandPool));
 }
 
-void VulkanRendererLayer::CreateCommandBuffer() {
+void VulkanRendererLayer::CreateCommandBuffers() {
 	VkCommandBufferAllocateInfo allocInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = m_Context.commandPool,
 		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = 1,
+		.commandBufferCount = k_MaxFramesInFlight,
 	};
-	CHECK_VK(vkAllocateCommandBuffers(m_Context.device, &allocInfo, &m_Context.commandBuffer));
+	m_Context.commandBuffers.resize(k_MaxFramesInFlight);
+	CHECK_VK(vkAllocateCommandBuffers(m_Context.device, &allocInfo, m_Context.commandBuffers.data()));
 }
 
 void VulkanRendererLayer::CreateSyncObjects() {
+	assert(m_Context.presentCompleteSemaphores.empty() &&
+			m_Context.renderFinishedSemaphores.empty() &&
+			m_Context.inFlightFences.empty());
+
 	VkSemaphoreCreateInfo semaphoreInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-	CHECK_VK(vkCreateSemaphore(m_Context.device, &semaphoreInfo, nullptr, &m_Context.presentCompleteSemaphore));
 
-	CHECK_VK(vkCreateSemaphore(m_Context.device, &semaphoreInfo, nullptr, &m_Context.renderFinishedSemaphore));
+	const size_t swapchainImageCount = m_Context.swapchainImages.size();
+	m_Context.renderFinishedSemaphores.resize(swapchainImageCount);
+	for (size_t i = 0; i < swapchainImageCount; ++i) {
+		CHECK_VK(vkCreateSemaphore(m_Context.device, &semaphoreInfo, nullptr, &m_Context.renderFinishedSemaphores[i]));
+	}
 
-	VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
-	CHECK_VK(vkCreateFence(m_Context.device, &fenceInfo, nullptr, &m_Context.drawFence));
+	m_Context.presentCompleteSemaphores.resize(k_MaxFramesInFlight);
+	m_Context.inFlightFences.resize(k_MaxFramesInFlight);
+	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
+		CHECK_VK(vkCreateSemaphore(m_Context.device, &semaphoreInfo, nullptr, &m_Context.presentCompleteSemaphores[i]));
+
+		VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
+		CHECK_VK(vkCreateFence(m_Context.device, &fenceInfo, nullptr, &m_Context.inFlightFences[i]));
+	}
 }
 
 void VulkanRendererLayer::Cleanup() {
 	vkDeviceWaitIdle(m_Context.device);
 
-	vkDestroyFence(m_Context.device, m_Context.drawFence, nullptr);
-	vkDestroySemaphore(m_Context.device, m_Context.renderFinishedSemaphore, nullptr);
-	vkDestroySemaphore(m_Context.device, m_Context.presentCompleteSemaphore, nullptr);
-
+	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
+		vkDestroyFence(m_Context.device, m_Context.inFlightFences[i], nullptr);
+		vkDestroySemaphore(m_Context.device, m_Context.presentCompleteSemaphores[i], nullptr);
+	}
+	m_Context.inFlightFences.clear();
+	m_Context.presentCompleteSemaphores.clear();
+	for (size_t i = 0; i < m_Context.swapchainImages.size(); ++i) {
+		vkDestroySemaphore(m_Context.device, m_Context.renderFinishedSemaphores[i], nullptr);
+	}
+	m_Context.renderFinishedSemaphores.clear();
 	vkDestroyCommandPool(m_Context.device, m_Context.commandPool, nullptr);
 	vkDestroyPipeline(m_Context.device, m_Context.graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Context.device, m_Context.graphicsPipelineLayout, nullptr);
@@ -701,13 +721,13 @@ VkShaderModule VulkanRendererLayer::CreateShaderModule(const std::vector<uint32_
 }
 
 void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
-	VkCommandBuffer cmd = m_Context.commandBuffer;
+	VkCommandBuffer cmd = m_Context.commandBuffers[frameIndex];
 
 	VkCommandBufferBeginInfo beginInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
 	{
 		TransitionImageLayout(
-				m_Context.swapchainImages[imageIndex],
+				m_Context.swapchainImages[imageIndex], cmd,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_ACCESS_2_NONE,
@@ -751,7 +771,7 @@ void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
 		vkCmdEndRendering(cmd);
 
 		TransitionImageLayout(
-				m_Context.swapchainImages[imageIndex],
+				m_Context.swapchainImages[imageIndex], cmd,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
@@ -764,12 +784,13 @@ void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
 
 void VulkanRendererLayer::TransitionImageLayout(
 		VkImage image,
+		VkCommandBuffer cmd,
 		VkImageLayout oldLayout,
 		VkImageLayout newLayout,
 		VkAccessFlags2 srcAccessMask,
 		VkAccessFlags2 dstAccessMask,
 		VkPipelineStageFlags2 srcStageMask,
-		VkPipelineStageFlags2 dstStageMask) const {
+		VkPipelineStageFlags2 dstStageMask) {
 	VkImageMemoryBarrier2 barrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 		.srcStageMask = srcStageMask,
@@ -794,5 +815,5 @@ void VulkanRendererLayer::TransitionImageLayout(
 		.imageMemoryBarrierCount = 1,
 		.pImageMemoryBarriers = &barrier,
 	};
-	vkCmdPipelineBarrier2(m_Context.commandBuffer, &dependencyInfo);
+	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 }
