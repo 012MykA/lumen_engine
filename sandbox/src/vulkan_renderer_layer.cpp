@@ -93,6 +93,9 @@ void VulkanRendererLayer::OnAttach() {
 	CreateSwapchain();
 	CreateImageViews();
 	CreateGraphicsPipeline();
+	CreateCommandPool();
+	CreateCommandBuffer();
+	CreateSyncObjects();
 }
 
 void VulkanRendererLayer::OnDetach() {
@@ -410,7 +413,41 @@ void VulkanRendererLayer::CreateGraphicsPipeline() {
 	vkDestroyShaderModule(m_Context.device, shaderModule, nullptr);
 }
 
+void VulkanRendererLayer::CreateCommandPool() {
+	VkCommandPoolCreateInfo createInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = m_Context.queueFamilyIndices.graphicsFamily.value(),
+	};
+	CHECK_VK(vkCreateCommandPool(m_Context.device, &createInfo, nullptr, &m_Context.commandPool));
+}
+
+void VulkanRendererLayer::CreateCommandBuffer() {
+	VkCommandBufferAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = m_Context.commandPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1,
+	};
+	CHECK_VK(vkAllocateCommandBuffers(m_Context.device, &allocInfo, &m_Context.commandBuffer));
+}
+
+void VulkanRendererLayer::CreateSyncObjects() {
+	VkSemaphoreCreateInfo semaphoreInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+	CHECK_VK(vkCreateSemaphore(m_Context.device, &semaphoreInfo, nullptr, &m_Context.presentCompleteSemaphore));
+
+	CHECK_VK(vkCreateSemaphore(m_Context.device, &semaphoreInfo, nullptr, &m_Context.renderFinishedSemaphore));
+
+	VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
+	CHECK_VK(vkCreateFence(m_Context.device, &fenceInfo, nullptr, &m_Context.drawFence));
+}
+
 void VulkanRendererLayer::Cleanup() {
+	vkDestroyFence(m_Context.device, m_Context.drawFence, nullptr);
+	vkDestroySemaphore(m_Context.device, m_Context.renderFinishedSemaphore, nullptr);
+	vkDestroySemaphore(m_Context.device, m_Context.presentCompleteSemaphore, nullptr);
+
+	vkDestroyCommandPool(m_Context.device, m_Context.commandPool, nullptr);
 	vkDestroyPipeline(m_Context.device, m_Context.graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Context.device, m_Context.graphicsPipelineLayout, nullptr);
 	for (auto imageView : m_Context.swapchainImageViews) {
@@ -621,4 +658,12 @@ VkShaderModule VulkanRendererLayer::CreateShaderModule(const std::vector<uint32_
 	VkShaderModule shaderModule;
 	CHECK_VK(vkCreateShaderModule(m_Context.device, &createInfo, nullptr, &shaderModule));
 	return shaderModule;
+}
+
+void VulkanRendererLayer::RecordCommandBuffer(uint32_t /*imageIndex*/) {
+	VkCommandBufferBeginInfo beginInfo;
+	vkBeginCommandBuffer(m_Context.commandBuffer, &beginInfo);
+	{
+	}
+	vkEndCommandBuffer(m_Context.commandBuffer);
 }

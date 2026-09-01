@@ -70,6 +70,9 @@ private:
 	void CreateSwapchain();
 	void CreateImageViews();
 	void CreateGraphicsPipeline();
+	void CreateCommandPool();
+	void CreateCommandBuffer();
+	void CreateSyncObjects();
 
 	// --- Shutdown ---
 	void Cleanup();
@@ -115,6 +118,9 @@ private:
 	static std::vector<uint32_t> readSpirV(const std::string &filename);
 	[[nodiscard]] VkShaderModule CreateShaderModule(const std::vector<uint32_t> &code) const;
 
+	// Command buffer
+	void RecordCommandBuffer(uint32_t imageIndex);
+
 private:
 	lm::Window *m_Window;
 
@@ -137,7 +143,14 @@ private:
 		std::vector<VkImage> swapchainImages;
 		std::vector<VkImageView> swapchainImageViews;
 
-		VkPipelineLayout graphicsPipelineLayout;
-		VkPipeline graphicsPipeline;
+		VkPipelineLayout graphicsPipelineLayout = VK_NULL_HANDLE;
+		VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+
+		VkCommandPool commandPool = VK_NULL_HANDLE;
+		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+
+		VkSemaphore presentCompleteSemaphore = VK_NULL_HANDLE;
+		VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
+		VkFence drawFence = VK_NULL_HANDLE;
 	} m_Context;
 };
