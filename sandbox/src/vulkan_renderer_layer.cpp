@@ -9,6 +9,7 @@
 #include <array>
 #include <cassert>
 #include <format>
+#include <fstream>
 #include <limits>
 #include <ranges>
 #include <set>
@@ -91,16 +92,11 @@ void VulkanRendererLayer::OnAttach() {
 	CreateDevice();
 	CreateSwapchain();
 	CreateImageViews();
+	CreateGraphicsPipeline();
 }
 
 void VulkanRendererLayer::OnDetach() {
-	vkDestroySwapchainKHR(m_Context.device, m_Context.swapchain, nullptr);
-	vkDestroyDevice(m_Context.device, nullptr);
-	vkDestroySurfaceKHR(m_Context.instance, m_Context.surface, nullptr);
-	if (m_Context.debugMessenger != VK_NULL_HANDLE) {
-		DestroyDebugUtilsMessengerEXT(m_Context.instance, m_Context.debugMessenger, nullptr);
-	}
-	vkDestroyInstance(m_Context.instance, nullptr);
+	Cleanup();
 }
 
 void VulkanRendererLayer::OnEvent(lm::Event &e) {
@@ -280,6 +276,7 @@ void VulkanRendererLayer::CreateSwapchain() {
 void VulkanRendererLayer::CreateImageViews() {
 	assert(m_Context.swapchainImageViews.empty());
 	VkImageViewCreateInfo createInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		.viewType = VK_IMAGE_VIEW_TYPE_2D,
 		.format = m_Context.swapchainSurfaceFormat.format,
 		.subresourceRange{
@@ -297,6 +294,26 @@ void VulkanRendererLayer::CreateImageViews() {
 		createInfo.image = m_Context.swapchainImages[i];
 		vkCreateImageView(m_Context.device, &createInfo, nullptr, &m_Context.swapchainImageViews[i]);
 	}
+}
+
+void VulkanRendererLayer::CreateGraphicsPipeline() {
+	std::vector<uint32_t> shaderCode = readSpirV("shaders/shader.spv");
+	VkShaderModule shaderModule = CreateShaderModule(shaderCode);
+
+	vkDestroyShaderModule(m_Context.device, shaderModule, nullptr);
+}
+
+void VulkanRendererLayer::Cleanup() {
+	for (auto imageView : m_Context.swapchainImageViews) {
+		vkDestroyImageView(m_Context.device, imageView, nullptr);
+	}
+	vkDestroySwapchainKHR(m_Context.device, m_Context.swapchain, nullptr);
+	vkDestroyDevice(m_Context.device, nullptr);
+	vkDestroySurfaceKHR(m_Context.instance, m_Context.surface, nullptr);
+	if (m_Context.debugMessenger != VK_NULL_HANDLE) {
+		DestroyDebugUtilsMessengerEXT(m_Context.instance, m_Context.debugMessenger, nullptr);
+	}
+	vkDestroyInstance(m_Context.instance, nullptr);
 }
 
 // ---------------------------------------------------------------------------
@@ -468,4 +485,31 @@ uint32_t VulkanRendererLayer::ChooseSwapMinImageCount(const VkSurfaceCapabilitie
 		minImageCount = capabilities.maxImageCount;
 	}
 	return minImageCount;
+}
+
+std::vector<uint32_t> VulkanRendererLayer::readSpirV(const std::string &filename) {
+	std::ifstream file(filename, std::ios::ate | std::ios::binary);
+	if (!file.is_open()) {
+		throw std::runtime_error("Failed to open file: " + filename);
+	}
+	size_t fileSize = static_cast<size_t>(file.tellg());
+	if (fileSize % sizeof(uint32_t) != 0) {
+		throw std::runtime_error("Wrong SPIR-V shader format: " + filename);
+	}
+	std::vector<uint32_t> buffer(fileSize / sizeof(uint32_t));
+	file.seekg(0);
+	file.read(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(fileSize));
+	file.close();
+	return buffer;
+}
+
+VkShaderModule VulkanRendererLayer::CreateShaderModule(const std::vector<uint32_t> &code) const {
+	VkShaderModuleCreateInfo createInfo{
+		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+		.codeSize = code.size() * sizeof(uint32_t),
+		.pCode = code.data(),
+	};
+	VkShaderModule shaderModule;
+	CHECK_VK(vkCreateShaderModule(m_Context.device, &createInfo, nullptr, &shaderModule));
+	return shaderModule;
 }

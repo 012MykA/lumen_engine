@@ -69,6 +69,10 @@ private:
 	void CreateDevice();
 	void CreateSwapchain();
 	void CreateImageViews();
+	void CreateGraphicsPipeline();
+
+	// --- Shutdown ---
+	void Cleanup();
 
 	// --- Query available ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;
@@ -106,6 +110,10 @@ private:
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const;
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 	uint32_t ChooseSwapMinImageCount(const VkSurfaceCapabilitiesKHR &capabilities) const;
+
+	// Shader
+	static std::vector<uint32_t> readSpirV(const std::string &filename);
+	[[nodiscard]] VkShaderModule CreateShaderModule(const std::vector<uint32_t> &code) const;
 
 private:
 	lm::Window *m_Window;
