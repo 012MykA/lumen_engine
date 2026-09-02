@@ -177,7 +177,7 @@ private:
 
 		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 		VkExtent2D swapchainExtent = { 0, 0 };
-		VkSurfaceFormatKHR swapchainSurfaceFormat = VK_FORMAT_UNDEFINED;
+		VkSurfaceFormatKHR swapchainSurfaceFormat = { .format = VK_FORMAT_UNDEFINED, .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 		std::vector<VkImage> swapchainImages;
 		std::vector<VkImageView> swapchainImageViews;
 

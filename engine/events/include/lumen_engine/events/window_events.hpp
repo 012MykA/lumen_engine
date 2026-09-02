@@ -9,7 +9,7 @@
 
 namespace lm {
 
-class LUMEN_API WindowCloseEvent : public Event {
+class LUMEN_API WindowCloseEvent final : public Event {
 public:
 	WindowCloseEvent() = default;
 
@@ -17,7 +17,7 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
-class LUMEN_API WindowResizeEvent : public Event {
+class LUMEN_API WindowResizeEvent final : public Event {
 public:
 	WindowResizeEvent(WindowExtent extent);
 
@@ -32,7 +32,7 @@ private:
 	WindowExtent m_Extent;
 };
 
-class LUMEN_API WindowFocusEvent : public Event {
+class LUMEN_API WindowFocusEvent final : public Event {
 public:
 	WindowFocusEvent() = default;
 
@@ -40,7 +40,7 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
-class LUMEN_API WindowLostFocusEvent : public Event {
+class LUMEN_API WindowLostFocusEvent final : public Event {
 public:
 	WindowLostFocusEvent() = default;
 
@@ -48,7 +48,7 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
-class LUMEN_API WindowMovedEvent : public Event {
+class LUMEN_API WindowMovedEvent final : public Event {
 public:
 	WindowMovedEvent(int32_t x, int32_t y) : m_PositionX{ x }, m_PositionY{ y } {}
 

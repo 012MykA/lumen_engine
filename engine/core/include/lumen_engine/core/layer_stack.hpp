@@ -8,7 +8,7 @@
 
 namespace lm {
 
-class LUMEN_API LayerStack {
+class LUMEN_API LayerStack final {
 public:
 	LayerStack() = default;
 	~LayerStack();

@@ -6,7 +6,7 @@ class GLFWwindow;
 
 namespace lm {
 
-class GlfwWindowDriver : public Window {
+class GlfwWindowDriver final : public Window {
 public:
 	GlfwWindowDriver(const WindowDesc &desc);
 	~GlfwWindowDriver();

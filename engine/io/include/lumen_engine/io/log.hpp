@@ -9,7 +9,7 @@
 
 namespace lm {
 
-class LUMEN_API Log {
+class LUMEN_API Log final {
 public:
 	static void Init();
 

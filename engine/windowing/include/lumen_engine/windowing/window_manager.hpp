@@ -9,7 +9,7 @@
 
 namespace lm {
 
-class LUMEN_API WindowManager {
+class LUMEN_API WindowManager final {
 public:
 	using WindowEventCallbackFn = std::function<void(Window *, Event &)>;
 

@@ -1,15 +1,15 @@
 #pragma once
 
 #include "lumen_engine/core/export.hpp"
-#include "lumen_engine/events/event.hpp"
 #include "lumen_engine/core/mouse_codes.hpp"
+#include "lumen_engine/events/event.hpp"
 
 #include <string>
 #include <utility> // for std::pair
 
 namespace lm {
 
-class LUMEN_API MouseMovedEvent : public Event {
+class LUMEN_API MouseMovedEvent final : public Event {
 public:
 	MouseMovedEvent(float xPos, float yPos);
 
@@ -26,7 +26,7 @@ private:
 	float m_PositionX, m_PositionY;
 };
 
-class LUMEN_API MouseScrolledEvent : public Event {
+class LUMEN_API MouseScrolledEvent final : public Event {
 public:
 	MouseScrolledEvent(float xOffset, float yOffset);
 
@@ -58,7 +58,7 @@ protected:
 	MouseCode m_Button;
 };
 
-class LUMEN_API MouseButtonPressedEvent : public MouseButtonEvent {
+class LUMEN_API MouseButtonPressedEvent final : public MouseButtonEvent {
 public:
 	MouseButtonPressedEvent(MouseCode button);
 
@@ -67,7 +67,7 @@ public:
 	EVENT_CLASS_TYPE(MouseButtonPressed)
 };
 
-class LUMEN_API MouseButtonReleasedEvent : public MouseButtonEvent {
+class LUMEN_API MouseButtonReleasedEvent final : public MouseButtonEvent {
 public:
 	MouseButtonReleasedEvent(MouseCode button);
 

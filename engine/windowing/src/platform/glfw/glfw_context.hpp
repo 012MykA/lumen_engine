@@ -4,7 +4,7 @@
 
 namespace lm {
 
-class GlfwContext {
+class GlfwContext final {
 public:
 	GlfwContext(const GlfwContext &) = delete;
 	GlfwContext &operator=(const GlfwContext &) = delete;
