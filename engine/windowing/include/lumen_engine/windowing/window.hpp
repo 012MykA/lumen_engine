@@ -20,6 +20,8 @@ public:
 	virtual ~Window() = default;
 
 	virtual void OnUpdate() = 0;
+	virtual void WaitForEvents() = 0;
+
 	void UpdateLayers(float ts);
 	void RenderLayers();
 	void OnEvent(Event &e);

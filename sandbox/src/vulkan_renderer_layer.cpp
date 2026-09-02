@@ -111,12 +111,18 @@ void VulkanRendererLayer::OnRender() {
 	constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
 
 	CHECK_VK(vkWaitForFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex], VK_TRUE, noTimeout));
-	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex]));
 
 	uint32_t imageIndex;
-	CHECK_VK(vkAcquireNextImageKHR(m_Context.device, m_Context.swapchain, noTimeout,
-			m_Context.presentCompleteSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex));
+	VkResult result = vkAcquireNextImageKHR(m_Context.device, m_Context.swapchain, noTimeout,
+			m_Context.presentCompleteSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+		RecreateSwapchain();
+		return;
+	} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+		CHECK_VK(result);
+	}
 
+	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex]));
 	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffers[frameIndex], 0));
 	RecordCommandBuffer(imageIndex);
 
@@ -142,7 +148,13 @@ void VulkanRendererLayer::OnRender() {
 		.pImageIndices = &imageIndex,
 		.pResults = nullptr,
 	};
-	CHECK_VK(vkQueuePresentKHR(m_Context.presentQueue, &presentInfo));
+	result = vkQueuePresentKHR(m_Context.presentQueue, &presentInfo);
+	if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR || framebufferResized) {
+		framebufferResized = false;
+		RecreateSwapchain();
+	} else {
+		CHECK_VK(result);
+	}
 
 	frameIndex = (frameIndex + 1) % k_MaxFramesInFlight;
 }
@@ -153,7 +165,32 @@ void VulkanRendererLayer::OnRender() {
 
 bool VulkanRendererLayer::OnWindowResize(lm::WindowExtent extent) {
 	LUMEN_CORE_TRACE("VulkanRendererLayer: Framebuffer resized({}, {})", extent.width, extent.height);
+	framebufferResized = true;
 	return false;
+}
+
+void VulkanRendererLayer::RecreateSwapchain() {
+	lm::WindowExtent extent = m_Window->GetExtent();
+	while (extent.width == 0 || extent.height == 0) {
+		extent = m_Window->GetExtent();
+		m_Window->WaitForEvents();
+	}
+
+	vkDeviceWaitIdle(m_Context.device);
+
+	CleanupSwapchain();
+
+	CreateSwapchain();
+	CreateImageViews();
+}
+
+void VulkanRendererLayer::CleanupSwapchain() {
+	for (auto imageView : m_Context.swapchainImageViews) {
+		vkDestroyImageView(m_Context.device, imageView, nullptr);
+	}
+	m_Context.swapchainImageViews.clear();
+	vkDestroySwapchainKHR(m_Context.device, m_Context.swapchain, nullptr);
+	m_Context.swapchain = VK_NULL_HANDLE;
 }
 
 void VulkanRendererLayer::CreateInstance() {
@@ -510,10 +547,7 @@ void VulkanRendererLayer::Cleanup() {
 	vkDestroyCommandPool(m_Context.device, m_Context.commandPool, nullptr);
 	vkDestroyPipeline(m_Context.device, m_Context.graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Context.device, m_Context.graphicsPipelineLayout, nullptr);
-	for (auto imageView : m_Context.swapchainImageViews) {
-		vkDestroyImageView(m_Context.device, imageView, nullptr);
-	}
-	vkDestroySwapchainKHR(m_Context.device, m_Context.swapchain, nullptr);
+	CleanupSwapchain();
 	vkDestroyDevice(m_Context.device, nullptr);
 	vkDestroySurfaceKHR(m_Context.instance, m_Context.surface, nullptr);
 	if (m_Context.debugMessenger != VK_NULL_HANDLE) {

@@ -116,6 +116,9 @@ private:
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 	uint32_t ChooseSwapMinImageCount(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
+	void RecreateSwapchain();
+	void CleanupSwapchain();
+
 	// Shader
 	static std::vector<uint32_t> readSpirV(const std::string &filename);
 	[[nodiscard]] VkShaderModule CreateShaderModule(const std::vector<uint32_t> &code) const;
@@ -164,6 +167,8 @@ private:
 		std::vector<VkSemaphore> presentCompleteSemaphores;
 		std::vector<VkSemaphore> renderFinishedSemaphores;
 		std::vector<VkFence> inFlightFences;
+
 	} m_Context;
 	uint32_t frameIndex = 0;
+	bool framebufferResized = false;
 };

@@ -54,6 +54,10 @@ void GlfwWindowDriver::OnUpdate() {
 	glfwPollEvents();
 }
 
+void GlfwWindowDriver::WaitForEvents() {
+	glfwWaitEvents();
+}
+
 bool GlfwWindowDriver::ShouldClose() const {
 	return glfwWindowShouldClose(m_Handle);
 }

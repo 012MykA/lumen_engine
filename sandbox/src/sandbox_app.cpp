@@ -21,7 +21,7 @@ public:
 #endif
 		LUMEN_TRACE("Built as: {}", buildType);
 
-		m_MainWindow = CreateWindow({ .resizable = false });
+		m_MainWindow = CreateWindow({});
 		SetWindowDarkMode(m_MainWindow);
 
 		m_MainWindow->PushLayer<VulkanRendererLayer>(m_MainWindow);

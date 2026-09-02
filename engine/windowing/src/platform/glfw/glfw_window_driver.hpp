@@ -12,6 +12,7 @@ public:
 	~GlfwWindowDriver();
 
 	void OnUpdate() override;
+	void WaitForEvents() override;
 	bool ShouldClose() const override;
 
 	void SetTitle(std::string_view title) override;
