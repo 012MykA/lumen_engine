@@ -1,6 +1,8 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <lumen_engine/lumen_engine.hpp>
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
@@ -13,6 +15,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include <vector>
 
 struct Vertex {
@@ -29,6 +32,12 @@ struct Vertex {
 			VkVertexInputAttributeDescription{ .location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color) },
 		};
 	}
+};
+
+struct UniformBufferObject {
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
 };
 
 struct QueueFamilyIndices {
@@ -81,6 +90,8 @@ private:
 	// --- Runtime ---
 	bool OnWindowResize(lm::WindowExtent extent);
 
+	void UpdateUniformBuffer();
+
 	// --- Init ---
 	void CreateInstance();
 	void SetupDebugMessenger();
@@ -89,12 +100,16 @@ private:
 	void CreateDevice();
 	void CreateSwapchain();
 	void CreateImageViews();
+	void CreateDescriptorSetLayout();
+	void CreateUniformBuffers();
+	void CreateDescriptorPool();
 	void CreateGraphicsPipeline();
 	void CreateCommandPool();
 	void CreateCommandBuffers();
 	void CreateSyncObjects();
 
 	void CreateVertexBuffer();
+	void CreateIndexBuffer();
 
 	// --- Shutdown ---
 	void Cleanup();
@@ -159,6 +174,10 @@ private:
 	// Memory
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
+	// Buffer
+	std::pair<VkBuffer, VkDeviceMemory> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+	void CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size);
+
 private:
 	lm::Window *m_Window;
 
@@ -181,6 +200,8 @@ private:
 		std::vector<VkImage> swapchainImages;
 		std::vector<VkImageView> swapchainImageViews;
 
+		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+
 		VkPipelineLayout graphicsPipelineLayout = VK_NULL_HANDLE;
 		VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
@@ -193,6 +214,12 @@ private:
 
 		VkBuffer vertexBuffer = VK_NULL_HANDLE;
 		VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
+		VkBuffer indexBuffer = VK_NULL_HANDLE;
+		VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
+
+		std::vector<VkBuffer> uniformBuffers;
+		std::vector<VkDeviceMemory> uniformBuffersMemory;
+		std::vector<void *> uniformBuffersMapped;
 	} m_Context;
 	uint32_t frameIndex = 0;
 	bool framebufferResized = false;

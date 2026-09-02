@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <format>
 #include <fstream>
 #include <limits>
@@ -15,6 +16,8 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <tuple>
 
 #define CHECK_VK(x) \
 	do { \
@@ -26,11 +29,16 @@
 
 namespace {
 
-const std::vector<Vertex> vertices = {
-	{ { 0.0f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
-	{ { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
-	{ { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
+constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
+
+const std::vector<Vertex> s_Vertices = {
+	{ { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+	{ { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } },
+	{ { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
+	{ { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
 };
+
+const std::vector<uint32_t> s_Indices = { 0, 1, 2, 2, 3, 0 };
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
 		const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) {
@@ -98,12 +106,16 @@ void VulkanRendererLayer::OnAttach() {
 	CreateDevice();
 	CreateSwapchain();
 	CreateImageViews();
+	CreateDescriptorSetLayout();
+	CreateUniformBuffers();
+	CreateDescriptorPool();
 	CreateGraphicsPipeline();
 	CreateCommandPool();
 	CreateCommandBuffers();
 	CreateSyncObjects();
 
 	CreateVertexBuffer();
+	CreateIndexBuffer();
 }
 
 void VulkanRendererLayer::OnDetach() {
@@ -116,8 +128,6 @@ void VulkanRendererLayer::OnEvent(lm::Event &e) {
 }
 
 void VulkanRendererLayer::OnRender() {
-	constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
-
 	CHECK_VK(vkWaitForFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex], VK_TRUE, noTimeout));
 
 	uint32_t imageIndex;
@@ -135,8 +145,10 @@ void VulkanRendererLayer::OnRender() {
 
 	RecordCommandBuffer(imageIndex);
 
+	UpdateUniformBuffer();
+
 	VkPipelineStageFlags waitDestinationStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-	const VkSubmitInfo submitInfo{
+	VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.waitSemaphoreCount = 1,
 		.pWaitSemaphores = &m_Context.presentCompleteSemaphores[frameIndex],
@@ -177,6 +189,20 @@ bool VulkanRendererLayer::OnWindowResize(lm::WindowExtent /*extent*/) {
 	return false;
 }
 
+void VulkanRendererLayer::UpdateUniformBuffer() {
+	static auto startTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	UniformBufferObject ubo{};
+	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(glm::vec3(2.0f), glm::vec3(0.0f), { 0.0f, 0.0f, 1.0f });
+	float aspectRatio = static_cast<float>(m_Context.swapchainExtent.width) / m_Context.swapchainExtent.height;
+	ubo.proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
+	ubo.proj[1][1] *= -1;
+	std::memcpy(m_Context.uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
+}
+
 void VulkanRendererLayer::RecreateSwapchain() {
 	lm::WindowExtent extent = m_Window->GetExtent();
 	while (extent.width == 0 || extent.height == 0) {
@@ -184,7 +210,7 @@ void VulkanRendererLayer::RecreateSwapchain() {
 		m_Window->WaitForEvents();
 	}
 
-	vkDeviceWaitIdle(m_Context.device);
+	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
 
 	CleanupSwapchain();
 
@@ -472,7 +498,8 @@ void VulkanRendererLayer::CreateGraphicsPipeline() {
 	// Pipeline layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-		.setLayoutCount = 0,
+		.setLayoutCount = 1,
+		.pSetLayouts = &m_Context.descriptorSetLayout,
 		.pushConstantRangeCount = 0,
 	};
 	CHECK_VK(vkCreatePipelineLayout(m_Context.device, &pipelineLayoutInfo, nullptr, &m_Context.graphicsPipelineLayout));
@@ -548,37 +575,84 @@ void VulkanRendererLayer::CreateSyncObjects() {
 }
 
 void VulkanRendererLayer::CreateVertexBuffer() {
-	VkBufferCreateInfo bufferInfo{
-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-		.size = sizeof(vertices[0]) * vertices.size(),
-		.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-	};
-	CHECK_VK(vkCreateBuffer(m_Context.device, &bufferInfo, nullptr, &m_Context.vertexBuffer));
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(m_Context.device, m_Context.vertexBuffer, &memRequirements);
-
-	VkMemoryAllocateInfo memoryAllocateInfo{
-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-		.allocationSize = memRequirements.size,
-		.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
-	};
-	CHECK_VK(vkAllocateMemory(m_Context.device, &memoryAllocateInfo, nullptr, &m_Context.vertexBufferMemory));
-
-	CHECK_VK(vkBindBufferMemory(m_Context.device, m_Context.vertexBuffer, m_Context.vertexBufferMemory, 0));
+	VkDeviceSize bufferSize = sizeof(s_Vertices[0]) * s_Vertices.size();
+	auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	void *data;
-	CHECK_VK(vkMapMemory(m_Context.device, m_Context.vertexBufferMemory, 0, bufferInfo.size, 0, &data));
-	{
-		std::memcpy(data, vertices.data(), bufferInfo.size);
+	CHECK_VK(vkMapMemory(m_Context.device, stagingBufferMemory, 0, bufferSize, 0, &data));
+	std::memcpy(data, s_Vertices.data(), static_cast<size_t>(bufferSize));
+	vkUnmapMemory(m_Context.device, stagingBufferMemory);
+
+	std::tie(m_Context.vertexBuffer, m_Context.vertexBufferMemory) = CreateBuffer(bufferSize,
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+					VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	CopyBuffer(m_Context.vertexBuffer, stagingBuffer, bufferSize);
+
+	vkFreeMemory(m_Context.device, stagingBufferMemory, nullptr);
+	vkDestroyBuffer(m_Context.device, stagingBuffer, nullptr);
+}
+
+void VulkanRendererLayer::CreateIndexBuffer() {
+	VkDeviceSize bufferSize = sizeof(s_Indices[0]) * s_Indices.size();
+	auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	void *data;
+	CHECK_VK(vkMapMemory(m_Context.device, stagingBufferMemory, 0, bufferSize, 0, &data));
+	std::memcpy(data, s_Indices.data(), static_cast<size_t>(bufferSize));
+	vkUnmapMemory(m_Context.device, stagingBufferMemory);
+
+	std::tie(m_Context.indexBuffer, m_Context.indexBufferMemory) = CreateBuffer(
+			bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	CopyBuffer(m_Context.indexBuffer, stagingBuffer, bufferSize);
+
+	vkFreeMemory(m_Context.device, stagingBufferMemory, nullptr);
+	vkDestroyBuffer(m_Context.device, stagingBuffer, nullptr);
+}
+
+void VulkanRendererLayer::CreateUniformBuffers() {
+	m_Context.uniformBuffers.resize(k_MaxFramesInFlight);
+	m_Context.uniformBuffersMemory.resize(k_MaxFramesInFlight);
+	m_Context.uniformBuffersMapped.resize(k_MaxFramesInFlight);
+	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
+		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+		auto [buffer, memory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		m_Context.uniformBuffers[i] = buffer;
+		m_Context.uniformBuffersMemory[i] = memory;
+		CHECK_VK(vkMapMemory(m_Context.device, memory, 0, bufferSize, 0, &m_Context.uniformBuffersMapped[i]));
 	}
-	vkUnmapMemory(m_Context.device, m_Context.vertexBufferMemory);
+}
+
+void VulkanRendererLayer::CreateDescriptorPool() {
+	VkDescriptorPoolSize poolSize{};
+}
+
+void VulkanRendererLayer::CreateDescriptorSetLayout() {
+	VkDescriptorSetLayoutBinding uboLayoutBinding{
+		.binding = 0,
+		.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		.descriptorCount = 1,
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+	};
+	VkDescriptorSetLayoutCreateInfo layoutInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.bindingCount = 1,
+		.pBindings = &uboLayoutBinding,
+	};
+	CHECK_VK(vkCreateDescriptorSetLayout(m_Context.device, &layoutInfo, nullptr, &m_Context.descriptorSetLayout));
 }
 
 void VulkanRendererLayer::Cleanup() {
-	vkDeviceWaitIdle(m_Context.device);
+	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
+
+	vkFreeMemory(m_Context.device, m_Context.indexBufferMemory, nullptr);
+	vkDestroyBuffer(m_Context.device, m_Context.indexBuffer, nullptr);
 
 	vkFreeMemory(m_Context.device, m_Context.vertexBufferMemory, nullptr);
 	vkDestroyBuffer(m_Context.device, m_Context.vertexBuffer, nullptr);
@@ -852,8 +926,9 @@ void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
 
 			VkDeviceSize offset = 0;
 			vkCmdBindVertexBuffers(cmd, 0, 1, &m_Context.vertexBuffer, &offset);
-			auto vertexCount = static_cast<uint32_t>(vertices.size());
-			vkCmdDraw(cmd, vertexCount, 1, 0, 0);
+			vkCmdBindIndexBuffer(cmd, m_Context.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			auto indexCount = static_cast<uint32_t>(s_Indices.size());
+			vkCmdDrawIndexed(cmd, indexCount, 1, 0, 0, 0);
 		}
 		vkCmdEndRendering(cmd);
 
@@ -906,13 +981,86 @@ void VulkanRendererLayer::TransitionImageLayout(
 }
 
 uint32_t VulkanRendererLayer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(m_Context.physicalDevice, &memProperties);
+	VkPhysicalDeviceMemoryProperties memoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(m_Context.physicalDevice, &memoryProperties);
 
-	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+		if ((typeFilter & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
 			return i;
 		}
 	}
+
 	throw std::runtime_error("Failed to find suitable memory type.");
+}
+
+std::pair<VkBuffer, VkDeviceMemory> VulkanRendererLayer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+	VkBufferCreateInfo bufferInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.flags = 0,
+		.size = size,
+		.usage = usage,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+	};
+	VkBuffer buffer;
+	CHECK_VK(vkCreateBuffer(m_Context.device, &bufferInfo, nullptr, &buffer));
+
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(m_Context.device, buffer, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = memRequirements.size,
+		.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties),
+	};
+	VkDeviceMemory memory;
+	CHECK_VK(vkAllocateMemory(m_Context.device, &allocInfo, nullptr, &memory));
+
+	CHECK_VK(vkBindBufferMemory(m_Context.device, buffer, memory, 0));
+
+	return { buffer, memory };
+}
+
+void VulkanRendererLayer::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
+	VkQueue queue = m_Context.graphicsQueue;
+
+	VkCommandBufferAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = m_Context.commandPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1,
+	};
+	VkCommandBuffer cmd;
+	CHECK_VK(vkAllocateCommandBuffers(m_Context.device, &allocInfo, &cmd));
+
+	VkCommandBufferBeginInfo beginInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	vkBeginCommandBuffer(cmd, &beginInfo);
+	{
+		VkBufferCopy2 region{
+			.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
+			.size = size,
+		};
+		VkCopyBufferInfo2 copyInfo{
+			.sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
+			.srcBuffer = src,
+			.dstBuffer = dst,
+			.regionCount = 1,
+			.pRegions = &region,
+		};
+		vkCmdCopyBuffer2(cmd, &copyInfo);
+	}
+	vkEndCommandBuffer(cmd);
+
+	VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+	VkFence copyFinishedFence;
+	CHECK_VK(vkCreateFence(m_Context.device, &fenceInfo, nullptr, &copyFinishedFence));
+
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &cmd,
+	};
+	CHECK_VK(vkQueueSubmit(queue, 1, &submitInfo, copyFinishedFence));
+
+	CHECK_VK(vkWaitForFences(m_Context.device, 1, &copyFinishedFence, VK_TRUE, noTimeout));
+	vkDestroyFence(m_Context.device, copyFinishedFence, nullptr);
 }

@@ -1,17 +1,23 @@
 struct VertexInput {
-	[[vk::location(0)]] float2 pos : POSITION;
-	[[vk::location(1)]] float3 color : COLOR;
+	float2 pos : POSITION;
+	float3 color : COLOR;
 };
+struct UniformBuffer {
+	float4x4 model;
+	float4x4 view;
+	float4x4 proj;
+};
+ConstantBuffer<UniformBuffer> ubo;
 
 struct VertexOutput {
 	float4 sv_position : SV_Position;
-	[[vk::location(0)]] float3 color : COLOR;
+	float3 color : COLOR;
 };
 
 [shader("vertex")]
 VertexOutput vertMain(VertexInput input) {
 	VertexOutput output;
-	output.sv_position = float4(input.pos, 0.0, 1.0);
+	output.sv_position = mul(ubo.proj, mul(ubo.view, mul(ubo.proj, float4(input.pos, 0.0, 1.0))));
 	output.color = input.color;
 	return output;
 }
