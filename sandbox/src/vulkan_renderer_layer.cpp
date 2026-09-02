@@ -26,6 +26,12 @@
 
 namespace {
 
+const std::vector<Vertex> vertices = {
+	{ { 0.0f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
+	{ { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
+	{ { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
+};
+
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
 		const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) {
 	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -41,7 +47,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 		VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
-	auto msg = std::format("Vulkan Validation [{}]: {}", string_VkDebugUtilsMessageTypeFlagsEXT(type), pCallbackData->pMessage);
+	auto msg = std::format("\n\tVulkan Validation [{}]: {}", string_VkDebugUtilsMessageTypeFlagsEXT(type), pCallbackData->pMessage);
 	switch (severity) {
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
 			LUMEN_CORE_WARN("{}", msg);
@@ -96,6 +102,8 @@ void VulkanRendererLayer::OnAttach() {
 	CreateCommandPool();
 	CreateCommandBuffers();
 	CreateSyncObjects();
+
+	CreateVertexBuffer();
 }
 
 void VulkanRendererLayer::OnDetach() {
@@ -124,6 +132,7 @@ void VulkanRendererLayer::OnRender() {
 
 	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex]));
 	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffers[frameIndex], 0));
+
 	RecordCommandBuffer(imageIndex);
 
 	VkPipelineStageFlags waitDestinationStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
@@ -163,8 +172,7 @@ void VulkanRendererLayer::OnRender() {
 // Initialization
 // ---------------------------------------------------------------------------
 
-bool VulkanRendererLayer::OnWindowResize(lm::WindowExtent extent) {
-	LUMEN_CORE_TRACE("VulkanRendererLayer: Framebuffer resized({}, {})", extent.width, extent.height);
+bool VulkanRendererLayer::OnWindowResize(lm::WindowExtent /*extent*/) {
 	framebufferResized = true;
 	return false;
 }
@@ -391,7 +399,15 @@ void VulkanRendererLayer::CreateGraphicsPipeline() {
 	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertShaderStage, fragShaderStage };
 
 	// Vertex input
-	VkPipelineVertexInputStateCreateInfo vertexInputState{ .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+	VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
+	std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = Vertex::GetAttributeDescriptions();
+	VkPipelineVertexInputStateCreateInfo vertexInputState{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		.vertexBindingDescriptionCount = 1,
+		.pVertexBindingDescriptions = &bindingDescription,
+		.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+		.pVertexAttributeDescriptions = attributeDescriptions.data(),
+	};
 
 	// Input assembly
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{
@@ -531,8 +547,41 @@ void VulkanRendererLayer::CreateSyncObjects() {
 	}
 }
 
+void VulkanRendererLayer::CreateVertexBuffer() {
+	VkBufferCreateInfo bufferInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.size = sizeof(vertices[0]) * vertices.size(),
+		.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+	};
+	CHECK_VK(vkCreateBuffer(m_Context.device, &bufferInfo, nullptr, &m_Context.vertexBuffer));
+
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(m_Context.device, m_Context.vertexBuffer, &memRequirements);
+
+	VkMemoryAllocateInfo memoryAllocateInfo{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = memRequirements.size,
+		.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+	};
+	CHECK_VK(vkAllocateMemory(m_Context.device, &memoryAllocateInfo, nullptr, &m_Context.vertexBufferMemory));
+
+	CHECK_VK(vkBindBufferMemory(m_Context.device, m_Context.vertexBuffer, m_Context.vertexBufferMemory, 0));
+
+	void *data;
+	CHECK_VK(vkMapMemory(m_Context.device, m_Context.vertexBufferMemory, 0, bufferInfo.size, 0, &data));
+	{
+		std::memcpy(data, vertices.data(), bufferInfo.size);
+	}
+	vkUnmapMemory(m_Context.device, m_Context.vertexBufferMemory);
+}
+
 void VulkanRendererLayer::Cleanup() {
 	vkDeviceWaitIdle(m_Context.device);
+
+	vkFreeMemory(m_Context.device, m_Context.vertexBufferMemory, nullptr);
+	vkDestroyBuffer(m_Context.device, m_Context.vertexBuffer, nullptr);
 
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
 		vkDestroyFence(m_Context.device, m_Context.inFlightFences[i], nullptr);
@@ -800,7 +849,11 @@ void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
 			vkCmdSetScissor(cmd, 0, 1, &scissor);
 
 			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context.graphicsPipeline);
-			vkCmdDraw(cmd, 3, 1, 0, 0);
+
+			VkDeviceSize offset = 0;
+			vkCmdBindVertexBuffers(cmd, 0, 1, &m_Context.vertexBuffer, &offset);
+			auto vertexCount = static_cast<uint32_t>(vertices.size());
+			vkCmdDraw(cmd, vertexCount, 1, 0, 0);
 		}
 		vkCmdEndRendering(cmd);
 
@@ -850,4 +903,16 @@ void VulkanRendererLayer::TransitionImageLayout(
 		.pImageMemoryBarriers = &barrier,
 	};
 	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
+}
+
+uint32_t VulkanRendererLayer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(m_Context.physicalDevice, &memProperties);
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+	throw std::runtime_error("Failed to find suitable memory type.");
 }

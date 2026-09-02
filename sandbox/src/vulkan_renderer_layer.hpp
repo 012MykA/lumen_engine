@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glm/glm.hpp>
 #include <lumen_engine/lumen_engine.hpp>
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
@@ -9,9 +10,26 @@
 #endif
 #include <vulkan/vulkan.h>
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <vector>
+
+struct Vertex {
+	glm::vec2 pos;
+	glm::vec3 color;
+
+	static VkVertexInputBindingDescription GetBindingDescription() {
+		return { .binding = 0, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX };
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions() {
+		return {
+			VkVertexInputAttributeDescription{ .location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, pos) },
+			VkVertexInputAttributeDescription{ .location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color) },
+		};
+	}
+};
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
@@ -76,6 +94,8 @@ private:
 	void CreateCommandBuffers();
 	void CreateSyncObjects();
 
+	void CreateVertexBuffer();
+
 	// --- Shutdown ---
 	void Cleanup();
 
@@ -136,6 +156,9 @@ private:
 			VkPipelineStageFlags2 srcStageMask,
 			VkPipelineStageFlags2 dstStageMask);
 
+	// Memory
+	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
 private:
 	lm::Window *m_Window;
 
@@ -168,6 +191,8 @@ private:
 		std::vector<VkSemaphore> renderFinishedSemaphores;
 		std::vector<VkFence> inFlightFences;
 
+		VkBuffer vertexBuffer = VK_NULL_HANDLE;
+		VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
 	} m_Context;
 	uint32_t frameIndex = 0;
 	bool framebufferResized = false;

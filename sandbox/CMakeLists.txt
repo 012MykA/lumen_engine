@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.23)
 project(sandbox)
 
 find_package(Vulkan REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME}
     src/sandbox_app.cpp
@@ -11,6 +12,7 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     lumen::engine
     Vulkan::Vulkan
+    glm::glm
 )
 
 if (WIN32 AND BUILD_SHARED_LIBS)
