@@ -2,7 +2,6 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 #include <lumen_engine/lumen_engine.hpp>
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
@@ -101,15 +100,19 @@ private:
 	void CreateSwapchain();
 	void CreateImageViews();
 	void CreateDescriptorSetLayout();
-	void CreateUniformBuffers();
-	void CreateDescriptorPool();
 	void CreateGraphicsPipeline();
+
 	void CreateCommandPool();
-	void CreateCommandBuffers();
-	void CreateSyncObjects();
 
 	void CreateVertexBuffer();
 	void CreateIndexBuffer();
+
+	void CreateUniformBuffers();
+	void CreateDescriptorPool();
+	void CreateDescriptorSets();
+
+	void CreateCommandBuffers();
+	void CreateSyncObjects();
 
 	// --- Shutdown ---
 	void Cleanup();
@@ -201,16 +204,10 @@ private:
 		std::vector<VkImageView> swapchainImageViews;
 
 		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-
 		VkPipelineLayout graphicsPipelineLayout = VK_NULL_HANDLE;
 		VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
-		std::vector<VkCommandBuffer> commandBuffers;
-
-		std::vector<VkSemaphore> presentCompleteSemaphores;
-		std::vector<VkSemaphore> renderFinishedSemaphores;
-		std::vector<VkFence> inFlightFences;
 
 		VkBuffer vertexBuffer = VK_NULL_HANDLE;
 		VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
@@ -220,7 +217,17 @@ private:
 		std::vector<VkBuffer> uniformBuffers;
 		std::vector<VkDeviceMemory> uniformBuffersMemory;
 		std::vector<void *> uniformBuffersMapped;
+
+		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSet> descriptorSets;
+
+		std::vector<VkCommandBuffer> commandBuffers;
+
+		std::vector<VkSemaphore> presentCompleteSemaphores;
+		std::vector<VkSemaphore> renderFinishedSemaphores;
+		std::vector<VkFence> inFlightFences;
 	} m_Context;
 	uint32_t frameIndex = 0;
+
 	bool framebufferResized = false;
 };

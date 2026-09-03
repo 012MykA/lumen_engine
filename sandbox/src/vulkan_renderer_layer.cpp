@@ -33,9 +33,9 @@ constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
 
 const std::vector<Vertex> s_Vertices = {
 	{ { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-	{ { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } },
-	{ { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
 	{ { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
+	{ { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
+	{ { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } }
 };
 
 const std::vector<uint32_t> s_Indices = { 0, 1, 2, 2, 3, 0 };
@@ -107,15 +107,19 @@ void VulkanRendererLayer::OnAttach() {
 	CreateSwapchain();
 	CreateImageViews();
 	CreateDescriptorSetLayout();
-	CreateUniformBuffers();
-	CreateDescriptorPool();
 	CreateGraphicsPipeline();
+
 	CreateCommandPool();
-	CreateCommandBuffers();
-	CreateSyncObjects();
 
 	CreateVertexBuffer();
 	CreateIndexBuffer();
+
+	CreateUniformBuffers();
+	CreateDescriptorPool();
+	CreateDescriptorSets();
+
+	CreateCommandBuffers();
+	CreateSyncObjects();
 }
 
 void VulkanRendererLayer::OnDetach() {
@@ -143,9 +147,8 @@ void VulkanRendererLayer::OnRender() {
 	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex]));
 	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffers[frameIndex], 0));
 
-	RecordCommandBuffer(imageIndex);
-
 	UpdateUniformBuffer();
+	RecordCommandBuffer(imageIndex);
 
 	VkPipelineStageFlags waitDestinationStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 	VkSubmitInfo submitInfo{
@@ -630,7 +633,44 @@ void VulkanRendererLayer::CreateUniformBuffers() {
 }
 
 void VulkanRendererLayer::CreateDescriptorPool() {
-	VkDescriptorPoolSize poolSize{};
+	VkDescriptorPoolSize poolSize{ .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = k_MaxFramesInFlight };
+
+	VkDescriptorPoolCreateInfo createInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+		.maxSets = k_MaxFramesInFlight,
+		.poolSizeCount = 1,
+		.pPoolSizes = &poolSize,
+	};
+	CHECK_VK(vkCreateDescriptorPool(m_Context.device, &createInfo, nullptr, &m_Context.descriptorPool));
+}
+
+void VulkanRendererLayer::CreateDescriptorSets() {
+	std::vector<VkDescriptorSetLayout> layouts(k_MaxFramesInFlight, m_Context.descriptorSetLayout);
+	VkDescriptorSetAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.descriptorPool = m_Context.descriptorPool,
+		.descriptorSetCount = static_cast<uint32_t>(layouts.size()),
+		.pSetLayouts = layouts.data(),
+	};
+	m_Context.descriptorSets.resize(layouts.size());
+	CHECK_VK(vkAllocateDescriptorSets(m_Context.device, &allocInfo, m_Context.descriptorSets.data()));
+
+	std::vector<VkWriteDescriptorSet> writes(k_MaxFramesInFlight);
+	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
+		VkDescriptorBufferInfo bufferInfo{ .buffer = m_Context.uniformBuffers[i], .offset = 0, .range = sizeof(UniformBufferObject) };
+		VkWriteDescriptorSet descriptorWrite{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = m_Context.descriptorSets[i],
+			.dstBinding = 0,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.pBufferInfo = &bufferInfo,
+		};
+		writes[i] = descriptorWrite;
+	}
+	vkUpdateDescriptorSets(m_Context.device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void VulkanRendererLayer::CreateDescriptorSetLayout() {
@@ -651,12 +691,6 @@ void VulkanRendererLayer::CreateDescriptorSetLayout() {
 void VulkanRendererLayer::Cleanup() {
 	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
 
-	vkFreeMemory(m_Context.device, m_Context.indexBufferMemory, nullptr);
-	vkDestroyBuffer(m_Context.device, m_Context.indexBuffer, nullptr);
-
-	vkFreeMemory(m_Context.device, m_Context.vertexBufferMemory, nullptr);
-	vkDestroyBuffer(m_Context.device, m_Context.vertexBuffer, nullptr);
-
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
 		vkDestroyFence(m_Context.device, m_Context.inFlightFences[i], nullptr);
 		vkDestroySemaphore(m_Context.device, m_Context.presentCompleteSemaphores[i], nullptr);
@@ -667,11 +701,35 @@ void VulkanRendererLayer::Cleanup() {
 		vkDestroySemaphore(m_Context.device, m_Context.renderFinishedSemaphores[i], nullptr);
 	}
 	m_Context.renderFinishedSemaphores.clear();
+
+	vkDestroyDescriptorPool(m_Context.device, m_Context.descriptorPool, nullptr);
+	m_Context.descriptorSets.clear();
+
+	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
+		vkUnmapMemory(m_Context.device, m_Context.uniformBuffersMemory[i]);
+		vkFreeMemory(m_Context.device, m_Context.uniformBuffersMemory[i], nullptr);
+		vkDestroyBuffer(m_Context.device, m_Context.uniformBuffers[i], nullptr);
+	}
+	m_Context.uniformBuffersMapped.clear();
+	m_Context.uniformBuffersMemory.clear();
+	m_Context.uniformBuffers.clear();
+
+	vkFreeMemory(m_Context.device, m_Context.indexBufferMemory, nullptr);
+	vkDestroyBuffer(m_Context.device, m_Context.indexBuffer, nullptr);
+	vkFreeMemory(m_Context.device, m_Context.vertexBufferMemory, nullptr);
+	vkDestroyBuffer(m_Context.device, m_Context.vertexBuffer, nullptr);
+
 	vkDestroyCommandPool(m_Context.device, m_Context.commandPool, nullptr);
+	m_Context.commandBuffers.clear();
+
 	vkDestroyPipeline(m_Context.device, m_Context.graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Context.device, m_Context.graphicsPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_Context.device, m_Context.descriptorSetLayout, nullptr);
+
 	CleanupSwapchain();
+
 	vkDestroyDevice(m_Context.device, nullptr);
+
 	vkDestroySurfaceKHR(m_Context.instance, m_Context.surface, nullptr);
 	if (m_Context.debugMessenger != VK_NULL_HANDLE) {
 		DestroyDebugUtilsMessengerEXT(m_Context.instance, m_Context.debugMessenger, nullptr);
@@ -927,6 +985,13 @@ void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
 			VkDeviceSize offset = 0;
 			vkCmdBindVertexBuffers(cmd, 0, 1, &m_Context.vertexBuffer, &offset);
 			vkCmdBindIndexBuffer(cmd, m_Context.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			std::array sets = { m_Context.descriptorSets[frameIndex] };
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					m_Context.graphicsPipelineLayout, 0,
+					static_cast<uint32_t>(sets.size()), sets.data(),
+					0, nullptr);
+
 			auto indexCount = static_cast<uint32_t>(s_Indices.size());
 			vkCmdDrawIndexed(cmd, indexCount, 1, 0, 0, 0);
 		}
