@@ -1127,5 +1127,7 @@ void VulkanRendererLayer::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize si
 	CHECK_VK(vkQueueSubmit(queue, 1, &submitInfo, copyFinishedFence));
 
 	CHECK_VK(vkWaitForFences(m_Context.device, 1, &copyFinishedFence, VK_TRUE, noTimeout));
+
 	vkDestroyFence(m_Context.device, copyFinishedFence, nullptr);
+	vkFreeCommandBuffers(m_Context.device, m_Context.commandPool, 1, &cmd);
 }
