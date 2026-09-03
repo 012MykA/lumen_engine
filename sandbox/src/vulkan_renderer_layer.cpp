@@ -412,7 +412,7 @@ void VulkanRendererLayer::CreateImageViews() {
 }
 
 void VulkanRendererLayer::CreateGraphicsPipeline() {
-	VkShaderModule shaderModule = CreateShaderModule(readSpirV("shaders/shader.spv"));
+	VkShaderModule shaderModule = CreateShaderModule(readSpirV("shaders/bin/shader.spv"));
 	VkPipelineShaderStageCreateInfo vertShaderStage{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_VERTEX_BIT,
