@@ -67,9 +67,9 @@ struct SwapchainSupportDetails {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
-class VulkanRendererLayer final : public lm::Layer {
+class VulkanRenderLayer final : public lm::Layer {
 public:
-	explicit VulkanRendererLayer(lm::Window *window);
+	explicit VulkanRenderLayer(lm::Window *window);
 
 	void OnAttach() override;
 	void OnDetach() override;
@@ -266,7 +266,7 @@ private:
 
 template <typename F>
 	requires std::invocable<F, VkCommandBuffer>
-inline void VulkanRendererLayer::SubmitSingleTimeCommand(F &&func) {
+inline void VulkanRenderLayer::SubmitSingleTimeCommand(F &&func) {
 	VkCommandBufferAllocateInfo allocInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = m_Context.commandPool,

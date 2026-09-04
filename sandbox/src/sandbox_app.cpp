@@ -1,4 +1,4 @@
-#include "vulkan_renderer_layer.hpp"
+#include "vulkan_render_layer.hpp"
 
 #include <lumen_engine/app/entry_point.hpp>
 
@@ -24,7 +24,7 @@ public:
 		m_MainWindow = CreateWindow({});
 		SetWindowDarkMode(m_MainWindow);
 
-		m_MainWindow->PushLayer<VulkanRendererLayer>(m_MainWindow);
+		m_MainWindow->PushLayer<VulkanRenderLayer>(m_MainWindow);
 	}
 
 private:

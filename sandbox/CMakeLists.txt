@@ -7,7 +7,7 @@ find_package(Stb REQUIRED)
 
 add_executable(${PROJECT_NAME}
     src/sandbox_app.cpp
-    src/vulkan_renderer_layer.cpp
+    src/vulkan_render_layer.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

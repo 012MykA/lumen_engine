@@ -1,4 +1,4 @@
-#include "vulkan_renderer_layer.hpp"
+#include "vulkan_render_layer.hpp"
 #ifdef max
 	#undef max
 #endif
@@ -86,9 +86,9 @@ std::vector<const char *> FilterSupportedNames(const AvailableRange &available, 
 
 } // namespace
 
-VulkanRendererLayer::VulkanRendererLayer(lm::Window *window) : Layer("VulkanRendererLayer"), m_Window(window) {}
+VulkanRenderLayer::VulkanRenderLayer(lm::Window *window) : Layer("VulkanRenderLayer"), m_Window(window) {}
 
-void VulkanRendererLayer::OnAttach() {
+void VulkanRenderLayer::OnAttach() {
 	CreateInstance();
 	if constexpr (k_EnableValidation) {
 		SetupDebugMessenger();
@@ -115,16 +115,16 @@ void VulkanRendererLayer::OnAttach() {
 	CreateSyncObjects();
 }
 
-void VulkanRendererLayer::OnDetach() {
+void VulkanRenderLayer::OnDetach() {
 	Cleanup();
 }
 
-void VulkanRendererLayer::OnEvent(lm::Event &e) {
+void VulkanRenderLayer::OnEvent(lm::Event &e) {
 	lm::EventDispatcher dp(e);
 	dp.Dispatch<lm::WindowResizeEvent>([this](auto &e) { return OnWindowResize(e.GetExtent()); });
 }
 
-void VulkanRendererLayer::OnRender() {
+void VulkanRenderLayer::OnRender() {
 	CHECK_VK(vkWaitForFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex], VK_TRUE, noTimeout));
 
 	uint32_t imageIndex;
@@ -180,12 +180,12 @@ void VulkanRendererLayer::OnRender() {
 // Initialization
 // ---------------------------------------------------------------------------
 
-bool VulkanRendererLayer::OnWindowResize(lm::WindowExtent /*extent*/) {
+bool VulkanRenderLayer::OnWindowResize(lm::WindowExtent /*extent*/) {
 	framebufferResized = true;
 	return false;
 }
 
-void VulkanRendererLayer::UpdateUniformBuffer() {
+void VulkanRenderLayer::UpdateUniformBuffer() {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
@@ -199,7 +199,7 @@ void VulkanRendererLayer::UpdateUniformBuffer() {
 	std::memcpy(m_Context.uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
 }
 
-void VulkanRendererLayer::RecreateSwapchain() {
+void VulkanRenderLayer::RecreateSwapchain() {
 	lm::WindowExtent extent = m_Window->GetExtent();
 	while (extent.width == 0 || extent.height == 0) {
 		extent = m_Window->GetExtent();
@@ -214,7 +214,7 @@ void VulkanRendererLayer::RecreateSwapchain() {
 	CreateImageViews();
 }
 
-void VulkanRendererLayer::CleanupSwapchain() {
+void VulkanRenderLayer::CleanupSwapchain() {
 	for (auto imageView : m_Context.swapchainImageViews) {
 		vkDestroyImageView(m_Context.device, imageView, nullptr);
 	}
@@ -223,10 +223,10 @@ void VulkanRendererLayer::CleanupSwapchain() {
 	m_Context.swapchain = VK_NULL_HANDLE;
 }
 
-void VulkanRendererLayer::CreateInstance() {
+void VulkanRenderLayer::CreateInstance() {
 	constexpr VkApplicationInfo appInfo{
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		.pApplicationName = "VulkanRendererLayer",
+		.pApplicationName = "VulkanRenderLayer",
 		.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 		.pEngineName = "Lumen Engine",
 		.engineVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -248,7 +248,7 @@ void VulkanRendererLayer::CreateInstance() {
 	CHECK_VK(vkCreateInstance(&createInfo, nullptr, &m_Context.instance));
 }
 
-void VulkanRendererLayer::SetupDebugMessenger() {
+void VulkanRenderLayer::SetupDebugMessenger() {
 	VkDebugUtilsMessengerCreateInfoEXT createInfo{
 		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
@@ -258,7 +258,7 @@ void VulkanRendererLayer::SetupDebugMessenger() {
 	CHECK_VK(CreateDebugUtilsMessengerEXT(m_Context.instance, &createInfo, nullptr, &m_Context.debugMessenger));
 }
 
-void VulkanRendererLayer::CreateSurface() {
+void VulkanRenderLayer::CreateSurface() {
 	HWND handle = static_cast<HWND>(m_Window->GetNativeHandle());
 	VkWin32SurfaceCreateInfoKHR createInfo{
 		.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -267,7 +267,7 @@ void VulkanRendererLayer::CreateSurface() {
 	CHECK_VK(vkCreateWin32SurfaceKHR(m_Context.instance, &createInfo, nullptr, &m_Context.surface));
 }
 
-void VulkanRendererLayer::PickPhysicalDevice() {
+void VulkanRenderLayer::PickPhysicalDevice() {
 	auto devices = EnumeratePhysicalDevices();
 	if (devices.empty()) {
 		throw std::runtime_error("Failed to find GPUs with Vulkan support.");
@@ -284,7 +284,7 @@ void VulkanRendererLayer::PickPhysicalDevice() {
 	LUMEN_CORE_INFO("Using GPU: {}", props.deviceName);
 }
 
-void VulkanRendererLayer::CreateDevice() {
+void VulkanRenderLayer::CreateDevice() {
 	m_Context.queueFamilyIndices = FindQueueFamilies(m_Context.physicalDevice);
 	const QueueFamilyIndices &indices = m_Context.queueFamilyIndices;
 
@@ -330,7 +330,7 @@ void VulkanRendererLayer::CreateDevice() {
 	vkGetDeviceQueue(m_Context.device, indices.computeFamily.value(), 0, &m_Context.computeQueue);
 }
 
-void VulkanRendererLayer::CreateSwapchain() {
+void VulkanRenderLayer::CreateSwapchain() {
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 	CHECK_VK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Context.physicalDevice, m_Context.surface, &surfaceCapabilities));
 	m_Context.swapchainExtent = ChooseSwapExtent(surfaceCapabilities);
@@ -381,7 +381,7 @@ void VulkanRendererLayer::CreateSwapchain() {
 	vkGetSwapchainImagesKHR(m_Context.device, m_Context.swapchain, &swapchainImageCount, m_Context.swapchainImages.data());
 }
 
-void VulkanRendererLayer::CreateImageViews() {
+void VulkanRenderLayer::CreateImageViews() {
 	assert(m_Context.swapchainImageViews.empty());
 	VkImageViewCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -404,7 +404,7 @@ void VulkanRendererLayer::CreateImageViews() {
 	}
 }
 
-void VulkanRendererLayer::CreateGraphicsPipeline() {
+void VulkanRenderLayer::CreateGraphicsPipeline() {
 	VkShaderModule shaderModule = CreateShaderModule(readSpirV("shaders/bin/shader.spv"));
 	VkPipelineShaderStageCreateInfo vertShaderStage{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -527,7 +527,7 @@ void VulkanRendererLayer::CreateGraphicsPipeline() {
 	vkDestroyShaderModule(m_Context.device, shaderModule, nullptr);
 }
 
-void VulkanRendererLayer::CreateCommandPool() {
+void VulkanRenderLayer::CreateCommandPool() {
 	VkCommandPoolCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -536,7 +536,7 @@ void VulkanRendererLayer::CreateCommandPool() {
 	CHECK_VK(vkCreateCommandPool(m_Context.device, &createInfo, nullptr, &m_Context.commandPool));
 }
 
-void VulkanRendererLayer::CreateCommandBuffers() {
+void VulkanRenderLayer::CreateCommandBuffers() {
 	VkCommandBufferAllocateInfo allocInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = m_Context.commandPool,
@@ -547,7 +547,7 @@ void VulkanRendererLayer::CreateCommandBuffers() {
 	CHECK_VK(vkAllocateCommandBuffers(m_Context.device, &allocInfo, m_Context.commandBuffers.data()));
 }
 
-void VulkanRendererLayer::CreateSyncObjects() {
+void VulkanRenderLayer::CreateSyncObjects() {
 	assert(m_Context.presentCompleteSemaphores.empty() &&
 			m_Context.renderFinishedSemaphores.empty() &&
 			m_Context.inFlightFences.empty());
@@ -570,7 +570,7 @@ void VulkanRendererLayer::CreateSyncObjects() {
 	}
 }
 
-void VulkanRendererLayer::CreateTextureImage() {
+void VulkanRenderLayer::CreateTextureImage() {
 	int texWidth, texHeight, texChannels;
 	const int desiredChannels = STBI_rgb_alpha;
 	stbi_uc *pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, desiredChannels);
@@ -609,7 +609,7 @@ void VulkanRendererLayer::CreateTextureImage() {
 	vkDestroyBuffer(m_Context.device, stagingBuffer, nullptr);
 }
 
-void VulkanRendererLayer::CreateVertexBuffer() {
+void VulkanRenderLayer::CreateVertexBuffer() {
 	VkDeviceSize bufferSize = sizeof(s_Vertices[0]) * s_Vertices.size();
 	auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -630,7 +630,7 @@ void VulkanRendererLayer::CreateVertexBuffer() {
 	vkDestroyBuffer(m_Context.device, stagingBuffer, nullptr);
 }
 
-void VulkanRendererLayer::CreateIndexBuffer() {
+void VulkanRenderLayer::CreateIndexBuffer() {
 	VkDeviceSize bufferSize = sizeof(s_Indices[0]) * s_Indices.size();
 	auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -650,7 +650,7 @@ void VulkanRendererLayer::CreateIndexBuffer() {
 	vkDestroyBuffer(m_Context.device, stagingBuffer, nullptr);
 }
 
-void VulkanRendererLayer::CreateUniformBuffers() {
+void VulkanRenderLayer::CreateUniformBuffers() {
 	m_Context.uniformBuffers.resize(k_MaxFramesInFlight);
 	m_Context.uniformBuffersMemory.resize(k_MaxFramesInFlight);
 	m_Context.uniformBuffersMapped.resize(k_MaxFramesInFlight);
@@ -664,7 +664,7 @@ void VulkanRendererLayer::CreateUniformBuffers() {
 	}
 }
 
-void VulkanRendererLayer::CreateDescriptorPool() {
+void VulkanRenderLayer::CreateDescriptorPool() {
 	VkDescriptorPoolSize poolSize{ .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = k_MaxFramesInFlight };
 
 	VkDescriptorPoolCreateInfo createInfo{
@@ -677,7 +677,7 @@ void VulkanRendererLayer::CreateDescriptorPool() {
 	CHECK_VK(vkCreateDescriptorPool(m_Context.device, &createInfo, nullptr, &m_Context.descriptorPool));
 }
 
-void VulkanRendererLayer::CreateDescriptorSets() {
+void VulkanRenderLayer::CreateDescriptorSets() {
 	std::vector<VkDescriptorSetLayout> layouts(k_MaxFramesInFlight, m_Context.descriptorSetLayout);
 	VkDescriptorSetAllocateInfo allocInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -705,7 +705,7 @@ void VulkanRendererLayer::CreateDescriptorSets() {
 	vkUpdateDescriptorSets(m_Context.device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
-void VulkanRendererLayer::CreateDescriptorSetLayout() {
+void VulkanRenderLayer::CreateDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding uboLayoutBinding{
 		.binding = 0,
 		.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -720,7 +720,7 @@ void VulkanRendererLayer::CreateDescriptorSetLayout() {
 	CHECK_VK(vkCreateDescriptorSetLayout(m_Context.device, &layoutInfo, nullptr, &m_Context.descriptorSetLayout));
 }
 
-void VulkanRendererLayer::Cleanup() {
+void VulkanRenderLayer::Cleanup() {
 	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
 
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
@@ -777,7 +777,7 @@ void VulkanRendererLayer::Cleanup() {
 // Query
 // ---------------------------------------------------------------------------
 
-std::vector<VkLayerProperties> VulkanRendererLayer::EnumerateInstanceLayers() const {
+std::vector<VkLayerProperties> VulkanRenderLayer::EnumerateInstanceLayers() const {
 	uint32_t count = 0;
 	CHECK_VK(vkEnumerateInstanceLayerProperties(&count, nullptr));
 	std::vector<VkLayerProperties> available(count);
@@ -785,7 +785,7 @@ std::vector<VkLayerProperties> VulkanRendererLayer::EnumerateInstanceLayers() co
 	return available;
 }
 
-std::vector<VkExtensionProperties> VulkanRendererLayer::EnumerateInstanceExtensions() const {
+std::vector<VkExtensionProperties> VulkanRenderLayer::EnumerateInstanceExtensions() const {
 	uint32_t count = 0;
 	CHECK_VK(vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr));
 	std::vector<VkExtensionProperties> available(count);
@@ -793,7 +793,7 @@ std::vector<VkExtensionProperties> VulkanRendererLayer::EnumerateInstanceExtensi
 	return available;
 }
 
-std::vector<VkPhysicalDevice> VulkanRendererLayer::EnumeratePhysicalDevices() const {
+std::vector<VkPhysicalDevice> VulkanRenderLayer::EnumeratePhysicalDevices() const {
 	uint32_t count = 0;
 	CHECK_VK(vkEnumeratePhysicalDevices(m_Context.instance, &count, nullptr));
 	std::vector<VkPhysicalDevice> devices(count);
@@ -801,7 +801,7 @@ std::vector<VkPhysicalDevice> VulkanRendererLayer::EnumeratePhysicalDevices() co
 	return devices;
 }
 
-std::vector<VkExtensionProperties> VulkanRendererLayer::EnumerateDeviceExtensions(VkPhysicalDevice device) const {
+std::vector<VkExtensionProperties> VulkanRenderLayer::EnumerateDeviceExtensions(VkPhysicalDevice device) const {
 	uint32_t count = 0;
 	CHECK_VK(vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr));
 	std::vector<VkExtensionProperties> available(count);
@@ -813,17 +813,17 @@ std::vector<VkExtensionProperties> VulkanRendererLayer::EnumerateDeviceExtension
 // Filter
 // ---------------------------------------------------------------------------
 
-std::vector<const char *> VulkanRendererLayer::FilterSupportedInstanceLayers(
+std::vector<const char *> VulkanRenderLayer::FilterSupportedInstanceLayers(
 		const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateInstanceLayers(), [](const VkLayerProperties &p) { return p.layerName; }, wanted, required, "layer");
 }
 
-std::vector<const char *> VulkanRendererLayer::FilterSupportedInstanceExtensions(
+std::vector<const char *> VulkanRenderLayer::FilterSupportedInstanceExtensions(
 		const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateInstanceExtensions(), [](const VkExtensionProperties &p) { return p.extensionName; }, wanted, required, "instance extension");
 }
 
-std::vector<const char *> VulkanRendererLayer::FilterSupportedDeviceExtensions(
+std::vector<const char *> VulkanRenderLayer::FilterSupportedDeviceExtensions(
 		VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateDeviceExtensions(device), [](const VkExtensionProperties &p) { return p.extensionName; }, wanted, required, "device extension");
 }
@@ -832,19 +832,19 @@ std::vector<const char *> VulkanRendererLayer::FilterSupportedDeviceExtensions(
 // Device suitability
 // ---------------------------------------------------------------------------
 
-void VulkanRendererLayer::QueryDeviceFeatures(VkPhysicalDevice device, DeviceFeatureChain &outChain) const {
+void VulkanRenderLayer::QueryDeviceFeatures(VkPhysicalDevice device, DeviceFeatureChain &outChain) const {
 	outChain.Link();
 	vkGetPhysicalDeviceFeatures2(device, &outChain.features2);
 }
 
-bool VulkanRendererLayer::SupportsRequiredDeviceExtensions(VkPhysicalDevice device) const {
+bool VulkanRenderLayer::SupportsRequiredDeviceExtensions(VkPhysicalDevice device) const {
 	auto available = EnumerateDeviceExtensions(device);
 	return std::ranges::all_of(k_RequiredDeviceExtensions, [&](const char *name) {
 		return std::ranges::any_of(available, [name](const auto &p) { return std::strcmp(p.extensionName, name) == 0; });
 	});
 }
 
-bool VulkanRendererLayer::IsDeviceSuitable(VkPhysicalDevice device) const {
+bool VulkanRenderLayer::IsDeviceSuitable(VkPhysicalDevice device) const {
 	VkPhysicalDeviceProperties props;
 	vkGetPhysicalDeviceProperties(device, &props);
 	bool supportsVersion = props.apiVersion >= k_RequiredVulkanVersion;
@@ -863,7 +863,7 @@ bool VulkanRendererLayer::IsDeviceSuitable(VkPhysicalDevice device) const {
 	return supportsVersion && supportsFeatures && FindQueueFamilies(device).IsComplete();
 }
 
-QueueFamilyIndices VulkanRendererLayer::FindQueueFamilies(VkPhysicalDevice device) const {
+QueueFamilyIndices VulkanRenderLayer::FindQueueFamilies(VkPhysicalDevice device) const {
 	QueueFamilyIndices indices;
 
 	uint32_t count = 0;
@@ -911,21 +911,21 @@ QueueFamilyIndices VulkanRendererLayer::FindQueueFamilies(VkPhysicalDevice devic
 	return indices;
 }
 
-VkSurfaceFormatKHR VulkanRendererLayer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const {
+VkSurfaceFormatKHR VulkanRenderLayer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const {
 	const auto formatIt = std::ranges::find_if(availableFormats, [](const auto &fmt) {
 		return fmt.format == VK_FORMAT_B8G8R8A8_SRGB && fmt.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	});
 	return formatIt != availableFormats.end() ? *formatIt : availableFormats[0];
 }
 
-VkPresentModeKHR VulkanRendererLayer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const {
+VkPresentModeKHR VulkanRenderLayer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const {
 	assert(std::ranges::any_of(availablePresentModes, [](const VkPresentModeKHR &mode) { return mode == VK_PRESENT_MODE_FIFO_KHR; }));
 	return std::ranges::any_of(availablePresentModes, [](const VkPresentModeKHR &mode) { return mode == VK_PRESENT_MODE_MAILBOX_KHR; })
 			? VK_PRESENT_MODE_MAILBOX_KHR
 			: VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D VulkanRendererLayer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const {
+VkExtent2D VulkanRenderLayer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
 		return capabilities.currentExtent;
 	}
@@ -936,7 +936,7 @@ VkExtent2D VulkanRendererLayer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR 
 	};
 }
 
-uint32_t VulkanRendererLayer::ChooseSwapMinImageCount(const VkSurfaceCapabilitiesKHR &capabilities) const {
+uint32_t VulkanRenderLayer::ChooseSwapMinImageCount(const VkSurfaceCapabilitiesKHR &capabilities) const {
 	uint32_t minImageCount = std::max(capabilities.minImageCount, 3u);
 	if ((capabilities.maxImageCount > 0) && (minImageCount > capabilities.maxImageCount)) {
 		minImageCount = capabilities.maxImageCount;
@@ -944,7 +944,7 @@ uint32_t VulkanRendererLayer::ChooseSwapMinImageCount(const VkSurfaceCapabilitie
 	return minImageCount;
 }
 
-std::vector<uint32_t> VulkanRendererLayer::readSpirV(const std::string &filename) {
+std::vector<uint32_t> VulkanRenderLayer::readSpirV(const std::string &filename) {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 	if (!file.is_open()) {
 		throw std::runtime_error("Failed to open file: " + filename);
@@ -960,7 +960,7 @@ std::vector<uint32_t> VulkanRendererLayer::readSpirV(const std::string &filename
 	return buffer;
 }
 
-VkShaderModule VulkanRendererLayer::CreateShaderModule(const std::vector<uint32_t> &code) const {
+VkShaderModule VulkanRenderLayer::CreateShaderModule(const std::vector<uint32_t> &code) const {
 	VkShaderModuleCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 		.codeSize = code.size() * sizeof(uint32_t),
@@ -971,7 +971,7 @@ VkShaderModule VulkanRendererLayer::CreateShaderModule(const std::vector<uint32_
 	return shaderModule;
 }
 
-void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
+void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
 	VkCommandBuffer cmd = m_Context.commandBuffers[frameIndex];
 
 	VkCommandBufferBeginInfo beginInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -1044,7 +1044,7 @@ void VulkanRendererLayer::RecordCommandBuffer(uint32_t imageIndex) {
 	CHECK_VK(vkEndCommandBuffer(cmd));
 }
 
-void VulkanRendererLayer::TransitionImageLayout(
+void VulkanRenderLayer::TransitionImageLayout(
 		VkImage image,
 		VkCommandBuffer cmd,
 		VkImageLayout oldLayout,
@@ -1080,7 +1080,7 @@ void VulkanRendererLayer::TransitionImageLayout(
 	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 }
 
-uint32_t VulkanRendererLayer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+uint32_t VulkanRenderLayer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 	VkPhysicalDeviceMemoryProperties memoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_Context.physicalDevice, &memoryProperties);
 
@@ -1093,7 +1093,7 @@ uint32_t VulkanRendererLayer::FindMemoryType(uint32_t typeFilter, VkMemoryProper
 	throw std::runtime_error("Failed to find suitable memory type.");
 }
 
-std::pair<VkBuffer, VkDeviceMemory> VulkanRendererLayer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+std::pair<VkBuffer, VkDeviceMemory> VulkanRenderLayer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
 	VkBufferCreateInfo bufferInfo{
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		.flags = 0,
@@ -1120,7 +1120,7 @@ std::pair<VkBuffer, VkDeviceMemory> VulkanRendererLayer::CreateBuffer(VkDeviceSi
 	return { buffer, memory };
 }
 
-void VulkanRendererLayer::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
+void VulkanRenderLayer::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
 	SubmitSingleTimeCommand([&](VkCommandBuffer cmd) {
 		VkBufferCopy2 region{
 			.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
@@ -1137,7 +1137,7 @@ void VulkanRendererLayer::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize si
 	});
 }
 
-std::pair<VkImage, VkDeviceMemory> VulkanRendererLayer::CreateImage(uint32_t width, uint32_t height,
+std::pair<VkImage, VkDeviceMemory> VulkanRenderLayer::CreateImage(uint32_t width, uint32_t height,
 		VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties) {
 	VkImageCreateInfo imageInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -1170,7 +1170,7 @@ std::pair<VkImage, VkDeviceMemory> VulkanRendererLayer::CreateImage(uint32_t wid
 	return { image, memory };
 }
 
-void VulkanRendererLayer::CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+void VulkanRenderLayer::CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
 	VkBufferImageCopy2 region{
 		.sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
 		.bufferOffset = 0,
@@ -1196,7 +1196,7 @@ void VulkanRendererLayer::CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer
 	vkCmdCopyBufferToImage2(cmd, &copyInfo);
 }
 
-void VulkanRendererLayer::TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
+void VulkanRenderLayer::TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
 	VkImageMemoryBarrier2 barrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 		.oldLayout = oldLayout,
@@ -1237,7 +1237,7 @@ void VulkanRendererLayer::TransitionImageLayout(VkCommandBuffer cmd, VkImage ima
 	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 }
 
-void VulkanRendererLayer::SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo) {
+void VulkanRenderLayer::SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo) {
 	VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 	VkFence copyFinishedFence;
 	CHECK_VK(vkCreateFence(m_Context.device, &fenceInfo, nullptr, &copyFinishedFence));
