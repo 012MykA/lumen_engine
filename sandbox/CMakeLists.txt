@@ -3,6 +3,7 @@ project(sandbox)
 
 find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(Stb REQUIRED)
 
 add_executable(${PROJECT_NAME}
     src/sandbox_app.cpp
@@ -14,6 +15,8 @@ target_link_libraries(${PROJECT_NAME}
     Vulkan::Vulkan
     glm::glm
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${Stb_INCLUDE_DIR})
 
 if (WIN32 AND BUILD_SHARED_LIBS)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

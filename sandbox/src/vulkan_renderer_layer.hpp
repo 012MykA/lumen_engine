@@ -9,13 +9,25 @@
 #else
 	#error "Unsupported platform"
 #endif
+#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
 
 #include <array>
+#include <concepts>
 #include <cstdint>
+#include <format>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 #include <vector>
+
+#define CHECK_VK(x) \
+	do { \
+		VkResult res = x; \
+		if (res != VK_SUCCESS) { \
+			throw std::runtime_error(std::format("Vulkan error: {} at {}:{}", string_VkResult(res), __FILE__, __LINE__)); \
+		} \
+	} while (0)
 
 struct Vertex {
 	glm::vec2 pos;
@@ -71,6 +83,7 @@ private:
 
 	const std::vector<const char *> k_RequiredInstanceLayers = {
 		"VK_LAYER_KHRONOS_validation",
+
 	};
 	const std::vector<const char *> k_RequiredInstanceExtensions = {
 		VK_KHR_SURFACE_EXTENSION_NAME,
@@ -104,6 +117,7 @@ private:
 
 	void CreateCommandPool();
 
+	void CreateTextureImage();
 	void CreateVertexBuffer();
 	void CreateIndexBuffer();
 
@@ -165,7 +179,7 @@ private:
 	void RecordCommandBuffer(uint32_t imageIndex);
 
 	static void TransitionImageLayout(
-			VkImage index,
+			VkImage image,
 			VkCommandBuffer cmd,
 			VkImageLayout oldLayout,
 			VkImageLayout newLayout,
@@ -178,8 +192,23 @@ private:
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	// Buffer
-	std::pair<VkBuffer, VkDeviceMemory> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+	[[nodiscard]] std::pair<VkBuffer, VkDeviceMemory> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 	void CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size);
+
+	// Image
+	[[nodiscard]] std::pair<VkImage, VkDeviceMemory> CreateImage(uint32_t width, uint32_t height,
+			VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
+
+	void CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+	void TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+	// Single commands
+	void SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo);
+
+	template <typename F>
+		requires std::invocable<F, VkCommandBuffer>
+	void SubmitSingleTimeCommand(F &&func);
 
 private:
 	lm::Window *m_Window;
@@ -209,6 +238,9 @@ private:
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 
+		VkImage textureImage = VK_NULL_HANDLE;
+		VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+
 		VkBuffer vertexBuffer = VK_NULL_HANDLE;
 		VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
 		VkBuffer indexBuffer = VK_NULL_HANDLE;
@@ -231,3 +263,35 @@ private:
 
 	bool framebufferResized = false;
 };
+
+template <typename F>
+	requires std::invocable<F, VkCommandBuffer>
+inline void VulkanRendererLayer::SubmitSingleTimeCommand(F &&func) {
+	VkCommandBufferAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = m_Context.commandPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1,
+	};
+	VkCommandBuffer cmd;
+	CHECK_VK(vkAllocateCommandBuffers(m_Context.device, &allocInfo, &cmd));
+
+	VkCommandBufferBeginInfo beginInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+	};
+	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
+
+	func(cmd);
+
+	CHECK_VK(vkEndCommandBuffer(cmd));
+
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &cmd,
+	};
+
+	SingleTimeQueueSubmit(m_Context.graphicsQueue, submitInfo);
+	vkFreeCommandBuffers(m_Context.device, m_Context.commandPool, 1, &cmd);
+}
