@@ -32,15 +32,17 @@
 struct Vertex {
 	glm::vec2 pos;
 	glm::vec3 color;
+	glm::vec2 texCoord;
 
 	static VkVertexInputBindingDescription GetBindingDescription() {
 		return { .binding = 0, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX };
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions() {
+	static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions() {
 		return {
 			VkVertexInputAttributeDescription{ .location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, pos) },
 			VkVertexInputAttributeDescription{ .location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color) },
+			VkVertexInputAttributeDescription{ .location = 2, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, texCoord) },
 		};
 	}
 };
@@ -118,6 +120,9 @@ private:
 	void CreateCommandPool();
 
 	void CreateTextureImage();
+	void CreateTextureImageView();
+	void CreateTextureSampler();
+
 	void CreateVertexBuffer();
 	void CreateIndexBuffer();
 
@@ -199,6 +204,8 @@ private:
 	[[nodiscard]] std::pair<VkImage, VkDeviceMemory> CreateImage(uint32_t width, uint32_t height,
 			VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
 
+	[[nodiscard]] VkImageView CreateImageView(VkImage image, VkFormat format);
+
 	void CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
 	void TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -240,6 +247,8 @@ private:
 
 		VkImage textureImage = VK_NULL_HANDLE;
 		VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+		VkImageView textureImageView = VK_NULL_HANDLE;
+		VkSampler textureImageSampler = VK_NULL_HANDLE;
 
 		VkBuffer vertexBuffer = VK_NULL_HANDLE;
 		VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;

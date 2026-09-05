@@ -24,10 +24,10 @@ namespace {
 constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
 
 const std::vector<Vertex> s_Vertices = {
-	{ { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-	{ { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
-	{ { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
-	{ { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } }
+	{ { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
+	{ { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+	{ { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
+	{ { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } }
 };
 
 const std::vector<uint32_t> s_Indices = { 0, 1, 2, 2, 3, 0 };
@@ -104,6 +104,9 @@ void VulkanRenderLayer::OnAttach() {
 	CreateCommandPool();
 
 	CreateTextureImage();
+	CreateTextureImageView();
+	CreateTextureSampler();
+
 	CreateVertexBuffer();
 	CreateIndexBuffer();
 
@@ -309,6 +312,7 @@ void VulkanRenderLayer::CreateDevice() {
 
 	DeviceFeatureChain features;
 	QueryDeviceFeatures(m_Context.physicalDevice, features);
+	features.features2.features.samplerAnisotropy = VK_TRUE;
 	features.vulkan11Features.shaderDrawParameters = VK_TRUE;
 	features.vulkan13Features.dynamicRendering = VK_TRUE;
 	features.extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
@@ -383,24 +387,12 @@ void VulkanRenderLayer::CreateSwapchain() {
 
 void VulkanRenderLayer::CreateImageViews() {
 	assert(m_Context.swapchainImageViews.empty());
-	VkImageViewCreateInfo createInfo{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		.viewType = VK_IMAGE_VIEW_TYPE_2D,
-		.format = m_Context.swapchainSurfaceFormat.format,
-		.subresourceRange{
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-		},
-	};
 
 	size_t imageCount = m_Context.swapchainImages.size();
 	m_Context.swapchainImageViews.resize(imageCount);
 	for (size_t i = 0; i < imageCount; ++i) {
-		createInfo.image = m_Context.swapchainImages[i];
-		vkCreateImageView(m_Context.device, &createInfo, nullptr, &m_Context.swapchainImageViews[i]);
+		m_Context.swapchainImageViews[i] = CreateImageView(m_Context.swapchainImages[i],
+				m_Context.swapchainSurfaceFormat.format);
 	}
 }
 
@@ -422,7 +414,7 @@ void VulkanRenderLayer::CreateGraphicsPipeline() {
 
 	// Vertex input
 	VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
-	std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = Vertex::GetAttributeDescriptions();
+	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::GetAttributeDescriptions();
 	VkPipelineVertexInputStateCreateInfo vertexInputState{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		.vertexBindingDescriptionCount = 1,
@@ -609,6 +601,31 @@ void VulkanRenderLayer::CreateTextureImage() {
 	vkDestroyBuffer(m_Context.device, stagingBuffer, nullptr);
 }
 
+void VulkanRenderLayer::CreateTextureImageView() {
+	m_Context.textureImageView = CreateImageView(m_Context.textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+}
+
+void VulkanRenderLayer::CreateTextureSampler() {
+	VkPhysicalDeviceProperties properties;
+	vkGetPhysicalDeviceProperties(m_Context.physicalDevice, &properties);
+
+	VkSamplerCreateInfo samplerInfo{
+		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		.magFilter = VK_FILTER_LINEAR,
+		.minFilter = VK_FILTER_LINEAR,
+		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.mipLodBias = 0.0f,
+		.anisotropyEnable = VK_TRUE,
+		.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+		.compareEnable = VK_FALSE,
+		.compareOp = VK_COMPARE_OP_ALWAYS,
+	};
+	CHECK_VK(vkCreateSampler(m_Context.device, &samplerInfo, nullptr, &m_Context.textureImageSampler));
+}
+
 void VulkanRenderLayer::CreateVertexBuffer() {
 	VkDeviceSize bufferSize = sizeof(s_Vertices[0]) * s_Vertices.size();
 	auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -665,20 +682,24 @@ void VulkanRenderLayer::CreateUniformBuffers() {
 }
 
 void VulkanRenderLayer::CreateDescriptorPool() {
-	VkDescriptorPoolSize poolSize{ .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = k_MaxFramesInFlight };
+	std::array<VkDescriptorPoolSize, 2> poolSizes{
+		VkDescriptorPoolSize{ .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = k_MaxFramesInFlight },
+		VkDescriptorPoolSize{ .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = k_MaxFramesInFlight },
+	};
 
 	VkDescriptorPoolCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 		.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
 		.maxSets = k_MaxFramesInFlight,
-		.poolSizeCount = 1,
-		.pPoolSizes = &poolSize,
+		.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+		.pPoolSizes = poolSizes.data(),
 	};
 	CHECK_VK(vkCreateDescriptorPool(m_Context.device, &createInfo, nullptr, &m_Context.descriptorPool));
 }
 
 void VulkanRenderLayer::CreateDescriptorSets() {
 	std::vector<VkDescriptorSetLayout> layouts(k_MaxFramesInFlight, m_Context.descriptorSetLayout);
+
 	VkDescriptorSetAllocateInfo allocInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 		.descriptorPool = m_Context.descriptorPool,
@@ -688,34 +709,72 @@ void VulkanRenderLayer::CreateDescriptorSets() {
 	m_Context.descriptorSets.resize(layouts.size());
 	CHECK_VK(vkAllocateDescriptorSets(m_Context.device, &allocInfo, m_Context.descriptorSets.data()));
 
-	std::vector<VkWriteDescriptorSet> writes(k_MaxFramesInFlight);
+	std::vector<VkWriteDescriptorSet> writes;
+	writes.reserve(k_MaxFramesInFlight * 2);
+
+	std::vector<VkDescriptorBufferInfo> bufferInfos(k_MaxFramesInFlight);
+	std::vector<VkDescriptorImageInfo> imageInfos(k_MaxFramesInFlight);
+
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
-		VkDescriptorBufferInfo bufferInfo{ .buffer = m_Context.uniformBuffers[i], .offset = 0, .range = sizeof(UniformBufferObject) };
-		VkWriteDescriptorSet descriptorWrite{
+		// Binding 0
+		bufferInfos[i] = VkDescriptorBufferInfo{
+			.buffer = m_Context.uniformBuffers[i],
+			.offset = 0,
+			.range = sizeof(UniformBufferObject),
+		};
+
+		VkWriteDescriptorSet bufferWrite{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstSet = m_Context.descriptorSets[i],
 			.dstBinding = 0,
 			.dstArrayElement = 0,
 			.descriptorCount = 1,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.pBufferInfo = &bufferInfo,
+			.pImageInfo = nullptr,
+			.pBufferInfo = &bufferInfos[i],
 		};
-		writes[i] = descriptorWrite;
+		writes.push_back(bufferWrite);
+
+		// Binding 1
+		imageInfos[i] = VkDescriptorImageInfo{
+			.sampler = m_Context.textureImageSampler,
+			.imageView = m_Context.textureImageView,
+			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		};
+
+		VkWriteDescriptorSet imageWrite{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = m_Context.descriptorSets[i],
+			.dstBinding = 1,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.pImageInfo = &imageInfos[i],
+		};
+		writes.push_back(imageWrite);
 	}
 	vkUpdateDescriptorSets(m_Context.device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void VulkanRenderLayer::CreateDescriptorSetLayout() {
-	VkDescriptorSetLayoutBinding uboLayoutBinding{
-		.binding = 0,
-		.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		.descriptorCount = 1,
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+	std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
+		VkDescriptorSetLayoutBinding{
+				.binding = 0,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+		},
+		VkDescriptorSetLayoutBinding{
+				.binding = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+		}
 	};
 	VkDescriptorSetLayoutCreateInfo layoutInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		.bindingCount = 1,
-		.pBindings = &uboLayoutBinding,
+		.bindingCount = static_cast<uint32_t>(bindings.size()),
+		.pBindings = bindings.data(),
 	};
 	CHECK_VK(vkCreateDescriptorSetLayout(m_Context.device, &layoutInfo, nullptr, &m_Context.descriptorSetLayout));
 }
@@ -752,6 +811,8 @@ void VulkanRenderLayer::Cleanup() {
 	vkFreeMemory(m_Context.device, m_Context.vertexBufferMemory, nullptr);
 	vkDestroyBuffer(m_Context.device, m_Context.vertexBuffer, nullptr);
 
+	vkDestroySampler(m_Context.device, m_Context.textureImageSampler, nullptr);
+	vkDestroyImageView(m_Context.device, m_Context.textureImageView, nullptr);
 	vkFreeMemory(m_Context.device, m_Context.textureImageMemory, nullptr);
 	vkDestroyImage(m_Context.device, m_Context.textureImage, nullptr);
 
@@ -856,6 +917,7 @@ bool VulkanRenderLayer::IsDeviceSuitable(VkPhysicalDevice device) const {
 	DeviceFeatureChain features;
 	QueryDeviceFeatures(device, features);
 	bool supportsFeatures =
+			features.features2.features.samplerAnisotropy &&
 			features.vulkan11Features.shaderDrawParameters &&
 			features.vulkan13Features.dynamicRendering &&
 			features.extendedDynamicStateFeatures.extendedDynamicState;
@@ -1168,6 +1230,25 @@ std::pair<VkImage, VkDeviceMemory> VulkanRenderLayer::CreateImage(uint32_t width
 	CHECK_VK(vkBindImageMemory(m_Context.device, image, memory, 0));
 
 	return { image, memory };
+}
+
+VkImageView VulkanRenderLayer::CreateImageView(VkImage image, VkFormat format) {
+	VkImageViewCreateInfo createInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = image,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = format,
+		.subresourceRange{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+		},
+	};
+	VkImageView imageView;
+	CHECK_VK(vkCreateImageView(m_Context.device, &createInfo, nullptr, &imageView));
+	return imageView;
 }
 
 void VulkanRenderLayer::CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
