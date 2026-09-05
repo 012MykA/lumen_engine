@@ -24,13 +24,21 @@ namespace {
 constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
 
 const std::vector<Vertex> s_Vertices = {
-	{ { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-	{ { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-	{ { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
-	{ { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } }
+	{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+	{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+	{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
+	{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
+
+	{ { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+	{ { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+	{ { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
+	{ { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
 };
 
-const std::vector<uint32_t> s_Indices = { 0, 1, 2, 2, 3, 0 };
+const std::vector<uint32_t> s_Indices = {
+	0, 1, 2, 2, 3, 0,
+	4, 5, 6, 6, 7, 4
+};
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
 		const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) {
@@ -102,6 +110,8 @@ void VulkanRenderLayer::OnAttach() {
 	CreateGraphicsPipeline();
 
 	CreateCommandPool();
+
+	CreateDepthResources();
 
 	CreateTextureImage();
 	CreateTextureImageView();
@@ -207,10 +217,14 @@ void VulkanRenderLayer::RecreateSwapchain() {
 
 	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
 
+	vkDestroyImageView(m_Context.device, m_Context.depthImageView, nullptr);
+	vkFreeMemory(m_Context.device, m_Context.depthImageMemory, nullptr);
+	vkDestroyImage(m_Context.device, m_Context.depthImage, nullptr);
 	CleanupSwapchain();
 
 	CreateSwapchain();
 	CreateImageViews();
+	CreateDepthResources();
 }
 
 void VulkanRenderLayer::CleanupSwapchain() {
@@ -388,7 +402,7 @@ void VulkanRenderLayer::CreateImageViews() {
 	m_Context.swapchainImageViews.resize(imageCount);
 	for (size_t i = 0; i < imageCount; ++i) {
 		m_Context.swapchainImageViews[i] = CreateImageView(m_Context.swapchainImages[i],
-				m_Context.swapchainSurfaceFormat.format);
+				m_Context.swapchainSurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -452,7 +466,14 @@ void VulkanRenderLayer::CreateGraphicsPipeline() {
 	};
 
 	// Depth Stencil
-	nullptr;
+	VkPipelineDepthStencilStateCreateInfo depthState{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+		.depthTestEnable = VK_TRUE,
+		.depthWriteEnable = VK_TRUE,
+		.depthCompareOp = VK_COMPARE_OP_LESS,
+		.depthBoundsTestEnable = VK_FALSE,
+		.stencilTestEnable = VK_FALSE,
+	};
 
 	// Color blend attachemnts
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{
@@ -489,10 +510,12 @@ void VulkanRenderLayer::CreateGraphicsPipeline() {
 	CHECK_VK(vkCreatePipelineLayout(m_Context.device, &pipelineLayoutInfo, nullptr, &m_Context.graphicsPipelineLayout));
 
 	// Dynamic rendering
+	m_Context.depthFormat = FindDepthFormat();
 	VkPipelineRenderingCreateInfo pipelineRenderingInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 		.colorAttachmentCount = 1,
 		.pColorAttachmentFormats = &m_Context.swapchainSurfaceFormat.format,
+		.depthAttachmentFormat = m_Context.depthFormat,
 	};
 
 	VkGraphicsPipelineCreateInfo graphicsPipelineInfo{
@@ -505,6 +528,7 @@ void VulkanRenderLayer::CreateGraphicsPipeline() {
 		.pViewportState = &viewportState,
 		.pRasterizationState = &rasterizer,
 		.pMultisampleState = &multisampling,
+		.pDepthStencilState = &depthState,
 		.pColorBlendState = &colorBlending,
 		.pDynamicState = &dynamicState,
 		.layout = m_Context.graphicsPipelineLayout,
@@ -522,6 +546,14 @@ void VulkanRenderLayer::CreateCommandPool() {
 		.queueFamilyIndex = m_Context.queueFamilyIndices.graphicsFamily.value(),
 	};
 	CHECK_VK(vkCreateCommandPool(m_Context.device, &createInfo, nullptr, &m_Context.commandPool));
+}
+
+void VulkanRenderLayer::CreateDepthResources() {
+	std::tie(m_Context.depthImage, m_Context.depthImageMemory) = CreateImage(
+			m_Context.swapchainExtent.width, m_Context.swapchainExtent.height,
+			m_Context.depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	m_Context.depthImageView = CreateImageView(m_Context.depthImage, m_Context.depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void VulkanRenderLayer::CreateCommandBuffers() {
@@ -584,12 +616,15 @@ void VulkanRenderLayer::CreateTextureImage() {
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	SubmitSingleTimeCommand([this, texWidth, texHeight, stagingBuffer](VkCommandBuffer cmd) {
-		TransitionImageLayout(cmd, m_Context.textureImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		TransitionImageLayout(cmd, m_Context.textureImage,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 		CopyBufferToImage(cmd, stagingBuffer, m_Context.textureImage,
 				static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
-		TransitionImageLayout(cmd, m_Context.textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		TransitionImageLayout(cmd, m_Context.textureImage,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	});
 
@@ -598,7 +633,7 @@ void VulkanRenderLayer::CreateTextureImage() {
 }
 
 void VulkanRenderLayer::CreateTextureImageView() {
-	m_Context.textureImageView = CreateImageView(m_Context.textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+	m_Context.textureImageView = CreateImageView(m_Context.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void VulkanRenderLayer::CreateTextureSampler() {
@@ -812,6 +847,10 @@ void VulkanRenderLayer::Cleanup() {
 	vkFreeMemory(m_Context.device, m_Context.textureImageMemory, nullptr);
 	vkDestroyImage(m_Context.device, m_Context.textureImage, nullptr);
 
+	vkDestroyImageView(m_Context.device, m_Context.depthImageView, nullptr);
+	vkFreeMemory(m_Context.device, m_Context.depthImageMemory, nullptr);
+	vkDestroyImage(m_Context.device, m_Context.depthImage, nullptr);
+
 	vkDestroyCommandPool(m_Context.device, m_Context.commandPool, nullptr);
 	m_Context.commandBuffers.clear();
 
@@ -1024,15 +1063,28 @@ void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
 	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
 	{
 		TransitionImageLayout(
-				m_Context.swapchainImages[imageIndex], cmd,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				cmd,
+				m_Context.swapchainImages[imageIndex],
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_ACCESS_2_NONE,
 				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 				VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_IMAGE_ASPECT_COLOR_BIT);
+
+		TransitionImageLayout(
+				cmd,
+				m_Context.depthImage,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+				VK_ACCESS_2_NONE,
+				VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+				VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+				VK_IMAGE_ASPECT_DEPTH_BIT);
 
 		VkClearValue clearColor{ .color = { 0.1f, 0.1f, 0.1f, 1.0f } };
+		VkClearValue depthColor{ .depthStencil = { 1.0f, 0 } };
+
 		VkRenderingAttachmentInfo colorAttachment{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			.imageView = m_Context.swapchainImageViews[imageIndex],
@@ -1041,12 +1093,23 @@ void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 			.clearValue = clearColor,
 		};
+
+		VkRenderingAttachmentInfo depthAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.imageView = m_Context.depthImageView,
+			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.clearValue = depthColor,
+		};
+
 		VkRenderingInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 			.renderArea{ .offset = { 0, 0 }, .extent = m_Context.swapchainExtent },
 			.layerCount = 1,
 			.colorAttachmentCount = 1,
 			.pColorAttachments = &colorAttachment,
+			.pDepthAttachment = &depthAttachment,
 		};
 		vkCmdBeginRendering(cmd, &renderingInfo);
 		{
@@ -1079,26 +1142,29 @@ void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
 		vkCmdEndRendering(cmd);
 
 		TransitionImageLayout(
-				m_Context.swapchainImages[imageIndex], cmd,
+				cmd,
+				m_Context.swapchainImages[imageIndex],
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 				VK_ACCESS_2_NONE,
 				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-				VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT);
+				VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+				VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 	CHECK_VK(vkEndCommandBuffer(cmd));
 }
 
 void VulkanRenderLayer::TransitionImageLayout(
-		VkImage image,
 		VkCommandBuffer cmd,
+		VkImage image,
 		VkImageLayout oldLayout,
 		VkImageLayout newLayout,
 		VkAccessFlags2 srcAccessMask,
 		VkAccessFlags2 dstAccessMask,
 		VkPipelineStageFlags2 srcStageMask,
-		VkPipelineStageFlags2 dstStageMask) {
+		VkPipelineStageFlags2 dstStageMask,
+		VkImageAspectFlags aspectFlags) {
 	VkImageMemoryBarrier2 barrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 		.srcStageMask = srcStageMask,
@@ -1111,7 +1177,7 @@ void VulkanRenderLayer::TransitionImageLayout(
 		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		.image = image,
 		.subresourceRange{
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.aspectMask = aspectFlags,
 				.baseMipLevel = 0,
 				.levelCount = 1,
 				.baseArrayLayer = 0,
@@ -1216,14 +1282,14 @@ std::pair<VkImage, VkDeviceMemory> VulkanRenderLayer::CreateImage(uint32_t width
 	return { image, memory };
 }
 
-VkImageView VulkanRenderLayer::CreateImageView(VkImage image, VkFormat format) {
+VkImageView VulkanRenderLayer::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
 	VkImageViewCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		.image = image,
 		.viewType = VK_IMAGE_VIEW_TYPE_2D,
 		.format = format,
 		.subresourceRange{
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.aspectMask = aspectFlags,
 				.baseMipLevel = 0,
 				.levelCount = 1,
 				.baseArrayLayer = 0,
@@ -1312,4 +1378,22 @@ void VulkanRenderLayer::SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submit
 	CHECK_VK(vkWaitForFences(m_Context.device, 1, &copyFinishedFence, VK_TRUE, noTimeout));
 
 	vkDestroyFence(m_Context.device, copyFinishedFence, nullptr);
+}
+
+VkFormat VulkanRenderLayer::FindSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+	for (const auto &format : candidates) {
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(m_Context.physicalDevice, format, &props);
+
+		if (((tiling == VK_IMAGE_TILING_LINEAR) && ((props.linearTilingFeatures & features) == features)) ||
+				((tiling == VK_IMAGE_TILING_OPTIMAL) && ((props.optimalTilingFeatures & features) == features))) {
+			return format;
+		}
+	}
+	throw std::runtime_error("Failed to find supported format.");
+}
+
+VkFormat VulkanRenderLayer::FindDepthFormat() {
+	return FindSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+			VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }

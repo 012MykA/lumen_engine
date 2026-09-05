@@ -30,7 +30,7 @@
 	} while (0)
 
 struct Vertex {
-	glm::vec2 pos;
+	glm::vec3 pos;
 	glm::vec3 color;
 	glm::vec2 texCoord;
 
@@ -40,7 +40,7 @@ struct Vertex {
 
 	static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions() {
 		return {
-			VkVertexInputAttributeDescription{ .location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, pos) },
+			VkVertexInputAttributeDescription{ .location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos) },
 			VkVertexInputAttributeDescription{ .location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color) },
 			VkVertexInputAttributeDescription{ .location = 2, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, texCoord) },
 		};
@@ -119,6 +119,8 @@ private:
 
 	void CreateCommandPool();
 
+	void CreateDepthResources();
+
 	void CreateTextureImage();
 	void CreateTextureImageView();
 	void CreateTextureSampler();
@@ -184,14 +186,15 @@ private:
 	void RecordCommandBuffer(uint32_t imageIndex);
 
 	static void TransitionImageLayout(
-			VkImage image,
 			VkCommandBuffer cmd,
+			VkImage image,
 			VkImageLayout oldLayout,
 			VkImageLayout newLayout,
 			VkAccessFlags2 srcAccessMasks,
 			VkAccessFlags2 dstAccessMask,
 			VkPipelineStageFlags2 srcStageMask,
-			VkPipelineStageFlags2 dstStageMask);
+			VkPipelineStageFlags2 dstStageMask,
+			VkImageAspectFlags aspectFlags);
 
 	// Memory
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
@@ -204,7 +207,7 @@ private:
 	[[nodiscard]] std::pair<VkImage, VkDeviceMemory> CreateImage(uint32_t width, uint32_t height,
 			VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
 
-	[[nodiscard]] VkImageView CreateImageView(VkImage image, VkFormat format);
+	[[nodiscard]] VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
 	void CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
@@ -216,6 +219,11 @@ private:
 	template <typename F>
 		requires std::invocable<F, VkCommandBuffer>
 	void SubmitSingleTimeCommand(F &&func);
+
+	VkFormat FindSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
+	// Depth
+	VkFormat FindDepthFormat();
 
 private:
 	lm::Window *m_Window;
@@ -244,6 +252,11 @@ private:
 		VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
+
+		VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+		VkImage depthImage = VK_NULL_HANDLE;
+		VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+		VkImageView depthImageView = VK_NULL_HANDLE;
 
 		VkImage textureImage = VK_NULL_HANDLE;
 		VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
