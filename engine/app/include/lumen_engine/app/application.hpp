@@ -43,6 +43,7 @@ public:
 	void OnEvent(Window *sender, Event &e);
 
 	static Application &Get() { return *s_Instance; }
+	const ApplicationCommandLineArgs &GetArgs() const { return m_Args; }
 
 private:
 	void OnWindowEvent(Window *sender, Event &e);

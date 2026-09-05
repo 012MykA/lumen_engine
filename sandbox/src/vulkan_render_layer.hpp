@@ -268,9 +268,9 @@ private:
 		std::vector<VkSemaphore> renderFinishedSemaphores;
 		std::vector<VkFence> inFlightFences;
 	} m_Context;
-	uint32_t frameIndex = 0;
+	uint32_t m_FrameIndex = 0;
 
-	bool framebufferResized = false;
+	bool m_FramebufferResized = false;
 };
 
 template <typename F>

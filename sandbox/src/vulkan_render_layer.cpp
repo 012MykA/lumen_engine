@@ -128,11 +128,11 @@ void VulkanRenderLayer::OnEvent(lm::Event &e) {
 }
 
 void VulkanRenderLayer::OnRender() {
-	CHECK_VK(vkWaitForFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex], VK_TRUE, noTimeout));
+	CHECK_VK(vkWaitForFences(m_Context.device, 1, &m_Context.inFlightFences[m_FrameIndex], VK_TRUE, noTimeout));
 
 	uint32_t imageIndex;
 	VkResult result = vkAcquireNextImageKHR(m_Context.device, m_Context.swapchain, noTimeout,
-			m_Context.presentCompleteSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
+			m_Context.presentCompleteSemaphores[m_FrameIndex], VK_NULL_HANDLE, &imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 		RecreateSwapchain();
 		return;
@@ -140,8 +140,8 @@ void VulkanRenderLayer::OnRender() {
 		CHECK_VK(result);
 	}
 
-	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.inFlightFences[frameIndex]));
-	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffers[frameIndex], 0));
+	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.inFlightFences[m_FrameIndex]));
+	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffers[m_FrameIndex], 0));
 
 	UpdateUniformBuffer();
 	RecordCommandBuffer(imageIndex);
@@ -150,14 +150,14 @@ void VulkanRenderLayer::OnRender() {
 	VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &m_Context.presentCompleteSemaphores[frameIndex],
+		.pWaitSemaphores = &m_Context.presentCompleteSemaphores[m_FrameIndex],
 		.pWaitDstStageMask = &waitDestinationStageMask,
 		.commandBufferCount = 1,
-		.pCommandBuffers = &m_Context.commandBuffers[frameIndex],
+		.pCommandBuffers = &m_Context.commandBuffers[m_FrameIndex],
 		.signalSemaphoreCount = 1,
 		.pSignalSemaphores = &m_Context.renderFinishedSemaphores[imageIndex],
 	};
-	CHECK_VK(vkQueueSubmit(m_Context.graphicsQueue, 1, &submitInfo, m_Context.inFlightFences[frameIndex]));
+	CHECK_VK(vkQueueSubmit(m_Context.graphicsQueue, 1, &submitInfo, m_Context.inFlightFences[m_FrameIndex]));
 
 	VkPresentInfoKHR presentInfo{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -169,22 +169,18 @@ void VulkanRenderLayer::OnRender() {
 		.pResults = nullptr,
 	};
 	result = vkQueuePresentKHR(m_Context.presentQueue, &presentInfo);
-	if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR || framebufferResized) {
-		framebufferResized = false;
+	if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR || m_FramebufferResized) {
+		m_FramebufferResized = false;
 		RecreateSwapchain();
 	} else {
 		CHECK_VK(result);
 	}
 
-	frameIndex = (frameIndex + 1) % k_MaxFramesInFlight;
+	m_FrameIndex = (m_FrameIndex + 1) % k_MaxFramesInFlight;
 }
 
-// ---------------------------------------------------------------------------
-// Initialization
-// ---------------------------------------------------------------------------
-
 bool VulkanRenderLayer::OnWindowResize(lm::WindowExtent /*extent*/) {
-	framebufferResized = true;
+	m_FramebufferResized = true;
 	return false;
 }
 
@@ -199,7 +195,7 @@ void VulkanRenderLayer::UpdateUniformBuffer() {
 	float aspectRatio = static_cast<float>(m_Context.swapchainExtent.width) / m_Context.swapchainExtent.height;
 	ubo.proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
 	ubo.proj[1][1] *= -1;
-	std::memcpy(m_Context.uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
+	std::memcpy(m_Context.uniformBuffersMapped[m_FrameIndex], &ubo, sizeof(ubo));
 }
 
 void VulkanRenderLayer::RecreateSwapchain() {
@@ -569,12 +565,12 @@ void VulkanRenderLayer::CreateTextureImage() {
 	if (!pixels) {
 		throw std::runtime_error("failed to load image");
 	}
-	VkDeviceSize imageSize = texWidth * texHeight * desiredChannels;
+	VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth) * texHeight * desiredChannels;
 	auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	void *data;
-	vkMapMemory(m_Context.device, stagingBufferMemory, 0, imageSize, 0, &data);
+	CHECK_VK(vkMapMemory(m_Context.device, stagingBufferMemory, 0, imageSize, 0, &data));
 	std::memcpy(data, pixels, imageSize);
 	vkUnmapMemory(m_Context.device, stagingBufferMemory);
 
@@ -834,10 +830,6 @@ void VulkanRenderLayer::Cleanup() {
 	vkDestroyInstance(m_Context.instance, nullptr);
 }
 
-// ---------------------------------------------------------------------------
-// Query
-// ---------------------------------------------------------------------------
-
 std::vector<VkLayerProperties> VulkanRenderLayer::EnumerateInstanceLayers() const {
 	uint32_t count = 0;
 	CHECK_VK(vkEnumerateInstanceLayerProperties(&count, nullptr));
@@ -870,10 +862,6 @@ std::vector<VkExtensionProperties> VulkanRenderLayer::EnumerateDeviceExtensions(
 	return available;
 }
 
-// ---------------------------------------------------------------------------
-// Filter
-// ---------------------------------------------------------------------------
-
 std::vector<const char *> VulkanRenderLayer::FilterSupportedInstanceLayers(
 		const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateInstanceLayers(), [](const VkLayerProperties &p) { return p.layerName; }, wanted, required, "layer");
@@ -888,10 +876,6 @@ std::vector<const char *> VulkanRenderLayer::FilterSupportedDeviceExtensions(
 		VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateDeviceExtensions(device), [](const VkExtensionProperties &p) { return p.extensionName; }, wanted, required, "device extension");
 }
-
-// ---------------------------------------------------------------------------
-// Device suitability
-// ---------------------------------------------------------------------------
 
 void VulkanRenderLayer::QueryDeviceFeatures(VkPhysicalDevice device, DeviceFeatureChain &outChain) const {
 	outChain.Link();
@@ -1034,7 +1018,7 @@ VkShaderModule VulkanRenderLayer::CreateShaderModule(const std::vector<uint32_t>
 }
 
 void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
-	VkCommandBuffer cmd = m_Context.commandBuffers[frameIndex];
+	VkCommandBuffer cmd = m_Context.commandBuffers[m_FrameIndex];
 
 	VkCommandBufferBeginInfo beginInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
@@ -1084,7 +1068,7 @@ void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
 			vkCmdBindVertexBuffers(cmd, 0, 1, &m_Context.vertexBuffer, &offset);
 			vkCmdBindIndexBuffer(cmd, m_Context.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-			std::array sets = { m_Context.descriptorSets[frameIndex] };
+			std::array sets = { m_Context.descriptorSets[m_FrameIndex] };
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 					m_Context.graphicsPipelineLayout, 0,
 					static_cast<uint32_t>(sets.size()), sets.data(),
