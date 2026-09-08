@@ -13,12 +13,8 @@ class LUMEN_API Log final {
 public:
 	static void Init();
 
-	static std::shared_ptr<spdlog::logger> &GetEngineLogger() { return m_EngineLogger; }
-	static std::shared_ptr<spdlog::logger> &GetAppLogger() { return m_AppLogger; }
-
-private:
-	inline static std::shared_ptr<spdlog::logger> m_EngineLogger;
-	inline static std::shared_ptr<spdlog::logger> m_AppLogger;
+	static std::shared_ptr<spdlog::logger> &GetEngineLogger();
+	static std::shared_ptr<spdlog::logger> &GetAppLogger();
 };
 
 } // namespace lm

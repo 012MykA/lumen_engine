@@ -34,6 +34,7 @@ add_subdirectory(events)
 add_subdirectory(windowing)
 add_subdirectory(io)
 add_subdirectory(app)
+add_subdirectory(rhi)
 
 add_library(lumen_engine INTERFACE)
 target_link_libraries(lumen_engine INTERFACE
@@ -42,6 +43,7 @@ target_link_libraries(lumen_engine INTERFACE
     engine::windowing
     engine::io
     engine::app
+    engine::rhi
 )
 target_include_directories(lumen_engine INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(lumen::engine ALIAS lumen_engine)

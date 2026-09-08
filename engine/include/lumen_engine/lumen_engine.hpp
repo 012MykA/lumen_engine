@@ -26,3 +26,6 @@
 // --- App ---
 #include "lumen_engine/app/application.hpp"
 
+// --- RHI ---
+#include "lumen_engine/rhi/types.hpp"
+#include "lumen_engine/rhi/device.hpp"
