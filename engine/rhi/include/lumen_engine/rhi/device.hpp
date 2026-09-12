@@ -11,10 +11,10 @@ class LUMEN_API IDevice {
 public:
 	virtual ~IDevice() = default;
 
-	virtual GraphicsAPI GetAPI() const = 0;
+	[[nodiscard]] virtual GraphicsAPI GetAPI() const = 0;
 };
 
-LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api);
+LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window);
 
 LUMEN_API bool IsAvailableAPI(GraphicsAPI api);
 

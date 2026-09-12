@@ -2,6 +2,8 @@ find_package(Vulkan REQUIRED)
 
 add_library(engine_rhi_vulkan
     src/vulkan_device.cpp
+
+    src/enumerate.cpp
 )
 
 target_include_directories(engine_rhi_vulkan
@@ -11,7 +13,7 @@ target_include_directories(engine_rhi_vulkan
 
 target_link_libraries(engine_rhi_vulkan
     PUBLIC  engine::rhi::interface
-    PRIVATE Vulkan::Vulkan
+    PUBLIC  Vulkan::Vulkan
 )
 
 target_compile_definitions(engine_rhi_vulkan PRIVATE LUMEN_BUILD_DLL)

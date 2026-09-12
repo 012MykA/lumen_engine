@@ -26,12 +26,7 @@ public:
 		m_MainWindow->PushLayer<VulkanRenderLayer>(m_MainWindow);
 
 		auto api = lm::rhi::GraphicsAPI::Vulkan;
-		if (lm::rhi::IsAvailableAPI(api)) {
-			auto device = lm::rhi::CreateDevice(api);
-			LUMEN_INFO("Created IDevice using {} backend", (uint8_t)device->GetAPI());
-		} else {
-			LUMEN_ERROR("Failed to use Vulkan");
-		}
+		auto device = lm::rhi::CreateDevice(api, m_MainWindow->GetNativeHandle());
 	}
 
 private:

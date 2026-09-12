@@ -10,12 +10,11 @@
 
 namespace lm::rhi {
 
-LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api) {
+LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window) {
 	switch (api) {
 #if defined(LUMEN_HAS_VULKAN)
 		case GraphicsAPI::Vulkan: {
-			LUMEN_CORE_INFO("Vulkan built in!");
-			return std::make_unique<VulkanDevice>();
+			return std::make_unique<VulkanDevice>(window);
 		}
 #endif
 		default:
