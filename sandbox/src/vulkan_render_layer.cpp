@@ -40,59 +40,7 @@ const std::vector<uint32_t> s_Indices = {
 	4, 5, 6, 6, 7, 4
 };
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-		const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) {
-	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	return func ? func(instance, pCreateInfo, pAllocator, pDebugMessenger) : VK_ERROR_EXTENSION_NOT_PRESENT;
-}
-
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator) {
-	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	if (func) {
-		func(instance, debugMessenger, pAllocator);
-	}
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
-		VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
-	auto msg = std::format("\n\tVulkan Validation [{}]: {}", string_VkDebugUtilsMessageTypeFlagsEXT(type), pCallbackData->pMessage);
-	switch (severity) {
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-			LUMEN_CORE_WARN("{}", msg);
-			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-			LUMEN_CORE_ERROR("{}", msg);
-			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-			LUMEN_CORE_INFO("{}", msg);
-			break;
-		default:
-			LUMEN_CORE_TRACE("{}", msg);
-			break;
-	}
-	return VK_FALSE;
-}
-
-template <typename AvailableRange, typename NameFn>
-std::vector<const char *> FilterSupportedNames(const AvailableRange &available, NameFn getName,
-		const std::vector<const char *> &wanted, bool required, std::string_view kind) {
-	std::vector<const char *> enabled;
-	for (const char *name : wanted) {
-		bool found = std::ranges::any_of(available, [&](const auto &item) {
-			return std::strcmp(getName(item), name) == 0;
-		});
-		if (found) {
-			enabled.push_back(name);
-		} else if (required) {
-			throw std::runtime_error(std::format("Required Vulkan {} not supported: {}", kind, name));
-		} else {
-			LUMEN_CORE_WARN("Optional Vulkan {} not supported: {}", kind, name);
-		}
-	}
-	return enabled;
-}
-
-} // namespace
+} //namespace
 
 VulkanRenderLayer::VulkanRenderLayer(lm::Window *window) : Layer("VulkanRenderLayer"), m_Window(window) {}
 
@@ -100,8 +48,8 @@ void VulkanRenderLayer::OnAttach() {
 	auto api = lm::rhi::GraphicsAPI::Vulkan;
 	m_Device = lm::rhi::CreateDevice(api, m_Window->GetNativeHandle());
 
-	m_Context.instance = reinterpret_cast<VkInstance>(m_Device->GetVkInstance());
-	m_Context.debugMessenger = reinterpret_cast<VkDebugUtilsMessengerEXT>(m_Device->GetVkDebugUtilsMessengerEXT());
+	// m_Context.instance = reinterpret_cast<VkInstance>(m_Device->GetVkInstance());
+	// m_Context.debugMessenger = reinterpret_cast<VkDebugUtilsMessengerEXT>(m_Device->GetVkDebugUtilsMessengerEXT());
 	m_Context.surface = reinterpret_cast<VkSurfaceKHR>(m_Device->GetVkSurfaceKHR());
 	m_Context.physicalDevice = reinterpret_cast<VkPhysicalDevice>(m_Device->GetVkPhysicalDevice());
 	m_Context.queueFamilyIndices = *reinterpret_cast<QueueFamilyIndices *>(m_Device->GetQueueFamilyIndices());
@@ -122,8 +70,17 @@ void VulkanRenderLayer::OnAttach() {
 	CreateTextureImageView();
 	CreateTextureSampler();
 
-	CreateVertexBuffer();
-	CreateIndexBuffer();
+	lm::rhi::BufferDesc desc{
+		.size = sizeof(s_Vertices[0]) * s_Vertices.size(),
+		.usage = lm::rhi::BufferUsage::VertexBuffer,
+		.memory = lm::rhi::MemoryUsage::DeviceLocal,
+	};
+	lm::rhi::BufferHandle handle = m_Device->CreateBuffer(desc, s_Vertices.data());
+	m_Context.vertexBuffer = reinterpret_cast<VkBuffer>(m_Device->GetVkBuffer(handle));
+
+	desc.usage = lm::rhi::BufferUsage::IndexBuffer;
+	handle = m_Device->CreateBuffer(desc, s_Indices.data());
+	m_Context.indexBuffer = reinterpret_cast<VkBuffer>(m_Device->GetVkBuffer(handle));
 
 	CreateUniformBuffers();
 	CreateDescriptorPool();
@@ -134,7 +91,45 @@ void VulkanRenderLayer::OnAttach() {
 }
 
 void VulkanRenderLayer::OnDetach() {
-	Cleanup();
+	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
+
+	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
+		vkDestroyFence(m_Context.device, m_Context.inFlightFences[i], nullptr);
+		vkDestroySemaphore(m_Context.device, m_Context.presentCompleteSemaphores[i], nullptr);
+	}
+	m_Context.inFlightFences.clear();
+	m_Context.presentCompleteSemaphores.clear();
+	for (size_t i = 0; i < m_Context.swapchainImages.size(); ++i) {
+		vkDestroySemaphore(m_Context.device, m_Context.renderFinishedSemaphores[i], nullptr);
+	}
+	m_Context.renderFinishedSemaphores.clear();
+
+	vkDestroyDescriptorPool(m_Context.device, m_Context.descriptorPool, nullptr);
+	m_Context.descriptorSets.clear();
+
+	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
+		vkUnmapMemory(m_Context.device, m_Context.uniformBuffersMemory[i]);
+		vkFreeMemory(m_Context.device, m_Context.uniformBuffersMemory[i], nullptr);
+		vkDestroyBuffer(m_Context.device, m_Context.uniformBuffers[i], nullptr);
+	}
+	m_Context.uniformBuffersMapped.clear();
+	m_Context.uniformBuffersMemory.clear();
+	m_Context.uniformBuffers.clear();
+
+	vkDestroySampler(m_Context.device, m_Context.textureImageSampler, nullptr);
+	vkDestroyImageView(m_Context.device, m_Context.textureImageView, nullptr);
+	vkFreeMemory(m_Context.device, m_Context.textureImageMemory, nullptr);
+	vkDestroyImage(m_Context.device, m_Context.textureImage, nullptr);
+
+	vkDestroyImageView(m_Context.device, m_Context.depthImageView, nullptr);
+	vkFreeMemory(m_Context.device, m_Context.depthImageMemory, nullptr);
+	vkDestroyImage(m_Context.device, m_Context.depthImage, nullptr);
+
+	vkDestroyPipeline(m_Context.device, m_Context.graphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(m_Context.device, m_Context.graphicsPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_Context.device, m_Context.descriptorSetLayout, nullptr);
+
+	CleanupSwapchain();
 }
 
 void VulkanRenderLayer::OnEvent(lm::Event &e) {
@@ -545,47 +540,6 @@ void VulkanRenderLayer::CreateTextureSampler() {
 	CHECK_VK(vkCreateSampler(m_Context.device, &samplerInfo, nullptr, &m_Context.textureImageSampler));
 }
 
-void VulkanRenderLayer::CreateVertexBuffer() {
-	VkDeviceSize bufferSize = sizeof(s_Vertices[0]) * s_Vertices.size();
-	auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-	void *data;
-	CHECK_VK(vkMapMemory(m_Context.device, stagingBufferMemory, 0, bufferSize, 0, &data));
-	std::memcpy(data, s_Vertices.data(), static_cast<size_t>(bufferSize));
-	vkUnmapMemory(m_Context.device, stagingBufferMemory);
-
-	std::tie(m_Context.vertexBuffer, m_Context.vertexBufferMemory) = CreateBuffer(bufferSize,
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-					VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	CopyBuffer(m_Context.vertexBuffer, stagingBuffer, bufferSize);
-
-	vkFreeMemory(m_Context.device, stagingBufferMemory, nullptr);
-	vkDestroyBuffer(m_Context.device, stagingBuffer, nullptr);
-}
-
-void VulkanRenderLayer::CreateIndexBuffer() {
-	VkDeviceSize bufferSize = sizeof(s_Indices[0]) * s_Indices.size();
-	auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-	void *data;
-	CHECK_VK(vkMapMemory(m_Context.device, stagingBufferMemory, 0, bufferSize, 0, &data));
-	std::memcpy(data, s_Indices.data(), static_cast<size_t>(bufferSize));
-	vkUnmapMemory(m_Context.device, stagingBufferMemory);
-
-	std::tie(m_Context.indexBuffer, m_Context.indexBufferMemory) = CreateBuffer(
-			bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	CopyBuffer(m_Context.indexBuffer, stagingBuffer, bufferSize);
-
-	vkFreeMemory(m_Context.device, stagingBufferMemory, nullptr);
-	vkDestroyBuffer(m_Context.device, stagingBuffer, nullptr);
-}
-
 void VulkanRenderLayer::CreateUniformBuffers() {
 	m_Context.uniformBuffers.resize(k_MaxFramesInFlight);
 	m_Context.uniformBuffersMemory.resize(k_MaxFramesInFlight);
@@ -696,54 +650,6 @@ void VulkanRenderLayer::CreateDescriptorSetLayout() {
 		.pBindings = bindings.data(),
 	};
 	CHECK_VK(vkCreateDescriptorSetLayout(m_Context.device, &layoutInfo, nullptr, &m_Context.descriptorSetLayout));
-}
-
-void VulkanRenderLayer::Cleanup() {
-	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
-
-	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
-		vkDestroyFence(m_Context.device, m_Context.inFlightFences[i], nullptr);
-		vkDestroySemaphore(m_Context.device, m_Context.presentCompleteSemaphores[i], nullptr);
-	}
-	m_Context.inFlightFences.clear();
-	m_Context.presentCompleteSemaphores.clear();
-	for (size_t i = 0; i < m_Context.swapchainImages.size(); ++i) {
-		vkDestroySemaphore(m_Context.device, m_Context.renderFinishedSemaphores[i], nullptr);
-	}
-	m_Context.renderFinishedSemaphores.clear();
-
-	vkDestroyDescriptorPool(m_Context.device, m_Context.descriptorPool, nullptr);
-	m_Context.descriptorSets.clear();
-
-	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
-		vkUnmapMemory(m_Context.device, m_Context.uniformBuffersMemory[i]);
-		vkFreeMemory(m_Context.device, m_Context.uniformBuffersMemory[i], nullptr);
-		vkDestroyBuffer(m_Context.device, m_Context.uniformBuffers[i], nullptr);
-	}
-	m_Context.uniformBuffersMapped.clear();
-	m_Context.uniformBuffersMemory.clear();
-	m_Context.uniformBuffers.clear();
-
-	vkFreeMemory(m_Context.device, m_Context.indexBufferMemory, nullptr);
-	vkDestroyBuffer(m_Context.device, m_Context.indexBuffer, nullptr);
-
-	vkFreeMemory(m_Context.device, m_Context.vertexBufferMemory, nullptr);
-	vkDestroyBuffer(m_Context.device, m_Context.vertexBuffer, nullptr);
-
-	vkDestroySampler(m_Context.device, m_Context.textureImageSampler, nullptr);
-	vkDestroyImageView(m_Context.device, m_Context.textureImageView, nullptr);
-	vkFreeMemory(m_Context.device, m_Context.textureImageMemory, nullptr);
-	vkDestroyImage(m_Context.device, m_Context.textureImage, nullptr);
-
-	vkDestroyImageView(m_Context.device, m_Context.depthImageView, nullptr);
-	vkFreeMemory(m_Context.device, m_Context.depthImageMemory, nullptr);
-	vkDestroyImage(m_Context.device, m_Context.depthImage, nullptr);
-
-	vkDestroyPipeline(m_Context.device, m_Context.graphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(m_Context.device, m_Context.graphicsPipelineLayout, nullptr);
-	vkDestroyDescriptorSetLayout(m_Context.device, m_Context.descriptorSetLayout, nullptr);
-
-	CleanupSwapchain();
 }
 
 VkSurfaceFormatKHR VulkanRenderLayer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const {

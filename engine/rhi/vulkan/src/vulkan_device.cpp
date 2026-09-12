@@ -66,6 +66,16 @@ VulkanDevice::VulkanDevice(void *window) {
 }
 
 VulkanDevice::~VulkanDevice() {
+	CHECK_VK(vkDeviceWaitIdle(m_Device));
+
+	m_BufferPool.ForEach([&](BufferHandle handle, VulkanBuffer &buf) {
+		if (buf.mapped) {
+			vkUnmapMemory(m_Device, buf.memory);
+		}
+		vkFreeMemory(m_Device, buf.memory, nullptr);
+		vkDestroyBuffer(m_Device, buf.buffer, nullptr);
+	});
+
 	DestroyCommandPool();
 	DestroyDevice();
 	DestroySurface();
@@ -97,6 +107,7 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc &desc, const void *data
 }
 
 void VulkanDevice::DestroyBuffer(BufferHandle handle) {
+	m_BufferPool.Remove(handle);
 }
 
 // --- Init ---

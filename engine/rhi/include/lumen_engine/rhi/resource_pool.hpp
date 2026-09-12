@@ -41,9 +41,18 @@ public:
 				m_Slots[handle.index].generation == handle.generation;
 	}
 
-	T *Get(Handle<Tag> handle) { return IsValid(handle) ? &m_Slots[handle.index] : nullptr; }
+	template <typename Fn>
+	void ForEach(Fn &&fn) {
+		for (size_t i = 0; i < m_Slots.size(); ++i) {
+			if (m_Slots[i].alive) {
+				fn(Handle<Tag>{ static_cast<uint32_t>(i), m_Slots[i].generation }, m_Slots[i].value);
+			}
+		}
+	}
 
-	const T *Get(Handle<Tag> handle) const { return IsValid(handle) ? &m_Slots[handle.index] : nullptr; }
+	T *Get(Handle<Tag> handle) { return IsValid(handle) ? &m_Slots[handle.index].value : nullptr; }
+
+	const T *Get(Handle<Tag> handle) const { return IsValid(handle) ? &m_Slots[handle.index].value : nullptr; }
 
 private:
 	struct Slot {

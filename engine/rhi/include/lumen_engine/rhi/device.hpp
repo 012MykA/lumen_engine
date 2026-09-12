@@ -27,6 +27,7 @@ public:
 	virtual void *GetQueueFamilyIndices() const = 0;
 	virtual void *GetVkDevice() const = 0;
 	virtual void *GetVkCommandPool() const = 0;
+	virtual void *GetVkBuffer(BufferHandle handle) const = 0;
 };
 
 LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window);

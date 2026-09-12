@@ -70,6 +70,8 @@ public:
 	void *GetQueueFamilyIndices() const override { return (void *)&m_QueueFamilyIndices; }
 	void *GetVkDevice() const override { return m_Device; }
 	void *GetVkCommandPool() const override { return m_CommandPool; }
+	void *GetVkBuffer(BufferHandle handle) const override { return m_BufferPool.Get(handle)->buffer; }
+
 private:
 	struct QueueFamilyIndices {
 		std::optional<uint32_t> graphicsFamily;

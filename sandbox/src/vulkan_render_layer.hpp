@@ -99,18 +99,12 @@ private:
 	void CreateTextureImageView();
 	void CreateTextureSampler();
 
-	void CreateVertexBuffer();
-	void CreateIndexBuffer();
-
 	void CreateUniformBuffers();
 	void CreateDescriptorPool();
 	void CreateDescriptorSets();
 
 	void CreateCommandBuffers();
 	void CreateSyncObjects();
-
-	// --- Shutdown ---
-	void Cleanup();
 
 	// Swapchain
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const;
@@ -173,8 +167,8 @@ private:
 	std::unique_ptr<lm::rhi::IDevice> m_Device;
 
 	struct Context {
-		VkInstance instance = VK_NULL_HANDLE;
-		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+		// VkInstance instance = VK_NULL_HANDLE;
+		// VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
