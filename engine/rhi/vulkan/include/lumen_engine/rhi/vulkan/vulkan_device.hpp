@@ -11,37 +11,49 @@
 
 namespace lm::rhi {
 
-struct VulkanDeviceDesc {
-	uint32_t apiVersion = VK_API_VERSION_1_3;
-	bool enableValidation = true;
-	std::vector<const char *> requiredInstanceLayers = { "VK_LAYER_KHRONOS_validation" };
-	std::vector<const char *> requiredInstanceExtensions = {
+class LUMEN_API VulkanDevice final : public IDevice {
+private:
+	static constexpr uint32_t k_VulkanApiVersion = VK_API_VERSION_1_3;
+	static constexpr bool k_EnableValidation = true;
+
+	const std::vector<const char *> k_InstanceLayers = {
+		"VK_LAYER_KHRONOS_validation",
+	};
+
+	const std::vector<const char *> k_InstanceExtensions = {
 		VK_KHR_SURFACE_EXTENSION_NAME,
-		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 #if defined(LUMEN_PLATFORM_WINDOWS)
 		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #endif
+		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
-	std::vector<const char *> requiredDeviceExtensions = {
+	const std::vector<const char *> k_RequiredDeviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 		VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 	};
 
-	uint32_t maxFramesInFlight = 3;
-};
+	static constexpr uint32_t k_MaxFramesInFlight = 3;
 
-class LUMEN_API VulkanDevice final : public IDevice {
 public:
-	VulkanDevice(void *window, const VulkanDeviceDesc &desc = {});
+	explicit VulkanDevice(void *window);
 	~VulkanDevice();
 
-	[[nodiscard]] GraphicsAPI GetAPI() const override { return GraphicsAPI::Vulkan; }
+	GraphicsAPI GetAPI() const override { return GraphicsAPI::Vulkan; }
+
+	void *GetVkInstance() const override { return m_Instance; }
+	void *GetVkDebugUtilsMessengerEXT() const override { return m_DebugMessenger; }
+	void *GetVkSurfaceKHR() const override { return m_Surface; }
 
 private:
 	// --- Init ---
-	void CreateInstance(const VulkanDeviceDesc &desc);
+	void CreateInstance();
 	void SetupDebugMessenger();
 	void CreateSurface(void *window);
+
+	// --- Shutdown ---
+	void DestroySurface();
+	void DestroyDebugMessenger();
+	void DestroyInstance();
 
 	// --- Query available ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;

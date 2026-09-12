@@ -2,7 +2,6 @@
 
 #include "lumen_engine/io/log.hpp"
 #include "vulkan_validation.hpp"
-#include "vulkan_version.hpp"
 
 #include <limits>
 
@@ -46,11 +45,11 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBits
 
 } // namespace
 
-VulkanDevice::VulkanDevice(void *window, const VulkanDeviceDesc &desc) {
+VulkanDevice::VulkanDevice(void *window) {
 	LUMEN_CORE_INFO("[RHI] Initializing Vulkan backend...");
 
-	CreateInstance(desc);
-	if (desc.enableValidation) {
+	CreateInstance();
+	if (k_EnableValidation) {
 		SetupDebugMessenger();
 	}
 	CreateSurface(window);
@@ -60,20 +59,25 @@ VulkanDevice::VulkanDevice(void *window, const VulkanDeviceDesc &desc) {
 }
 
 VulkanDevice::~VulkanDevice() {
+	DestroySurface();
+	if (m_DebugMessenger != VK_NULL_HANDLE) {
+		DestroyDebugMessenger();
+	}
+	DestroyInstance();
 }
 
-void VulkanDevice::CreateInstance(const VulkanDeviceDesc &desc) {
-	const VkApplicationInfo appInfo{
+void VulkanDevice::CreateInstance() {
+	constexpr VkApplicationInfo appInfo{
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.pApplicationName = "No name",
 		.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 		.pEngineName = "Lumen Engine",
 		.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-		.apiVersion = desc.apiVersion,
+		.apiVersion = k_VulkanApiVersion,
 	};
 
-	const auto enabledLayers = FilterSupportedInstanceLayers(desc.requiredInstanceLayers, /*required=*/true);
-	const auto enabledExtensions = FilterSupportedInstanceExtensions(desc.requiredInstanceExtensions, /*required=*/true);
+	const std::vector<const char *> enabledLayers = FilterSupportedInstanceLayers(k_InstanceLayers, /*required=*/true);
+	const std::vector<const char *> enabledExtensions = FilterSupportedInstanceExtensions(k_InstanceExtensions, /*required=*/true);
 
 	const VkInstanceCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -114,6 +118,20 @@ void VulkanDevice::CreateSurface(void *window) {
 #else
 	#error Unsupported platform
 #endif
+}
+
+// -----------------------------------------------
+
+void lm::rhi::VulkanDevice::DestroyDebugMessenger() {
+	DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+}
+
+void VulkanDevice::DestroySurface() {
+	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+}
+
+void VulkanDevice::DestroyInstance() {
+	vkDestroyInstance(m_Instance, nullptr);
 }
 
 } // namespace lm::rhi

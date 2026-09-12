@@ -97,11 +97,13 @@ std::vector<const char *> FilterSupportedNames(const AvailableRange &available, 
 VulkanRenderLayer::VulkanRenderLayer(lm::Window *window) : Layer("VulkanRenderLayer"), m_Window(window) {}
 
 void VulkanRenderLayer::OnAttach() {
-	CreateInstance();
-	if constexpr (k_EnableValidation) {
-		SetupDebugMessenger();
-	}
-	CreateSurface();
+	auto api = lm::rhi::GraphicsAPI::Vulkan;
+	m_Device = lm::rhi::CreateDevice(api, m_Window->GetNativeHandle());
+
+	m_Context.instance = reinterpret_cast<VkInstance>(m_Device->GetVkInstance());
+	m_Context.debugMessenger = reinterpret_cast<VkDebugUtilsMessengerEXT>(m_Device->GetVkDebugUtilsMessengerEXT());
+	m_Context.surface = reinterpret_cast<VkSurfaceKHR>(m_Device->GetVkSurfaceKHR());
+
 	PickPhysicalDevice();
 	CreateDevice();
 	CreateSwapchain();
@@ -234,50 +236,6 @@ void VulkanRenderLayer::CleanupSwapchain() {
 	m_Context.swapchainImageViews.clear();
 	vkDestroySwapchainKHR(m_Context.device, m_Context.swapchain, nullptr);
 	m_Context.swapchain = VK_NULL_HANDLE;
-}
-
-void VulkanRenderLayer::CreateInstance() {
-	constexpr VkApplicationInfo appInfo{
-		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		.pApplicationName = "VulkanRenderLayer",
-		.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-		.pEngineName = "Lumen Engine",
-		.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-		.apiVersion = k_RequiredVulkanVersion,
-	};
-
-	auto enabledLayers = FilterSupportedInstanceLayers(k_RequiredInstanceLayers, /*required=*/true);
-	auto enabledExtensions = FilterSupportedInstanceExtensions(k_RequiredInstanceExtensions, /*required=*/true);
-
-	VkInstanceCreateInfo createInfo{
-		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		.pApplicationInfo = &appInfo,
-		.enabledLayerCount = static_cast<uint32_t>(enabledLayers.size()),
-		.ppEnabledLayerNames = enabledLayers.data(),
-		.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size()),
-		.ppEnabledExtensionNames = enabledExtensions.data(),
-	};
-
-	CHECK_VK(vkCreateInstance(&createInfo, nullptr, &m_Context.instance));
-}
-
-void VulkanRenderLayer::SetupDebugMessenger() {
-	VkDebugUtilsMessengerCreateInfoEXT createInfo{
-		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-		.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-		.pfnUserCallback = DebugCallback,
-	};
-	CHECK_VK(CreateDebugUtilsMessengerEXT(m_Context.instance, &createInfo, nullptr, &m_Context.debugMessenger));
-}
-
-void VulkanRenderLayer::CreateSurface() {
-	HWND handle = static_cast<HWND>(m_Window->GetNativeHandle());
-	VkWin32SurfaceCreateInfoKHR createInfo{
-		.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-		.hwnd = handle,
-	};
-	CHECK_VK(vkCreateWin32SurfaceKHR(m_Context.instance, &createInfo, nullptr, &m_Context.surface));
 }
 
 void VulkanRenderLayer::PickPhysicalDevice() {
@@ -861,12 +819,6 @@ void VulkanRenderLayer::Cleanup() {
 	CleanupSwapchain();
 
 	vkDestroyDevice(m_Context.device, nullptr);
-
-	vkDestroySurfaceKHR(m_Context.instance, m_Context.surface, nullptr);
-	if (m_Context.debugMessenger != VK_NULL_HANDLE) {
-		DestroyDebugUtilsMessengerEXT(m_Context.instance, m_Context.debugMessenger, nullptr);
-	}
-	vkDestroyInstance(m_Context.instance, nullptr);
 }
 
 std::vector<VkLayerProperties> VulkanRenderLayer::EnumerateInstanceLayers() const {

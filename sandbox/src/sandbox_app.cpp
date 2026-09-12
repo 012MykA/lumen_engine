@@ -24,9 +24,6 @@ public:
 		m_MainWindow = CreateWindow({});
 		SetWindowDarkMode(m_MainWindow);
 		m_MainWindow->PushLayer<VulkanRenderLayer>(m_MainWindow);
-
-		auto api = lm::rhi::GraphicsAPI::Vulkan;
-		auto device = lm::rhi::CreateDevice(api, m_MainWindow->GetNativeHandle());
 	}
 
 private:

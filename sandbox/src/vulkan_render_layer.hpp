@@ -16,6 +16,7 @@
 #include <concepts>
 #include <cstdint>
 #include <format>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -227,6 +228,7 @@ private:
 
 private:
 	lm::Window *m_Window;
+	std::unique_ptr<lm::rhi::IDevice> m_Device;
 
 	struct Context {
 		VkInstance instance = VK_NULL_HANDLE;
