@@ -1,17 +1,37 @@
 #pragma once
 
 #include "lumen_engine/rhi/device.hpp"
+#include "lumen_engine/rhi/resource_pool.hpp"
+#include "lumen_engine/rhi/types.hpp"
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
 	#define VK_USE_PLATFORM_WIN32_KHR
 #endif
+#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
+
+#include <format>
+#include <stdexcept>
+#define CHECK_VK(x) \
+	do { \
+		VkResult res = x; \
+		if (res != VK_SUCCESS) { \
+			throw std::runtime_error(std::format("Vulkan error: {} at {}:{}", string_VkResult(res), __FILE__, __LINE__)); \
+		} \
+	} while (0)
 
 #include <cstdint>
 #include <optional>
 #include <vector>
 
 namespace lm::rhi {
+
+struct VulkanBuffer {
+	VkBuffer buffer = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
+	VkDeviceSize size = 0;
+	void *mapped = nullptr;
+};
 
 class LUMEN_API VulkanDevice final : public IDevice {
 private:
@@ -40,7 +60,8 @@ public:
 	explicit VulkanDevice(void *window);
 	~VulkanDevice();
 
-	GraphicsAPI GetAPI() const override { return GraphicsAPI::Vulkan; }
+	BufferHandle CreateBuffer(const BufferDesc &desc, const void *data = nullptr) override;
+	void DestroyBuffer(BufferHandle handle) override;
 
 	void *GetVkInstance() const override { return m_Instance; }
 	void *GetVkDebugUtilsMessengerEXT() const override { return m_DebugMessenger; }
@@ -48,7 +69,7 @@ public:
 	void *GetVkPhysicalDevice() const override { return m_PhysicalDevice; }
 	void *GetQueueFamilyIndices() const override { return (void *)&m_QueueFamilyIndices; }
 	void *GetVkDevice() const override { return m_Device; }
-
+	void *GetVkCommandPool() const override { return m_CommandPool; }
 private:
 	struct QueueFamilyIndices {
 		std::optional<uint32_t> graphicsFamily;
@@ -61,38 +82,6 @@ private:
 					computeFamily.has_value();
 		}
 	};
-
-private:
-	// --- Init ---
-	void CreateInstance();
-	void SetupDebugMessenger();
-	void CreateSurface(void *window);
-	void PickPhysicalDevice();
-	void CreateDevice();
-
-	// --- Shutdown ---
-	void DestroyInstance();
-	void DestroyDebugMessenger();
-	void DestroySurface();
-	void DestroyDevice();
-
-private:
-	// Helper functions
-
-	// --- Physical Device ---
-	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
-	bool IsDeviceSuitable(VkPhysicalDevice device) const;
-
-	// --- Enumerate ---
-	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;
-	std::vector<VkExtensionProperties> EnumerateInstanceExtensions() const;
-	std::vector<VkPhysicalDevice> EnumeratePhysicalDevices() const;
-	std::vector<VkExtensionProperties> EnumerateDeviceExtensions(VkPhysicalDevice device) const;
-
-	// --- Filter ---
-	std::vector<const char *> FilterSupportedInstanceLayers(const std::vector<const char *> &wanted, bool required) const;
-	std::vector<const char *> FilterSupportedInstanceExtensions(const std::vector<const char *> &wanted, bool required) const;
-	std::vector<const char *> FilterSupportedDeviceExtensions(VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const;
 
 private:
 	// Instance
@@ -109,6 +98,95 @@ private:
 	VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
 	VkQueue m_PresentQueue = VK_NULL_HANDLE;
 	VkQueue m_ComputeQueue = VK_NULL_HANDLE;
+
+	VkCommandPool m_CommandPool = VK_NULL_HANDLE;
+
+	ResourcePool<VulkanBuffer, BufferTag> m_BufferPool;
+
+private:
+	// --- Init ---
+	void CreateInstance();
+	void SetupDebugMessenger();
+	void CreateSurface(void *window);
+	void PickPhysicalDevice();
+	void CreateDevice();
+	void CreateCommandPool();
+
+	// --- Shutdown ---
+	void DestroyInstance();
+	void DestroyDebugMessenger();
+	void DestroySurface();
+	void DestroyDevice();
+	void DestroyCommandPool();
+
+private:
+	// Helper functions
+
+	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+
+	void SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo);
+
+	template <typename F>
+		requires std::invocable<F, VkCommandBuffer>
+	void SubmitSingleTimeCommand(F &&func);
+
+	static VkMemoryPropertyFlags TranslateMemoryUsage(MemoryUsage usage);
+	static VkBufferUsageFlags TranslateBufferUsage(BufferUsage usage);
+
+	// --- Buffer ---
+	std::pair<VkBuffer, VkDeviceMemory> CreateVkBuffer(
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags properties);
+	void CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size);
+	void UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDeviceSize size);
+
+	// --- Physical Device ---
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
+	bool IsDeviceSuitable(VkPhysicalDevice device) const;
+
+	// --- Enumerate ---
+	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;
+	std::vector<VkExtensionProperties> EnumerateInstanceExtensions() const;
+	std::vector<VkPhysicalDevice> EnumeratePhysicalDevices() const;
+	std::vector<VkExtensionProperties> EnumerateDeviceExtensions(VkPhysicalDevice device) const;
+
+	// --- Filter ---
+	std::vector<const char *> FilterSupportedInstanceLayers(const std::vector<const char *> &wanted, bool required) const;
+	std::vector<const char *> FilterSupportedInstanceExtensions(const std::vector<const char *> &wanted, bool required) const;
+	std::vector<const char *> FilterSupportedDeviceExtensions(VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const;
 };
+
+template <typename F>
+	requires std::invocable<F, VkCommandBuffer>
+inline void VulkanDevice::SubmitSingleTimeCommand(F &&func) {
+	VkCommandBufferAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = m_CommandPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1,
+	};
+	VkCommandBuffer cmd;
+	CHECK_VK(vkAllocateCommandBuffers(m_Device, &allocInfo, &cmd));
+
+	VkCommandBufferBeginInfo beginInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+	};
+	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
+
+	func(cmd);
+
+	CHECK_VK(vkEndCommandBuffer(cmd));
+
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &cmd,
+	};
+
+	SingleTimeQueueSubmit(m_GraphicsQueue, submitInfo);
+	vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &cmd);
+}
 
 } // namespace lm::rhi

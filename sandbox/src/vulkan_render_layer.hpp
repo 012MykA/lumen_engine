@@ -93,8 +93,6 @@ private:
 	void CreateDescriptorSetLayout();
 	void CreateGraphicsPipeline();
 
-	void CreateCommandPool();
-
 	void CreateDepthResources();
 
 	void CreateTextureImage();

@@ -109,13 +109,12 @@ void VulkanRenderLayer::OnAttach() {
 	vkGetDeviceQueue(m_Context.device, m_Context.queueFamilyIndices.graphicsFamily.value(), 0, &m_Context.graphicsQueue);
 	vkGetDeviceQueue(m_Context.device, m_Context.queueFamilyIndices.presentFamily.value(), 0, &m_Context.presentQueue);
 	vkGetDeviceQueue(m_Context.device, m_Context.queueFamilyIndices.computeFamily.value(), 0, &m_Context.computeQueue);
+	m_Context.commandPool = reinterpret_cast<VkCommandPool>(m_Device->GetVkCommandPool());
 
 	CreateSwapchain();
 	CreateImageViews();
 	CreateDescriptorSetLayout();
 	CreateGraphicsPipeline();
-
-	CreateCommandPool();
 
 	CreateDepthResources();
 
@@ -437,15 +436,6 @@ void VulkanRenderLayer::CreateGraphicsPipeline() {
 	vkDestroyShaderModule(m_Context.device, shaderModule, nullptr);
 }
 
-void VulkanRenderLayer::CreateCommandPool() {
-	VkCommandPoolCreateInfo createInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		.queueFamilyIndex = m_Context.queueFamilyIndices.graphicsFamily.value(),
-	};
-	CHECK_VK(vkCreateCommandPool(m_Context.device, &createInfo, nullptr, &m_Context.commandPool));
-}
-
 void VulkanRenderLayer::CreateDepthResources() {
 	std::tie(m_Context.depthImage, m_Context.depthImageMemory) = CreateImage(
 			m_Context.swapchainExtent.width, m_Context.swapchainExtent.height,
@@ -748,9 +738,6 @@ void VulkanRenderLayer::Cleanup() {
 	vkDestroyImageView(m_Context.device, m_Context.depthImageView, nullptr);
 	vkFreeMemory(m_Context.device, m_Context.depthImageMemory, nullptr);
 	vkDestroyImage(m_Context.device, m_Context.depthImage, nullptr);
-
-	vkDestroyCommandPool(m_Context.device, m_Context.commandPool, nullptr);
-	m_Context.commandBuffers.clear();
 
 	vkDestroyPipeline(m_Context.device, m_Context.graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Context.device, m_Context.graphicsPipelineLayout, nullptr);

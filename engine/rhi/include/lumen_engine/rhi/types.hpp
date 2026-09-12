@@ -27,4 +27,35 @@ enum class GraphicsAPI : uint8_t {
 	// clang-format on
 }
 
+template <typename Tag>
+struct Handle {
+	static constexpr uint32_t k_InvalidIndex = std::numeric_limits<uint32_t>::max();
+
+	uint32_t index = k_InvalidIndex;
+	uint32_t generation = 0;
+};
+
+using BufferHandle = Handle<struct BufferTag>;
+using TextureHandle = Handle<struct TextureTag>;
+
+enum class MemoryUsage : uint8_t {
+	DeviceLocal,
+	HostVisible,
+};
+
+enum class BufferUsage : uint32_t {
+	VertexBuffer = 1 << 0,
+	IndexBuffer = 1 << 1,
+	UniformBuffer = 1 << 2,
+	StorageBuffer = 1 << 3,
+};
+constexpr BufferUsage operator|(BufferUsage a, BufferUsage b) {
+	using T = std::underlying_type_t<BufferUsage>;
+	return static_cast<BufferUsage>(static_cast<T>(a) | static_cast<T>(b));
+}
+constexpr BufferUsage operator&(BufferUsage a, BufferUsage b) {
+	using T = std::underlying_type_t<BufferUsage>;
+	return static_cast<BufferUsage>(static_cast<T>(a) & static_cast<T>(b));
+}
+
 } // namespace lm::rhi

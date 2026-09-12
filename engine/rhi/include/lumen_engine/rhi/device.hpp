@@ -7,11 +7,18 @@
 
 namespace lm::rhi {
 
+struct BufferDesc {
+	uint64_t size = 0;
+	BufferUsage usage = BufferUsage::VertexBuffer;
+	MemoryUsage memory = MemoryUsage::DeviceLocal;
+};
+
 class LUMEN_API IDevice {
 public:
 	virtual ~IDevice() = default;
 
-	virtual GraphicsAPI GetAPI() const = 0;
+	virtual BufferHandle CreateBuffer(const BufferDesc &desc, const void *data = nullptr) = 0;
+	virtual void DestroyBuffer(BufferHandle handle) = 0;
 
 	virtual void *GetVkInstance() const = 0;
 	virtual void *GetVkDebugUtilsMessengerEXT() const = 0;
@@ -19,6 +26,7 @@ public:
 	virtual void *GetVkPhysicalDevice() const = 0;
 	virtual void *GetQueueFamilyIndices() const = 0;
 	virtual void *GetVkDevice() const = 0;
+	virtual void *GetVkCommandPool() const = 0;
 };
 
 LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window);
