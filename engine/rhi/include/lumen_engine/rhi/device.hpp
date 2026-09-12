@@ -16,6 +16,9 @@ public:
 	virtual void *GetVkInstance() const = 0;
 	virtual void *GetVkDebugUtilsMessengerEXT() const = 0;
 	virtual void *GetVkSurfaceKHR() const = 0;
+	virtual void *GetVkPhysicalDevice() const = 0;
+	virtual void *GetQueueFamilyIndices() const = 0;
+	virtual void *GetVkDevice() const = 0;
 };
 
 LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window);

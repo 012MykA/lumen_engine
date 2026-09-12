@@ -80,26 +80,6 @@ public:
 	void OnRender() override;
 
 private:
-	// --- Requirements ---
-	static constexpr uint32_t k_RequiredVulkanVersion = VK_API_VERSION_1_3;
-	static constexpr bool k_EnableValidation = true;
-
-	const std::vector<const char *> k_RequiredInstanceLayers = {
-		"VK_LAYER_KHRONOS_validation",
-
-	};
-	const std::vector<const char *> k_RequiredInstanceExtensions = {
-		VK_KHR_SURFACE_EXTENSION_NAME,
-#if defined(LUMEN_PLATFORM_WINDOWS)
-		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-#endif
-		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-	};
-	const std::vector<const char *> k_RequiredDeviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-		VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
-	};
-
 	static constexpr uint32_t k_MaxFramesInFlight = 3;
 
 	// --- Runtime ---
@@ -108,11 +88,6 @@ private:
 	void UpdateUniformBuffer();
 
 	// --- Init ---
-	void CreateInstance();
-	void SetupDebugMessenger();
-	void CreateSurface();
-	void PickPhysicalDevice();
-	void CreateDevice();
 	void CreateSwapchain();
 	void CreateImageViews();
 	void CreateDescriptorSetLayout();
@@ -138,37 +113,6 @@ private:
 
 	// --- Shutdown ---
 	void Cleanup();
-
-	// --- Query available ---
-	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;
-	std::vector<VkExtensionProperties> EnumerateInstanceExtensions() const;
-	std::vector<VkPhysicalDevice> EnumeratePhysicalDevices() const;
-	std::vector<VkExtensionProperties> EnumerateDeviceExtensions(VkPhysicalDevice device) const;
-
-	// --- Filter ---
-	std::vector<const char *> FilterSupportedInstanceLayers(const std::vector<const char *> &wanted, bool required) const;
-	std::vector<const char *> FilterSupportedInstanceExtensions(const std::vector<const char *> &wanted, bool required) const;
-	std::vector<const char *> FilterSupportedDeviceExtensions(VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const;
-
-	// --- Device suitability ---
-	struct DeviceFeatureChain {
-		VkPhysicalDeviceVulkan11Features vulkan11Features{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-		VkPhysicalDeviceVulkan13Features vulkan13Features{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
-		VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT };
-		VkPhysicalDeviceFeatures2 features2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-
-		void Link() {
-			features2.pNext = &extendedDynamicStateFeatures;
-			extendedDynamicStateFeatures.pNext = &vulkan13Features;
-			vulkan13Features.pNext = &vulkan11Features;
-			vulkan11Features.pNext = nullptr;
-		}
-	};
-
-	void QueryDeviceFeatures(VkPhysicalDevice device, DeviceFeatureChain &outChain) const;
-	bool SupportsRequiredDeviceExtensions(VkPhysicalDevice device) const;
-	bool IsDeviceSuitable(VkPhysicalDevice device) const;
-	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
 
 	// Swapchain
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const;

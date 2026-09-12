@@ -48,6 +48,22 @@ std::vector<VkExtensionProperties> VulkanDevice::EnumerateInstanceExtensions() c
 	return available;
 }
 
+std::vector<VkExtensionProperties> VulkanDevice::EnumerateDeviceExtensions(VkPhysicalDevice device) const {
+	uint32_t count = 0;
+	CHECK_VK(vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr));
+	std::vector<VkExtensionProperties> available(count);
+	CHECK_VK(vkEnumerateDeviceExtensionProperties(device, nullptr, &count, available.data()));
+	return available;
+}
+
+std::vector<VkPhysicalDevice> VulkanDevice::EnumeratePhysicalDevices() const {
+	uint32_t count = 0;
+	CHECK_VK(vkEnumeratePhysicalDevices(m_Instance, &count, nullptr));
+	std::vector<VkPhysicalDevice> devices(count);
+	CHECK_VK(vkEnumeratePhysicalDevices(m_Instance, &count, devices.data()));
+	return devices;
+}
+
 std::vector<const char *> VulkanDevice::FilterSupportedInstanceLayers(
 		const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateInstanceLayers(), [](const VkLayerProperties &p) { return p.layerName; }, wanted, required, "layer");
@@ -56,6 +72,11 @@ std::vector<const char *> VulkanDevice::FilterSupportedInstanceLayers(
 std::vector<const char *> VulkanDevice::FilterSupportedInstanceExtensions(
 		const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateInstanceExtensions(), [](const VkExtensionProperties &p) { return p.extensionName; }, wanted, required, "instance extension");
+}
+
+std::vector<const char *> VulkanDevice::FilterSupportedDeviceExtensions(
+		VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const {
+	return FilterSupportedNames(EnumerateDeviceExtensions(device), [](const VkExtensionProperties &p) { return p.extensionName; }, wanted, required, "device extension");
 }
 
 } // namespace lm::rhi
