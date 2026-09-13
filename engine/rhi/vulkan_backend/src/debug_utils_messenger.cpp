@@ -1,5 +1,5 @@
 #include "lumen_engine/io/log.hpp"
-#include "lumen_engine/rhi/vulkan/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
 #include "vulkan_validation.hpp"
 
 #include <format>

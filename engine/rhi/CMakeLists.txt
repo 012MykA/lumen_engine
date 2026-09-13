@@ -77,23 +77,23 @@ target_compile_definitions(engine_rhi PRIVATE LUMEN_BUILD_DLL)
 
 # Backends
 if (LUMEN_RHI_ENABLE_VULKAN)
-    add_subdirectory(vulkan)
-    target_link_libraries(engine_rhi PRIVATE engine::rhi::vulkan)
+    add_subdirectory(vulkan_backend)
+    target_link_libraries(engine_rhi PRIVATE engine::rhi::vulkan_backend)
 endif()
 
 if (LUMEN_RHI_ENABLE_D3D11)
-    add_subdirectory(d3d11)
-    target_link_libraries(engine_rhi PRIVATE engine::rhi::d3d11)
+    add_subdirectory(d3d11_backend)
+    target_link_libraries(engine_rhi PRIVATE engine::rhi::d3d11_backend)
 endif()
 
 if (LUMEN_RHI_ENABLE_D3D12)
-    add_subdirectory(d3d12)
-    target_link_libraries(engine_rhi PRIVATE engine::rhi::d3d12)
+    add_subdirectory(d3d12_backend)
+    target_link_libraries(engine_rhi PRIVATE engine::rhi::d3d12_backend)
 endif()
 
 if (LUMEN_RHI_ENABLE_OPENGL)
-    add_subdirectory(opengl)
-    target_link_libraries(engine_rhi PRIVATE engine::rhi::opengl)
+    add_subdirectory(opengl_backend)
+    target_link_libraries(engine_rhi PRIVATE engine::rhi::opengl_backend)
 endif()
 
 add_library(engine::rhi ALIAS engine_rhi)

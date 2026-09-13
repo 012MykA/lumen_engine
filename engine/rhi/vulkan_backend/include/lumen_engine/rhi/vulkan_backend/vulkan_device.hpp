@@ -66,6 +66,9 @@ public:
 	BufferHandle CreateBuffer(const BufferDesc &desc, const void *data = nullptr) override;
 	void DestroyBuffer(BufferHandle handle) override;
 
+	// Write host-visible only buffer
+	void WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset = 0) override;
+
 	void *GetVkInstance() const override { return m_Instance; }
 	void *GetVkDebugUtilsMessengerEXT() const override { return m_DebugMessenger; }
 	void *GetVkSurfaceKHR() const override { return m_Surface; }
@@ -121,9 +124,6 @@ private:
 	template <typename F>
 		requires std::invocable<F, VkCommandBuffer>
 	void SubmitSingleTimeCommand(F &&func);
-
-	static VkMemoryPropertyFlags TranslateMemoryUsage(MemoryUsage usage);
-	static VkBufferUsageFlags TranslateBufferUsage(BufferUsage usage);
 
 	// --- Buffer ---
 	std::pair<VkBuffer, VkDeviceMemory> CreateVkBuffer(

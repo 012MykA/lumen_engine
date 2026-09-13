@@ -19,6 +19,7 @@ public:
 
 	virtual BufferHandle CreateBuffer(const BufferDesc &desc, const void *data = nullptr) = 0;
 	virtual void DestroyBuffer(BufferHandle handle) = 0;
+	virtual void WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset = 0) = 0;
 
 	virtual void *GetVkInstance() const = 0;
 	virtual void *GetVkDebugUtilsMessengerEXT() const = 0;

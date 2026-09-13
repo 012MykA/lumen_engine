@@ -166,6 +166,11 @@ private:
 	lm::Window *m_Window;
 	std::unique_ptr<lm::rhi::IDevice> m_Device;
 
+	lm::rhi::BufferHandle m_VertexBuffer;
+	lm::rhi::BufferHandle m_IndexBuffer;
+
+	std::vector<lm::rhi::BufferHandle> m_UniformBuffers;
+
 	struct Context {
 		// VkInstance instance = VK_NULL_HANDLE;
 		// VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
@@ -200,15 +205,6 @@ private:
 		VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
 		VkImageView textureImageView = VK_NULL_HANDLE;
 		VkSampler textureImageSampler = VK_NULL_HANDLE;
-
-		VkBuffer vertexBuffer = VK_NULL_HANDLE;
-		VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
-		VkBuffer indexBuffer = VK_NULL_HANDLE;
-		VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
-
-		std::vector<VkBuffer> uniformBuffers;
-		std::vector<VkDeviceMemory> uniformBuffersMemory;
-		std::vector<void *> uniformBuffersMapped;
 
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		std::vector<VkDescriptorSet> descriptorSets;

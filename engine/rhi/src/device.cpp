@@ -3,7 +3,7 @@
 #include "lumen_engine/io/log.hpp"
 
 #if defined(LUMEN_HAS_VULKAN)
-	#include "lumen_engine/rhi/vulkan/vulkan_device.hpp"
+	#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
 #endif
 
 #include <stdexcept>

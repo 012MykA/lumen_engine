@@ -75,12 +75,10 @@ void VulkanRenderLayer::OnAttach() {
 		.usage = lm::rhi::BufferUsage::VertexBuffer,
 		.memory = lm::rhi::MemoryUsage::DeviceLocal,
 	};
-	lm::rhi::BufferHandle handle = m_Device->CreateBuffer(desc, s_Vertices.data());
-	m_Context.vertexBuffer = reinterpret_cast<VkBuffer>(m_Device->GetVkBuffer(handle));
+	m_VertexBuffer = m_Device->CreateBuffer(desc, s_Vertices.data());
 
 	desc.usage = lm::rhi::BufferUsage::IndexBuffer;
-	handle = m_Device->CreateBuffer(desc, s_Indices.data());
-	m_Context.indexBuffer = reinterpret_cast<VkBuffer>(m_Device->GetVkBuffer(handle));
+	m_IndexBuffer = m_Device->CreateBuffer(desc, s_Indices.data());
 
 	CreateUniformBuffers();
 	CreateDescriptorPool();
@@ -106,15 +104,6 @@ void VulkanRenderLayer::OnDetach() {
 
 	vkDestroyDescriptorPool(m_Context.device, m_Context.descriptorPool, nullptr);
 	m_Context.descriptorSets.clear();
-
-	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
-		vkUnmapMemory(m_Context.device, m_Context.uniformBuffersMemory[i]);
-		vkFreeMemory(m_Context.device, m_Context.uniformBuffersMemory[i], nullptr);
-		vkDestroyBuffer(m_Context.device, m_Context.uniformBuffers[i], nullptr);
-	}
-	m_Context.uniformBuffersMapped.clear();
-	m_Context.uniformBuffersMemory.clear();
-	m_Context.uniformBuffers.clear();
 
 	vkDestroySampler(m_Context.device, m_Context.textureImageSampler, nullptr);
 	vkDestroyImageView(m_Context.device, m_Context.textureImageView, nullptr);
@@ -205,7 +194,8 @@ void VulkanRenderLayer::UpdateUniformBuffer() {
 	float aspectRatio = static_cast<float>(m_Context.swapchainExtent.width) / m_Context.swapchainExtent.height;
 	ubo.proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
 	ubo.proj[1][1] *= -1;
-	std::memcpy(m_Context.uniformBuffersMapped[m_FrameIndex], &ubo, sizeof(ubo));
+
+	m_Device->WriteBuffer(m_UniformBuffers[m_FrameIndex], &ubo, sizeof(ubo));
 }
 
 void VulkanRenderLayer::RecreateSwapchain() {
@@ -541,16 +531,14 @@ void VulkanRenderLayer::CreateTextureSampler() {
 }
 
 void VulkanRenderLayer::CreateUniformBuffers() {
-	m_Context.uniformBuffers.resize(k_MaxFramesInFlight);
-	m_Context.uniformBuffersMemory.resize(k_MaxFramesInFlight);
-	m_Context.uniformBuffersMapped.resize(k_MaxFramesInFlight);
+	m_UniformBuffers.resize(k_MaxFramesInFlight);
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-		auto [buffer, memory] = CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		m_Context.uniformBuffers[i] = buffer;
-		m_Context.uniformBuffersMemory[i] = memory;
-		CHECK_VK(vkMapMemory(m_Context.device, memory, 0, bufferSize, 0, &m_Context.uniformBuffersMapped[i]));
+		lm::rhi::BufferDesc desc{
+			.size = sizeof(UniformBufferObject),
+			.usage = lm::rhi::BufferUsage::UniformBuffer,
+			.memory = lm::rhi::MemoryUsage::HostVisible,
+		};
+		m_UniformBuffers[i] = m_Device->CreateBuffer(desc);
 	}
 }
 
@@ -590,8 +578,9 @@ void VulkanRenderLayer::CreateDescriptorSets() {
 
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
 		// Binding 0
+		VkBuffer uniformBuffer = reinterpret_cast<VkBuffer>(m_Device->GetVkBuffer(m_UniformBuffers[i]));
 		bufferInfos[i] = VkDescriptorBufferInfo{
-			.buffer = m_Context.uniformBuffers[i],
+			.buffer = uniformBuffer,
 			.offset = 0,
 			.range = sizeof(UniformBufferObject),
 		};
@@ -784,13 +773,16 @@ void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
 			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context.graphicsPipeline);
 
 			VkDeviceSize offset = 0;
-			vkCmdBindVertexBuffers(cmd, 0, 1, &m_Context.vertexBuffer, &offset);
-			vkCmdBindIndexBuffer(cmd, m_Context.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			std::array vertexBuffers = { reinterpret_cast<VkBuffer>(m_Device->GetVkBuffer(m_VertexBuffer)) };
+			vkCmdBindVertexBuffers(cmd, 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), &offset);
 
-			std::array sets = { m_Context.descriptorSets[m_FrameIndex] };
+			VkBuffer indexBuffer = reinterpret_cast<VkBuffer>(m_Device->GetVkBuffer(m_IndexBuffer));
+			vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			std::array descriptorSets = { m_Context.descriptorSets[m_FrameIndex] };
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 					m_Context.graphicsPipelineLayout, 0,
-					static_cast<uint32_t>(sets.size()), sets.data(),
+					static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(),
 					0, nullptr);
 
 			vkCmdDrawIndexed(cmd, static_cast<uint32_t>(s_Indices.size()), 1, 0, 0, 0);
