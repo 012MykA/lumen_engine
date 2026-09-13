@@ -154,9 +154,9 @@ private:
 	std::vector<VkExtensionProperties> EnumerateDeviceExtensions(VkPhysicalDevice device) const;
 
 	// --- Filter ---
+	std::vector<const char *> FilterSupportedDeviceExtensions(VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const;
 	std::vector<const char *> FilterSupportedInstanceLayers(const std::vector<const char *> &wanted, bool required) const;
 	std::vector<const char *> FilterSupportedInstanceExtensions(const std::vector<const char *> &wanted, bool required) const;
-	std::vector<const char *> FilterSupportedDeviceExtensions(VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const;
 };
 
 template <typename F>

@@ -3,7 +3,9 @@ find_package(Vulkan REQUIRED)
 add_library(engine_rhi_vulkan
     src/vulkan_device.cpp
 
+    src/instance.cpp
     src/enumerate.cpp
+    src/filter.cpp
 )
 
 target_include_directories(engine_rhi_vulkan

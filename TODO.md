@@ -1,5 +1,6 @@
 # RHI
-- Make API
+- Textures
+- ICommandList
 
 ### Vulkan backend
 - Split impl to several files (instance.cpp debugUtils.cpp etc.)
