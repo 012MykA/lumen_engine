@@ -6,6 +6,11 @@ add_library(engine_rhi_vulkan
     src/instance.cpp
     src/enumerate.cpp
     src/filter.cpp
+    src/logical_device.cpp
+    src/debug_utils_messenger.cpp
+    src/buffer.cpp
+    src/surface.cpp
+    src/physical_device.cpp
 )
 
 target_include_directories(engine_rhi_vulkan

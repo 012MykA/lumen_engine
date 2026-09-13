@@ -188,4 +188,4 @@ void GlfwWindowDriver::InitCallbacks() {
 	});
 }
 
-} //namespace lm
+} // namespace lm

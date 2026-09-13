@@ -40,7 +40,7 @@ const std::vector<uint32_t> s_Indices = {
 	4, 5, 6, 6, 7, 4
 };
 
-} //namespace
+} // namespace
 
 VulkanRenderLayer::VulkanRenderLayer(lm::Window *window) : Layer("VulkanRenderLayer"), m_Window(window) {}
 

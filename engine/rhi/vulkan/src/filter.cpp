@@ -31,7 +31,7 @@ std::vector<const char *> FilterSupportedNames(const AvailableRange &available, 
 	return enabled;
 }
 
-} //namespace
+} // namespace
 
 std::vector<const char *> VulkanDevice::FilterSupportedDeviceExtensions(
 		VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const {

@@ -144,4 +144,4 @@ enum : uint16_t {
 
 } // namespace Key
 
-} //namespace lm
+} // namespace lm

@@ -10,18 +10,9 @@
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
 
-#include <format>
-#include <stdexcept>
-#define CHECK_VK(x) \
-	do { \
-		VkResult res = x; \
-		if (res != VK_SUCCESS) { \
-			throw std::runtime_error(std::format("Vulkan error: {} at {}:{}", string_VkResult(res), __FILE__, __LINE__)); \
-		} \
-	} while (0)
-
 #include <cstdint>
 #include <optional>
+#include <utility> // for std::pair
 #include <vector>
 
 namespace lm::rhi {
@@ -31,6 +22,18 @@ struct VulkanBuffer {
 	VkDeviceMemory memory = VK_NULL_HANDLE;
 	VkDeviceSize size = 0;
 	void *mapped = nullptr;
+};
+
+struct QueueFamilyIndices {
+	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
+	std::optional<uint32_t> computeFamily;
+
+	bool IsComplete() const {
+		return graphicsFamily.has_value() &&
+				presentFamily.has_value() &&
+				computeFamily.has_value();
+	}
 };
 
 class LUMEN_API VulkanDevice final : public IDevice {
@@ -71,19 +74,6 @@ public:
 	void *GetVkDevice() const override { return m_Device; }
 	void *GetVkCommandPool() const override { return m_CommandPool; }
 	void *GetVkBuffer(BufferHandle handle) const override { return m_BufferPool.Get(handle)->buffer; }
-
-private:
-	struct QueueFamilyIndices {
-		std::optional<uint32_t> graphicsFamily;
-		std::optional<uint32_t> presentFamily;
-		std::optional<uint32_t> computeFamily;
-
-		bool IsComplete() const {
-			return graphicsFamily.has_value() &&
-					presentFamily.has_value() &&
-					computeFamily.has_value();
-		}
-	};
 
 private:
 	// Instance
@@ -140,12 +130,9 @@ private:
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags properties);
+	void DestroyVulkanBuffer(VulkanBuffer &buf);
 	void CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size);
 	void UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDeviceSize size);
-
-	// --- Physical Device ---
-	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
-	bool IsDeviceSuitable(VkPhysicalDevice device) const;
 
 	// --- Enumerate ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;
@@ -158,37 +145,5 @@ private:
 	std::vector<const char *> FilterSupportedInstanceLayers(const std::vector<const char *> &wanted, bool required) const;
 	std::vector<const char *> FilterSupportedInstanceExtensions(const std::vector<const char *> &wanted, bool required) const;
 };
-
-template <typename F>
-	requires std::invocable<F, VkCommandBuffer>
-inline void VulkanDevice::SubmitSingleTimeCommand(F &&func) {
-	VkCommandBufferAllocateInfo allocInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.commandPool = m_CommandPool,
-		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = 1,
-	};
-	VkCommandBuffer cmd;
-	CHECK_VK(vkAllocateCommandBuffers(m_Device, &allocInfo, &cmd));
-
-	VkCommandBufferBeginInfo beginInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-	};
-	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
-
-	func(cmd);
-
-	CHECK_VK(vkEndCommandBuffer(cmd));
-
-	VkSubmitInfo submitInfo{
-		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.commandBufferCount = 1,
-		.pCommandBuffers = &cmd,
-	};
-
-	SingleTimeQueueSubmit(m_GraphicsQueue, submitInfo);
-	vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &cmd);
-}
 
 } // namespace lm::rhi

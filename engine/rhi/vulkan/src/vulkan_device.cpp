@@ -68,13 +68,7 @@ VulkanDevice::VulkanDevice(void *window) {
 VulkanDevice::~VulkanDevice() {
 	CHECK_VK(vkDeviceWaitIdle(m_Device));
 
-	m_BufferPool.ForEach([&](BufferHandle handle, VulkanBuffer &buf) {
-		if (buf.mapped) {
-			vkUnmapMemory(m_Device, buf.memory);
-		}
-		vkFreeMemory(m_Device, buf.memory, nullptr);
-		vkDestroyBuffer(m_Device, buf.buffer, nullptr);
-	});
+	m_BufferPool.ForEach([this](BufferHandle handle, VulkanBuffer &buf) { DestroyVulkanBuffer(buf); });
 
 	DestroyCommandPool();
 	DestroyDevice();
@@ -106,54 +100,7 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc &desc, const void *data
 	return m_BufferPool.Insert(buf);
 }
 
-void VulkanDevice::DestroyBuffer(BufferHandle handle) {
-	m_BufferPool.Remove(handle);
-}
-
 // --- Init ---
-
-void VulkanDevice::SetupDebugMessenger() {
-	VkDebugUtilsMessengerCreateInfoEXT createInfo{
-		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-		.messageSeverity =
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-		.messageType =
-				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-		.pfnUserCallback = DebugCallback,
-	};
-	CHECK_VK(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger));
-}
-
-void VulkanDevice::CreateSurface(void *window) {
-#if defined(LUMEN_PLATFORM_WINDOWS)
-	HWND handle = static_cast<HWND>(window);
-	const VkWin32SurfaceCreateInfoKHR createInfo{
-		.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-		.hwnd = handle,
-	};
-	CHECK_VK(vkCreateWin32SurfaceKHR(m_Instance, &createInfo, nullptr, &m_Surface));
-#else
-	#error Unsupported platform
-#endif
-}
-
-void VulkanDevice::PickPhysicalDevice() {
-	auto devices = EnumeratePhysicalDevices();
-	if (devices.empty()) {
-		throw std::runtime_error("Failed to find GPUs with Vulkan support.");
-	}
-
-	auto it = std::ranges::find_if(devices, [this](VkPhysicalDevice d) { return IsDeviceSuitable(d); });
-	if (it == devices.end()) {
-		throw std::runtime_error("Failed to find a suitable GPU.");
-	}
-	m_PhysicalDevice = *it;
-	m_QueueFamilyIndices = FindQueueFamilies(m_PhysicalDevice);
-}
 
 void VulkanDevice::CreateDevice() {
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -242,39 +189,6 @@ void VulkanDevice::DestroyCommandPool() {
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 }
 
-bool VulkanDevice::IsDeviceSuitable(VkPhysicalDevice device) const {
-	VkPhysicalDeviceProperties props;
-	vkGetPhysicalDeviceProperties(device, &props);
-	bool supportsVersion = props.apiVersion >= k_VulkanApiVersion;
-
-	auto available = EnumerateDeviceExtensions(device);
-	bool supportsDeviceExtensions = std::ranges::all_of(k_DeviceExtensions, [&](const char *name) {
-		return std::ranges::any_of(available, [name](const auto &p) { return std::strcmp(p.extensionName, name) == 0; });
-	});
-
-	VkPhysicalDeviceVulkan11Features vulkan11Features{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-	VkPhysicalDeviceVulkan13Features vulkan13Features{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-		.pNext = &vulkan11Features,
-	};
-	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
-		.pNext = &vulkan13Features,
-	};
-	VkPhysicalDeviceFeatures2 features2{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-		.pNext = &extendedDynamicStateFeatures,
-	};
-	vkGetPhysicalDeviceFeatures2(device, &features2);
-	bool supportsFeatures =
-			features2.features.samplerAnisotropy &&
-			vulkan11Features.shaderDrawParameters &&
-			vulkan13Features.dynamicRendering &&
-			extendedDynamicStateFeatures.extendedDynamicState;
-
-	return supportsVersion && supportsDeviceExtensions && supportsFeatures && FindQueueFamilies(device).IsComplete();
-}
-
 VkMemoryPropertyFlags VulkanDevice::TranslateMemoryUsage(MemoryUsage usage) {
 	// clang-format off
 	switch (usage) {
@@ -322,34 +236,12 @@ void VulkanDevice::SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo)
 	vkDestroyFence(m_Device, copyFinishedFence, nullptr);
 }
 
-std::pair<VkBuffer, VkDeviceMemory> VulkanDevice::CreateVkBuffer(
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags properties) {
-	VkBufferCreateInfo bufferInfo{
-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-		.flags = 0,
-		.size = size,
-		.usage = usage,
-		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-	};
-	VkBuffer buffer;
-	CHECK_VK(vkCreateBuffer(m_Device, &bufferInfo, nullptr, &buffer));
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(m_Device, buffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo{
-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-		.allocationSize = memRequirements.size,
-		.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties),
-	};
-	VkDeviceMemory memory;
-	CHECK_VK(vkAllocateMemory(m_Device, &allocInfo, nullptr, &memory));
-
-	CHECK_VK(vkBindBufferMemory(m_Device, buffer, memory, 0));
-
-	return { buffer, memory };
+void VulkanDevice::DestroyVulkanBuffer(VulkanBuffer &buf) {
+	if (buf.mapped) {
+		vkUnmapMemory(m_Device, buf.memory);
+	}
+	vkFreeMemory(m_Device, buf.memory, nullptr);
+	vkDestroyBuffer(m_Device, buf.buffer, nullptr);
 }
 
 void VulkanDevice::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
@@ -384,52 +276,36 @@ void VulkanDevice::UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDevi
 	vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
 }
 
-VulkanDevice::QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice device) const {
-	QueueFamilyIndices indices;
+template <typename F>
+	requires std::invocable<F, VkCommandBuffer>
+inline void VulkanDevice::SubmitSingleTimeCommand(F &&func) {
+	VkCommandBufferAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = m_CommandPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1,
+	};
+	VkCommandBuffer cmd;
+	CHECK_VK(vkAllocateCommandBuffers(m_Device, &allocInfo, &cmd));
 
-	uint32_t count = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
-	std::vector<VkQueueFamilyProperties> families(count);
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, families.data());
+	VkCommandBufferBeginInfo beginInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+	};
+	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
 
-	bool foundCombinedGraphicsPresent = false;
-	bool foundDedicatedCompute = false;
+	func(cmd);
 
-	for (uint32_t i = 0; i < count; ++i) {
-		const auto &family = families[i];
-		bool hasGraphics = (family.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
-		bool hasCompute = (family.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+	CHECK_VK(vkEndCommandBuffer(cmd));
 
-		VkBool32 presentSupport = VK_FALSE;
-		CHECK_VK(vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport));
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &cmd,
+	};
 
-		// Graphics fallback
-		if (!foundCombinedGraphicsPresent && !indices.graphicsFamily.has_value() && hasGraphics) {
-			indices.graphicsFamily = i;
-		}
-
-		// Present fallback
-		if (!foundCombinedGraphicsPresent && presentSupport && !indices.presentFamily.has_value()) {
-			indices.presentFamily = i;
-		}
-
-		// Prefered Graphics & Present
-		if (!foundCombinedGraphicsPresent && hasGraphics && presentSupport) {
-			indices.graphicsFamily = i;
-			indices.presentFamily = i;
-			foundCombinedGraphicsPresent = true;
-		}
-
-		// Compute
-		if (!foundDedicatedCompute && hasCompute && !hasGraphics) {
-			indices.computeFamily = i;
-			foundDedicatedCompute = true;
-		} else if (!foundDedicatedCompute && !indices.computeFamily.has_value() && hasCompute) {
-			indices.computeFamily = i;
-		}
-	}
-
-	return indices;
+	SingleTimeQueueSubmit(m_GraphicsQueue, submitInfo);
+	vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &cmd);
 }
 
 } // namespace lm::rhi
