@@ -36,7 +36,11 @@ VulkanDevice::VulkanDevice(void *window) {
 }
 
 VulkanDevice::~VulkanDevice() {
-	CHECK_VK(vkDeviceWaitIdle(m_Device));
+	try {
+		CHECK_VK(vkDeviceWaitIdle(m_Device));
+	} catch (const std::exception &e) {
+		LUMEN_CORE_CRITICAL("{}", e.what());
+	}
 
 	m_BufferPool.ForEach([this](BufferHandle handle, VulkanBuffer &buf) { DestroyVulkanBuffer(buf); });
 
