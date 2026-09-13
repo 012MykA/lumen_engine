@@ -28,4 +28,8 @@ void VulkanDevice::CreateInstance() {
 	CHECK_VK(vkCreateInstance(&createInfo, nullptr, &m_Instance));
 }
 
+void VulkanDevice::DestroyInstance() {
+	vkDestroyInstance(m_Instance, nullptr);
+}
+
 } // namespace lm::rhi

@@ -54,4 +54,8 @@ void VulkanDevice::SetupDebugMessenger() {
 	CHECK_VK(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger));
 }
 
+void VulkanDevice::DestroyDebugMessenger() {
+	DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+}
+
 } // namespace lm::rhi

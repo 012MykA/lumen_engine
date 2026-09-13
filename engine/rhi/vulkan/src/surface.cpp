@@ -16,4 +16,8 @@ void VulkanDevice::CreateSurface(void *window) {
 #endif
 }
 
+void VulkanDevice::DestroySurface() {
+	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+}
+
 } // namespace lm::rhi

@@ -101,14 +101,14 @@ private:
 	void SetupDebugMessenger();
 	void CreateSurface(void *window);
 	void PickPhysicalDevice();
-	void CreateDevice();
+	void CreateLogicalDevice();
 	void CreateCommandPool();
 
 	// --- Shutdown ---
 	void DestroyInstance();
 	void DestroyDebugMessenger();
 	void DestroySurface();
-	void DestroyDevice();
+	void DestroyLogicalDevice();
 	void DestroyCommandPool();
 
 private:

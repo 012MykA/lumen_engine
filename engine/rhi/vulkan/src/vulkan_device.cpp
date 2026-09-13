@@ -4,9 +4,6 @@
 #include "vulkan_validation.hpp"
 
 #include <cstring>
-#include <limits>
-#include <set>
-#include <stdexcept>
 #include <tuple>
 
 #ifdef max
@@ -17,37 +14,9 @@ namespace lm::rhi {
 
 namespace {
 
-constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
+constexpr uint64_t noTimeout = std::numeric_limits<uint64_t>::max();
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-		const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) {
-	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	return func ? func(instance, pCreateInfo, pAllocator, pDebugMessenger) : VK_ERROR_EXTENSION_NOT_PRESENT;
 }
-
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator) {
-	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	if (func) {
-		func(instance, debugMessenger, pAllocator);
-	}
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
-		VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
-	auto msg = std::format("\n\tVulkan Validation [{}]: {}", string_VkDebugUtilsMessageTypeFlagsEXT(type), pCallbackData->pMessage);
-	// clang-format off
-	switch (severity) {
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:	LUMEN_CORE_TRACE("{}", msg);	break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:		LUMEN_CORE_INFO("{}", msg);		break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:	LUMEN_CORE_WARN("{}", msg);		break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:		LUMEN_CORE_ERROR("{}", msg);	break;
-		default: LUMEN_CORE_TRACE("Unknown {}", msg); break;
-	}
-	// clang-format on
-	return VK_FALSE;
-}
-
-} // namespace
 
 VulkanDevice::VulkanDevice(void *window) {
 	LUMEN_CORE_INFO("[RHI] Initializing Vulkan backend...");
@@ -58,7 +27,7 @@ VulkanDevice::VulkanDevice(void *window) {
 	}
 	CreateSurface(window);
 	PickPhysicalDevice();
-	CreateDevice();
+	CreateLogicalDevice();
 	CreateCommandPool();
 
 	LUMEN_CORE_INFO("[RHI] IDevice initialized successfully");
@@ -71,7 +40,7 @@ VulkanDevice::~VulkanDevice() {
 	m_BufferPool.ForEach([this](BufferHandle handle, VulkanBuffer &buf) { DestroyVulkanBuffer(buf); });
 
 	DestroyCommandPool();
-	DestroyDevice();
+	DestroyLogicalDevice();
 	DestroySurface();
 	if (m_DebugMessenger != VK_NULL_HANDLE) {
 		DestroyDebugMessenger();
@@ -97,65 +66,12 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc &desc, const void *data
 		UploadViaStagingBuffer(buf.buffer, data, buf.size);
 	}
 
+	LUMEN_CORE_INFO("Buffer created:");
+	LUMEN_CORE_INFO("\tsize: {}");
+	LUMEN_CORE_INFO("\tusage: {}", string_VkBufferUsageFlags(usage));
+	LUMEN_CORE_INFO("\tmemProps: {}", string_VkMemoryPropertyFlags(memProps));
+
 	return m_BufferPool.Insert(buf);
-}
-
-// --- Init ---
-
-void VulkanDevice::CreateDevice() {
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = {
-		m_QueueFamilyIndices.graphicsFamily.value(),
-		m_QueueFamilyIndices.presentFamily.value(),
-		m_QueueFamilyIndices.computeFamily.value(),
-	};
-
-	float queuePriority = 1.0f;
-	for (uint32_t queueFamily : uniqueQueueFamilies) {
-		queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
-				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-				.queueFamilyIndex = queueFamily,
-				.queueCount = 1,
-				.pQueuePriorities = &queuePriority,
-		});
-	}
-
-	auto enabledExtensions = FilterSupportedDeviceExtensions(m_PhysicalDevice, k_DeviceExtensions, /*required=*/true);
-
-	VkPhysicalDeviceVulkan11Features vulkan11Features{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-	VkPhysicalDeviceVulkan13Features vulkan13Features{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-		.pNext = &vulkan11Features,
-	};
-	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
-		.pNext = &vulkan13Features,
-	};
-	VkPhysicalDeviceFeatures2 features2{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-		.pNext = &extendedDynamicStateFeatures,
-	};
-	vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &features2);
-	features2.features.samplerAnisotropy = VK_TRUE;
-	vulkan11Features.shaderDrawParameters = VK_TRUE;
-	vulkan13Features.dynamicRendering = VK_TRUE;
-	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
-
-	VkDeviceCreateInfo createInfo{
-		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		.pNext = &features2,
-		.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
-		.pQueueCreateInfos = queueCreateInfos.data(),
-		.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size()),
-		.ppEnabledExtensionNames = enabledExtensions.data(),
-		.pEnabledFeatures = nullptr,
-	};
-
-	CHECK_VK(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device));
-
-	vkGetDeviceQueue(m_Device, m_QueueFamilyIndices.graphicsFamily.value(), 0, &m_GraphicsQueue);
-	vkGetDeviceQueue(m_Device, m_QueueFamilyIndices.presentFamily.value(), 0, &m_PresentQueue);
-	vkGetDeviceQueue(m_Device, m_QueueFamilyIndices.computeFamily.value(), 0, &m_ComputeQueue);
 }
 
 void VulkanDevice::CreateCommandPool() {
@@ -168,22 +84,6 @@ void VulkanDevice::CreateCommandPool() {
 }
 
 // --- Shutdown ---
-
-void VulkanDevice::DestroyInstance() {
-	vkDestroyInstance(m_Instance, nullptr);
-}
-
-void VulkanDevice::DestroyDebugMessenger() {
-	DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
-}
-
-void VulkanDevice::DestroySurface() {
-	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
-}
-
-void VulkanDevice::DestroyDevice() {
-	vkDestroyDevice(m_Device, nullptr);
-}
 
 void VulkanDevice::DestroyCommandPool() {
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);

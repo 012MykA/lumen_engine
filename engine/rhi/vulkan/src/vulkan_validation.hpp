@@ -5,7 +5,7 @@
 #include <format>
 #include <stdexcept>
 
-#ifndef CHECK_VK(x)
+#ifndef CHECK_VK
 	#define CHECK_VK(x) \
 		do { \
 			VkResult res = x; \
