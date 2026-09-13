@@ -12,6 +12,7 @@ add_library(engine_rhi_vulkan_backend
     src/surface.cpp
     src/physical_device.cpp
     src/vulkan_translate.cpp
+    src/texture.cpp
 )
 
 target_include_directories(engine_rhi_vulkan_backend

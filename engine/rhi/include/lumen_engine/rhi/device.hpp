@@ -13,6 +13,14 @@ struct BufferDesc {
 	MemoryUsage memory = MemoryUsage::DeviceLocal;
 };
 
+struct TextureDesc {
+	uint32_t width = 0;
+	uint32_t height = 0;
+	TextureFormat format = TextureFormat::RGBA8_UNorm;
+	TextureUsage usage = TextureUsage::Sampled;
+	uint32_t mipLevels = 1;
+};
+
 class LUMEN_API IDevice {
 public:
 	virtual ~IDevice() = default;
@@ -20,6 +28,9 @@ public:
 	virtual BufferHandle CreateBuffer(const BufferDesc &desc, const void *data = nullptr) = 0;
 	virtual void DestroyBuffer(BufferHandle handle) = 0;
 	virtual void WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset = 0) = 0;
+
+	virtual TextureHandle CreateTexture(const TextureDesc &desc, const void *data = nullptr) = 0;
+	virtual void DestroyTexture(TextureHandle handle) = 0;
 
 	virtual void *GetVkInstance() const = 0;
 	virtual void *GetVkDebugUtilsMessengerEXT() const = 0;

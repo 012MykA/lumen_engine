@@ -15,15 +15,35 @@ VkMemoryPropertyFlags TranslateMemoryUsage(MemoryUsage usage) {
 }
 
 VkBufferUsageFlags TranslateBufferUsage(BufferUsage usage) {
+	VkBufferUsageFlags flags = 0;
 	// clang-format off
-	switch (usage) {
-		case BufferUsage::VertexBuffer: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		case BufferUsage::IndexBuffer: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		case BufferUsage::UniformBuffer: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		case BufferUsage::StorageBuffer: return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	if (HasUsage(BufferUsage::VertexBuffer,  usage))		return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	if (HasUsage(BufferUsage::IndexBuffer,   usage))		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	if (HasUsage(BufferUsage::UniformBuffer, usage))		return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	if (HasUsage(BufferUsage::StorageBuffer, usage))		return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	// clang-format on
+	return flags;
+}
+
+VkFormat TranslateTextureFormat(TextureFormat format) {
+	// clang-format off
+	switch (format) {
+		case TextureFormat::RGBA8_UNorm: return VK_FORMAT_R8G8B8A8_UNORM;
+		case TextureFormat::RGBA8_SRGB:  return VK_FORMAT_R8G8B8A8_SRGB;
+		case TextureFormat::Depth32F:    return VK_FORMAT_D32_SFLOAT;
 	}
 	// clang-format on
-	throw std::runtime_error("TranslateBufferUsage(): Unknown BufferUsage");
+	throw std::runtime_error("TranslateTextureFormat(): Unknown TextureFormat");
+}
+
+VkImageUsageFlags TranslateTextureUsage(TextureUsage usage) {
+	VkImageUsageFlags result = 0;
+	// clang-format off
+	if (HasUsage(usage, TextureUsage::Sampled))                result |= VK_IMAGE_USAGE_SAMPLED_BIT;
+	if (HasUsage(usage, TextureUsage::ColorAttachment))        result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	if (HasUsage(usage, TextureUsage::DepthStencilAttachment)) result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	// clang-format on
+	return result;
 }
 
 } // namespace lm::rhi

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <cstdint>
 #include <limits>
 #include <string_view>
@@ -43,6 +44,16 @@ enum class MemoryUsage : uint8_t {
 	HostVisible,
 };
 
+template <typename T>
+concept UsageFlags = requires(T a, T b) {
+	{ a & b } -> std::same_as<T>;
+};
+
+template <UsageFlags T>
+constexpr bool HasUsage(T flags, T usage) {
+	return (flags & usage) == usage;
+}
+
 enum class BufferUsage : uint32_t {
 	VertexBuffer = 1 << 0,
 	IndexBuffer = 1 << 1,
@@ -56,6 +67,26 @@ constexpr BufferUsage operator|(BufferUsage a, BufferUsage b) {
 constexpr BufferUsage operator&(BufferUsage a, BufferUsage b) {
 	using T = std::underlying_type_t<BufferUsage>;
 	return static_cast<BufferUsage>(static_cast<T>(a) & static_cast<T>(b));
+}
+
+enum class TextureFormat : uint8_t {
+	RGBA8_UNorm,
+	RGBA8_SRGB,
+	Depth32F,
+};
+
+enum class TextureUsage : uint32_t {
+	Sampled = 1 << 0,
+	ColorAttachment = 1 << 1,
+	DepthStencilAttachment = 1 << 2,
+};
+constexpr TextureUsage operator|(TextureUsage a, TextureUsage b) {
+	using T = std::underlying_type_t<TextureUsage>;
+	return static_cast<TextureUsage>(static_cast<T>(a) | static_cast<T>(b));
+}
+constexpr TextureUsage operator&(TextureUsage a, TextureUsage b) {
+	using T = std::underlying_type_t<TextureUsage>;
+	return static_cast<TextureUsage>(static_cast<T>(a) & static_cast<T>(b));
 }
 
 } // namespace lm::rhi

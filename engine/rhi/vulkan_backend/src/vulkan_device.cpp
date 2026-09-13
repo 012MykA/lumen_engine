@@ -68,11 +68,13 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc &desc, const void *data
 		}
 	} else {
 		std::tie(buf.buffer, buf.memory) = CreateVkBuffer(buf.size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, memProps);
-		UploadViaStagingBuffer(buf.buffer, data, buf.size);
+		if (data) {
+			UploadViaStagingBuffer(buf.buffer, data, buf.size);
+		}
 	}
 
 	LUMEN_CORE_INFO("Buffer created:");
-	LUMEN_CORE_INFO("\tsize: {}");
+	LUMEN_CORE_INFO("\tsize: {} bytes", buf.size);
 	LUMEN_CORE_INFO("\tusage: {}", string_VkBufferUsageFlags(usage));
 	LUMEN_CORE_INFO("\tmemProps: {}", string_VkMemoryPropertyFlags(memProps));
 

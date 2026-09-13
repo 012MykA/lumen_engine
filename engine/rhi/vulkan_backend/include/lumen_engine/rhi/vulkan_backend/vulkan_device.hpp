@@ -24,6 +24,14 @@ struct VulkanBuffer {
 	void *mapped = nullptr;
 };
 
+struct VulkanTexture {
+	VkImage image = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
+	VkImageView view = VK_NULL_HANDLE;
+	VkFormat format = VK_FORMAT_UNDEFINED;
+	VkExtent2D extent;
+};
+
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentFamily;
@@ -69,6 +77,9 @@ public:
 	// Write host-visible only buffer
 	void WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset = 0) override;
 
+	TextureHandle CreateTexture(const TextureDesc &desc, const void *data = nullptr) override;
+	void DestroyTexture(TextureHandle handle) override;
+
 	void *GetVkInstance() const override { return m_Instance; }
 	void *GetVkDebugUtilsMessengerEXT() const override { return m_DebugMessenger; }
 	void *GetVkSurfaceKHR() const override { return m_Surface; }
@@ -76,7 +87,7 @@ public:
 	void *GetQueueFamilyIndices() const override { return (void *)&m_QueueFamilyIndices; }
 	void *GetVkDevice() const override { return m_Device; }
 	void *GetVkCommandPool() const override { return m_CommandPool; }
-	void *GetVkBuffer(BufferHandle handle) const override { return m_BufferPool.Get(handle)->buffer; }
+	void *GetVkBuffer(BufferHandle handle) const override;
 
 private:
 	// Instance
@@ -97,6 +108,7 @@ private:
 	VkCommandPool m_CommandPool = VK_NULL_HANDLE;
 
 	ResourcePool<VulkanBuffer, BufferTag> m_BufferPool;
+	ResourcePool<VulkanTexture, TextureTag> m_TexturePool;
 
 private:
 	// --- Init ---

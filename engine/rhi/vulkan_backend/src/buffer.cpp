@@ -54,4 +54,9 @@ void VulkanDevice::WriteBuffer(BufferHandle handle, const void *data, uint64_t s
 	std::memcpy(static_cast<uint8_t *>(buf->mapped) + offset, data, size);
 }
 
+void *VulkanDevice::GetVkBuffer(BufferHandle handle) const {
+	const VulkanBuffer *buf = m_BufferPool.Get(handle);
+	return buf ? buf->buffer : nullptr;
+}
+
 } // namespace lm::rhi
