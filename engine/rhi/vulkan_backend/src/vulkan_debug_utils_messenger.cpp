@@ -1,5 +1,5 @@
 #include "lumen_engine/io/log.hpp"
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #include "vulkan_validation.hpp"
 
 #include <format>
@@ -38,7 +38,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBits
 
 } // namespace
 
-void VulkanDevice::SetupDebugMessenger() {
+void VulkanRenderingDevice::SetupDebugMessenger() {
 	VkDebugUtilsMessengerCreateInfoEXT createInfo{
 		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 		.messageSeverity =
@@ -54,7 +54,7 @@ void VulkanDevice::SetupDebugMessenger() {
 	CHECK_VK(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger));
 }
 
-void VulkanDevice::DestroyDebugMessenger() {
+void VulkanRenderingDevice::DestroyDebugMessenger() {
 	DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 }
 

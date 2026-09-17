@@ -1,11 +1,11 @@
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #include "vulkan_translate.hpp"
 
 #include <stdexcept>
 
 namespace lm::rhi {
 
-TextureHandle lm::rhi::VulkanDevice::CreateTexture(const TextureDesc &desc, const void *data) {
+TextureHandle lm::rhi::VulkanRenderingDevice::CreateTexture(const TextureDesc &desc, const void *data) {
 	if (desc.mipLevels != 1) {
 		throw std::runtime_error("CreateTexture: mip level generation is not implemented yet");
 	}
@@ -17,7 +17,7 @@ TextureHandle lm::rhi::VulkanDevice::CreateTexture(const TextureDesc &desc, cons
 	VkImageUsageFlags usage = TranslateTextureUsage(desc.usage);
 }
 
-void VulkanDevice::DestroyTexture(TextureHandle handle) {
+void VulkanRenderingDevice::DestroyTexture(TextureHandle handle) {
 }
 
 } // namespace lm::rhi

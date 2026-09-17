@@ -1,4 +1,4 @@
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 
 #include "lumen_engine/io/log.hpp"
 #include "vulkan_translate.hpp"
@@ -19,7 +19,7 @@ constexpr uint64_t noTimeout = std::numeric_limits<uint64_t>::max();
 
 }
 
-VulkanDevice::VulkanDevice(void *window) {
+VulkanRenderingDevice::VulkanRenderingDevice(void *window) {
 	LUMEN_CORE_INFO("[RHI] Initializing Vulkan backend...");
 
 	CreateInstance();
@@ -35,7 +35,7 @@ VulkanDevice::VulkanDevice(void *window) {
 	LUMEN_CORE_INFO("[RHI] Backend API: Vulkan");
 }
 
-VulkanDevice::~VulkanDevice() {
+VulkanRenderingDevice::~VulkanRenderingDevice() {
 	try {
 		CHECK_VK(vkDeviceWaitIdle(m_Device));
 	} catch (const std::exception &e) {
@@ -53,7 +53,7 @@ VulkanDevice::~VulkanDevice() {
 	DestroyInstance();
 }
 
-BufferHandle VulkanDevice::CreateBuffer(const BufferDesc &desc, const void *data) {
+BufferHandle VulkanRenderingDevice::CreateBuffer(const BufferDesc &desc, const void *data) {
 	VulkanBuffer buf;
 	buf.size = static_cast<VkDeviceSize>(desc.size);
 
@@ -81,7 +81,7 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc &desc, const void *data
 	return m_BufferPool.Insert(buf);
 }
 
-void VulkanDevice::CreateCommandPool() {
+void VulkanRenderingDevice::CreateCommandPool() {
 	VkCommandPoolCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -92,11 +92,11 @@ void VulkanDevice::CreateCommandPool() {
 
 // --- Shutdown ---
 
-void VulkanDevice::DestroyCommandPool() {
+void VulkanRenderingDevice::DestroyCommandPool() {
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 }
 
-uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const {
+uint32_t VulkanRenderingDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const {
 	VkPhysicalDeviceMemoryProperties memoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
 
@@ -109,7 +109,7 @@ uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags
 	throw std::runtime_error("Failed to find suitable memory type.");
 }
 
-void VulkanDevice::SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo &submitInfo) {
+void VulkanRenderingDevice::SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo &submitInfo) {
 	VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 	VkFence copyFinishedFence;
 	CHECK_VK(vkCreateFence(m_Device, &fenceInfo, nullptr, &copyFinishedFence));
@@ -121,7 +121,7 @@ void VulkanDevice::SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo &subm
 	vkDestroyFence(m_Device, copyFinishedFence, nullptr);
 }
 
-void VulkanDevice::DestroyVulkanBuffer(VulkanBuffer &buf) {
+void VulkanRenderingDevice::DestroyVulkanBuffer(VulkanBuffer &buf) {
 	if (buf.mapped) {
 		vkUnmapMemory(m_Device, buf.memory);
 	}
@@ -129,7 +129,7 @@ void VulkanDevice::DestroyVulkanBuffer(VulkanBuffer &buf) {
 	vkDestroyBuffer(m_Device, buf.buffer, nullptr);
 }
 
-void VulkanDevice::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
+void VulkanRenderingDevice::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
 	SubmitSingleTimeCommand([&](VkCommandBuffer cmd) {
 		VkBufferCopy2 region{
 			.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
@@ -146,7 +146,7 @@ void VulkanDevice::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
 	});
 }
 
-void VulkanDevice::UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDeviceSize size) {
+void VulkanRenderingDevice::UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDeviceSize size) {
 	auto [stagingBuffer, stagingBufferMemory] = CreateVkBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -163,7 +163,7 @@ void VulkanDevice::UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDevi
 
 template <typename F>
 	requires std::invocable<F, VkCommandBuffer>
-inline void VulkanDevice::SubmitSingleTimeCommand(F &&func) {
+inline void VulkanRenderingDevice::SubmitSingleTimeCommand(F &&func) {
 	VkCommandBufferAllocateInfo allocInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = m_CommandPool,

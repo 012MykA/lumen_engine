@@ -1,9 +1,9 @@
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #include "vulkan_validation.hpp"
 
 namespace lm::rhi {
 
-void VulkanDevice::CreateInstance() {
+void VulkanRenderingDevice::CreateInstance() {
 	constexpr VkApplicationInfo appInfo{
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.pApplicationName = "No name",
@@ -28,7 +28,7 @@ void VulkanDevice::CreateInstance() {
 	CHECK_VK(vkCreateInstance(&createInfo, nullptr, &m_Instance));
 }
 
-void VulkanDevice::DestroyInstance() {
+void VulkanRenderingDevice::DestroyInstance() {
 	vkDestroyInstance(m_Instance, nullptr);
 }
 

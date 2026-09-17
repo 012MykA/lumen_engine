@@ -1,4 +1,4 @@
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #include "vulkan_validation.hpp"
 
 #include <algorithm>
@@ -59,7 +59,7 @@ QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
 
 } //namespace
 
-void VulkanDevice::PickPhysicalDevice() {
+void VulkanRenderingDevice::PickPhysicalDevice() {
 	std::vector<VkPhysicalDevice> devices = EnumeratePhysicalDevices();
 	if (devices.empty()) {
 		throw std::runtime_error("Failed to find GPUs with Vulkan support.");

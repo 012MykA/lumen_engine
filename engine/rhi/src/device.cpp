@@ -3,7 +3,7 @@
 #include "lumen_engine/io/log.hpp"
 
 #if defined(LUMEN_HAS_VULKAN)
-	#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+	#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #endif
 
 #include <stdexcept>
@@ -14,7 +14,7 @@ LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window) {
 	switch (api) {
 #if defined(LUMEN_HAS_VULKAN)
 		case GraphicsAPI::Vulkan: {
-			return std::make_unique<VulkanDevice>(window);
+			return std::make_unique<VulkanRenderingDevice>(window);
 		}
 #endif
 		default:

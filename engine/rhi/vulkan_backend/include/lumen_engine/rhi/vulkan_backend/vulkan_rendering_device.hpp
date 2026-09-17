@@ -44,7 +44,7 @@ struct QueueFamilyIndices {
 	}
 };
 
-class LUMEN_API VulkanDevice final : public IDevice {
+class LUMEN_API VulkanRenderingDevice final : public IDevice {
 private:
 	static constexpr uint32_t k_VulkanApiVersion = VK_API_VERSION_1_3;
 	static constexpr bool k_EnableValidation = true;
@@ -68,8 +68,8 @@ private:
 	static constexpr uint32_t k_MaxFramesInFlight = 3;
 
 public:
-	explicit VulkanDevice(void *window);
-	~VulkanDevice();
+	explicit VulkanRenderingDevice(void *window);
+	~VulkanRenderingDevice();
 
 	BufferHandle CreateBuffer(const BufferDesc &desc, const void *data = nullptr) override;
 	void DestroyBuffer(BufferHandle handle) override;
@@ -131,7 +131,7 @@ private:
 
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
-	void SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo& submitInfo);
+	void SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo &submitInfo);
 
 	template <typename F>
 		requires std::invocable<F, VkCommandBuffer>

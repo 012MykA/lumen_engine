@@ -1,11 +1,11 @@
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #include "vulkan_validation.hpp"
 
 #include <cstring>
 
 namespace lm::rhi {
 
-std::pair<VkBuffer, VkDeviceMemory> VulkanDevice::CreateVkBuffer(
+std::pair<VkBuffer, VkDeviceMemory> VulkanRenderingDevice::CreateVkBuffer(
 		VkDeviceSize size,
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags properties) {
@@ -35,12 +35,12 @@ std::pair<VkBuffer, VkDeviceMemory> VulkanDevice::CreateVkBuffer(
 	return { buffer, memory };
 }
 
-void VulkanDevice::DestroyBuffer(BufferHandle handle) {
+void VulkanRenderingDevice::DestroyBuffer(BufferHandle handle) {
 	DestroyVulkanBuffer(*m_BufferPool.Get(handle));
 	m_BufferPool.Remove(handle);
 }
 
-void VulkanDevice::WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset) {
+void VulkanRenderingDevice::WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset) {
 	VulkanBuffer *buf = m_BufferPool.Get(handle);
 	if (!buf) {
 		throw std::runtime_error("WriteBuffer: invalid buffer handle");
@@ -54,7 +54,7 @@ void VulkanDevice::WriteBuffer(BufferHandle handle, const void *data, uint64_t s
 	std::memcpy(static_cast<uint8_t *>(buf->mapped) + offset, data, size);
 }
 
-void *VulkanDevice::GetVkBuffer(BufferHandle handle) const {
+void *VulkanRenderingDevice::GetVkBuffer(BufferHandle handle) const {
 	const VulkanBuffer *buf = m_BufferPool.Get(handle);
 	return buf ? buf->buffer : nullptr;
 }

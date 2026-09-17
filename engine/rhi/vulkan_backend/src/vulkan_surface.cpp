@@ -1,9 +1,9 @@
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #include "vulkan_validation.hpp"
 
 namespace lm::rhi {
 
-void VulkanDevice::CreateSurface(void *window) {
+void VulkanRenderingDevice::CreateSurface(void *window) {
 #if defined(LUMEN_PLATFORM_WINDOWS)
 	HWND handle = static_cast<HWND>(window);
 	const VkWin32SurfaceCreateInfoKHR createInfo{
@@ -16,7 +16,7 @@ void VulkanDevice::CreateSurface(void *window) {
 #endif
 }
 
-void VulkanDevice::DestroySurface() {
+void VulkanRenderingDevice::DestroySurface() {
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 }
 

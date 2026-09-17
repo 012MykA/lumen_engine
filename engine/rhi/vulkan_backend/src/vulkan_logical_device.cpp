@@ -1,4 +1,4 @@
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #include "vulkan_validation.hpp"
 
 #include <cstdint>
@@ -6,7 +6,7 @@
 
 namespace lm::rhi {
 
-void VulkanDevice::CreateLogicalDevice() {
+void VulkanRenderingDevice::CreateLogicalDevice() {
 	// Queues
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	std::set<uint32_t> uniqueQueueFamilies = {
@@ -64,7 +64,7 @@ void VulkanDevice::CreateLogicalDevice() {
 	vkGetDeviceQueue(m_Device, m_QueueFamilyIndices.computeFamily.value(), 0, &m_ComputeQueue);
 }
 
-void VulkanDevice::DestroyLogicalDevice() {
+void VulkanRenderingDevice::DestroyLogicalDevice() {
 	vkDestroyDevice(m_Device, nullptr);
 }
 

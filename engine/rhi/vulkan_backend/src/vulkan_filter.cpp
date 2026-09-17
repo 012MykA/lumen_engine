@@ -1,5 +1,5 @@
 #include "lumen_engine/io/log.hpp"
-#include "lumen_engine/rhi/vulkan_backend/vulkan_device.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 #include "vulkan_validation.hpp"
 
 #include <algorithm>
@@ -33,17 +33,17 @@ std::vector<const char *> FilterSupportedNames(const AvailableRange &available, 
 
 } // namespace
 
-std::vector<const char *> VulkanDevice::FilterSupportedDeviceExtensions(
+std::vector<const char *> VulkanRenderingDevice::FilterSupportedDeviceExtensions(
 		VkPhysicalDevice device, const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateDeviceExtensions(device), [](const VkExtensionProperties &p) { return p.extensionName; }, wanted, required, "device extension");
 }
 
-std::vector<const char *> VulkanDevice::FilterSupportedInstanceLayers(
+std::vector<const char *> VulkanRenderingDevice::FilterSupportedInstanceLayers(
 		const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateInstanceLayers(), [](const VkLayerProperties &p) { return p.layerName; }, wanted, required, "layer");
 }
 
-std::vector<const char *> VulkanDevice::FilterSupportedInstanceExtensions(
+std::vector<const char *> VulkanRenderingDevice::FilterSupportedInstanceExtensions(
 		const std::vector<const char *> &wanted, bool required) const {
 	return FilterSupportedNames(EnumerateInstanceExtensions(), [](const VkExtensionProperties &p) { return p.extensionName; }, wanted, required, "instance extension");
 }
