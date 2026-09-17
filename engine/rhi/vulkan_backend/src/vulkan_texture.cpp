@@ -15,6 +15,8 @@ TextureHandle lm::rhi::VulkanRenderingDevice::CreateTexture(const TextureDesc &d
 	tex.format = TranslateTextureFormat(desc.format);
 
 	VkImageUsageFlags usage = TranslateTextureUsage(desc.usage);
+
+	return {};
 }
 
 void VulkanRenderingDevice::DestroyTexture(TextureHandle handle) {

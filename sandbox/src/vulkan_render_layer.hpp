@@ -1,5 +1,7 @@
 #pragma once
 
+#include "check_vk.hpp"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <lumen_engine/lumen_engine.hpp>
@@ -9,26 +11,15 @@
 #else
 	#error "Unsupported platform"
 #endif
-#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
 
 #include <array>
 #include <concepts>
 #include <cstdint>
-#include <format>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <utility>
 #include <vector>
-
-#define CHECK_VK(x) \
-	do { \
-		VkResult res = x; \
-		if (res != VK_SUCCESS) { \
-			throw std::runtime_error(std::format("Vulkan error: {} at {}:{}", string_VkResult(res), __FILE__, __LINE__)); \
-		} \
-	} while (0)
 
 struct Vertex {
 	glm::vec3 pos;
@@ -106,6 +97,11 @@ private:
 	void CreateCommandBuffers();
 	void CreateSyncObjects();
 
+	// ImGui
+	void CreateImGuiDescriptorPool();
+	void DestroyImGuiDescriptorPool();
+	void InitImGui();
+
 	// Swapchain
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const;
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const;
@@ -171,8 +167,8 @@ private:
 	std::vector<lm::rhi::BufferHandle> m_UniformBuffers;
 
 	struct Context {
-		// VkInstance instance = VK_NULL_HANDLE;
-		// VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+		VkInstance instance = VK_NULL_HANDLE;
+		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -215,8 +211,10 @@ private:
 		std::vector<VkFence> inFlightFences;
 	} m_Context;
 	uint32_t m_FrameIndex = 0;
-
 	bool m_FramebufferResized = false;
+
+	// --- ImGui ---
+	VkDescriptorPool m_ImGuiDescriptorPool;
 };
 
 template <typename F>

@@ -3,6 +3,10 @@
 	#undef max
 #endif
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -48,8 +52,8 @@ void VulkanRenderLayer::OnAttach() {
 	auto api = lm::rhi::GraphicsAPI::Vulkan;
 	m_Device = lm::rhi::CreateDevice(api, m_Window->GetNativeHandle());
 
-	// m_Context.instance = reinterpret_cast<VkInstance>(m_Device->GetVkInstance());
-	// m_Context.debugMessenger = reinterpret_cast<VkDebugUtilsMessengerEXT>(m_Device->GetVkDebugUtilsMessengerEXT());
+	m_Context.instance = reinterpret_cast<VkInstance>(m_Device->GetVkInstance());
+	m_Context.debugMessenger = reinterpret_cast<VkDebugUtilsMessengerEXT>(m_Device->GetVkDebugUtilsMessengerEXT());
 	m_Context.surface = reinterpret_cast<VkSurfaceKHR>(m_Device->GetVkSurfaceKHR());
 	m_Context.physicalDevice = reinterpret_cast<VkPhysicalDevice>(m_Device->GetVkPhysicalDevice());
 	m_Context.queueFamilyIndices = *reinterpret_cast<QueueFamilyIndices *>(m_Device->GetQueueFamilyIndices());
@@ -90,11 +94,22 @@ void VulkanRenderLayer::OnAttach() {
 
 	CreateCommandBuffers();
 	CreateSyncObjects();
+
+	// --- ImGui ---
+	CreateImGuiDescriptorPool();
+	InitImGui();
 }
 
 void VulkanRenderLayer::OnDetach() {
 	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
 
+	// --- ImGui ---
+	DestroyImGuiDescriptorPool();
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
+	// --- Main ---
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
 		vkDestroyFence(m_Context.device, m_Context.inFlightFences[i], nullptr);
 		vkDestroySemaphore(m_Context.device, m_Context.presentCompleteSemaphores[i], nullptr);
@@ -145,6 +160,17 @@ void VulkanRenderLayer::OnRender() {
 
 	CHECK_VK(vkResetFences(m_Context.device, 1, &m_Context.inFlightFences[m_FrameIndex]));
 	CHECK_VK(vkResetCommandBuffer(m_Context.commandBuffers[m_FrameIndex], 0));
+
+	// ImGui
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::Begin("Test");
+	ImGui::End();
+
+	ImGui::Render();
+	// ---
 
 	UpdateUniformBuffer();
 	RecordCommandBuffer(imageIndex);
@@ -465,6 +491,87 @@ void VulkanRenderLayer::CreateSyncObjects() {
 		VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
 		CHECK_VK(vkCreateFence(m_Context.device, &fenceInfo, nullptr, &m_Context.inFlightFences[i]));
 	}
+}
+
+void VulkanRenderLayer::CreateImGuiDescriptorPool() {
+	VkDescriptorPoolSize poolSizes[] = {
+		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+	};
+
+	VkDescriptorPoolCreateInfo createInfo = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+		.maxSets = 1000 * IM_ARRAYSIZE(poolSizes),
+		.poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(poolSizes)),
+		.pPoolSizes = poolSizes
+	};
+
+	CHECK_VK(vkCreateDescriptorPool(m_Context.device, &createInfo, nullptr, &m_ImGuiDescriptorPool));
+}
+
+void VulkanRenderLayer::DestroyImGuiDescriptorPool() {
+	vkDestroyDescriptorPool(m_Context.device, m_ImGuiDescriptorPool, nullptr);
+}
+
+void VulkanRenderLayer::InitImGui() {
+	ImGui::CreateContext();
+
+	ImGuiIO &io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+	io.DisplaySize.x = (float)m_Context.swapchainExtent.width;
+	io.DisplaySize.y = (float)m_Context.swapchainExtent.height;
+
+	ImGui::GetStyle().FontScaleMain = 1.5f;
+
+	ImGui::StyleColorsDark();
+
+	bool installGlfwCallbacks = true;
+	GLFWwindow *window = reinterpret_cast<GLFWwindow *>(m_Window->GetGLFWwindow());
+	ImGui_ImplGlfw_InitForVulkan(window, installGlfwCallbacks);
+
+	VkSurfaceCapabilitiesKHR caps;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Context.physicalDevice, m_Context.surface, &caps);
+
+	VkFormat colorFormat = m_Context.swapchainSurfaceFormat.format;
+
+	ImGui_ImplVulkan_InitInfo initInfo{
+		.ApiVersion = VK_VERSION_1_3,
+		.Instance = m_Context.instance,
+		.PhysicalDevice = m_Context.physicalDevice,
+		.Device = m_Context.device,
+		.QueueFamily = m_Context.queueFamilyIndices.graphicsFamily.value(),
+		.Queue = m_Context.graphicsQueue,
+		.DescriptorPool = m_ImGuiDescriptorPool,
+		.MinImageCount = caps.minImageCount,
+		.ImageCount = static_cast<uint32_t>(m_Context.swapchainImages.size()),
+		.PipelineCache = nullptr,
+		.PipelineInfoMain = {
+				.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+				.PipelineRenderingCreateInfo = {
+						.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+						.viewMask = 0,
+						.colorAttachmentCount = 1,
+						.pColorAttachmentFormats = &colorFormat,
+						.depthAttachmentFormat = FindDepthFormat(),
+						.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+				},
+		},
+		.UseDynamicRendering = true,
+		.Allocator = nullptr,
+		.CheckVkResultFn = [](VkResult res) { CHECK_VK(res); },
+	};
+	ImGui_ImplVulkan_Init(&initInfo);
 }
 
 void VulkanRenderLayer::CreateTextureImage() {
@@ -790,6 +897,10 @@ void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
 					0, nullptr);
 
 			vkCmdDrawIndexed(cmd, static_cast<uint32_t>(s_Indices.size()), 1, 0, 0, 0);
+
+			// ImGui
+			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+			// ---
 		}
 		vkCmdEndRendering(cmd);
 

@@ -22,6 +22,7 @@ public:
 	WindowExtent GetExtent() const override;
 
 	void *GetNativeHandle() const override;
+	void *GetGLFWwindow() const override;
 
 private:
 	void InitCallbacks();

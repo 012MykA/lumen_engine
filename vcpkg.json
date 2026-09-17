@@ -1,5 +1,15 @@
 {
   "name": "lumen-engine",
   "version-string": "1.0.0",
-  "dependencies": ["glfw3", "spdlog", "glm", "stb"]
+  "dependencies": [
+    "vulkan-headers",
+    "glfw3",
+    "spdlog",
+    "glm",
+    "stb",
+    {
+      "name": "imgui",
+      "features": ["vulkan-binding", "glfw-binding"]
+    }
+  ]
 }

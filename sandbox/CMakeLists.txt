@@ -4,6 +4,7 @@ project(sandbox)
 find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
+find_package(imgui REQUIRED)
 
 add_executable(${PROJECT_NAME}
     src/sandbox_app.cpp
@@ -14,6 +15,7 @@ target_link_libraries(${PROJECT_NAME}
     lumen::engine
     Vulkan::Vulkan
     glm::glm
+    imgui::imgui
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${Stb_INCLUDE_DIR})

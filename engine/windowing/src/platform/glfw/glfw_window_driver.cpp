@@ -96,6 +96,10 @@ void *GlfwWindowDriver::GetNativeHandle() const {
 #endif
 }
 
+void *GlfwWindowDriver::GetGLFWwindow() const {
+	return reinterpret_cast<void *>(m_Handle);
+}
+
 void GlfwWindowDriver::InitCallbacks() {
 	glfwSetWindowCloseCallback(m_Handle, [](GLFWwindow *window) {
 		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
