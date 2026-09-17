@@ -72,7 +72,7 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc &desc, const void *data
 	}
 
 	LUMEN_CORE_INFO("Buffer created:");
-	LUMEN_CORE_INFO("\tsize: {}");
+	LUMEN_CORE_INFO("\tsize: {} bytes", buf.size);
 	LUMEN_CORE_INFO("\tusage: {}", string_VkBufferUsageFlags(usage));
 	LUMEN_CORE_INFO("\tmemProps: {}", string_VkMemoryPropertyFlags(memProps));
 
@@ -107,7 +107,7 @@ uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags
 	throw std::runtime_error("Failed to find suitable memory type.");
 }
 
-void VulkanDevice::SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo) {
+void VulkanDevice::SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo &submitInfo) {
 	VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 	VkFence copyFinishedFence;
 	CHECK_VK(vkCreateFence(m_Device, &fenceInfo, nullptr, &copyFinishedFence));

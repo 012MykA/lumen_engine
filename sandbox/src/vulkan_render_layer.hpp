@@ -138,7 +138,6 @@ private:
 
 	// Buffer
 	[[nodiscard]] std::pair<VkBuffer, VkDeviceMemory> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-	void CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size);
 
 	// Image
 	[[nodiscard]] std::pair<VkImage, VkDeviceMemory> CreateImage(uint32_t width, uint32_t height,
@@ -151,7 +150,7 @@ private:
 	void TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 	// Single commands
-	void SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo);
+	void SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo &submitInfo);
 
 	template <typename F>
 		requires std::invocable<F, VkCommandBuffer>
