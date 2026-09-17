@@ -1,6 +1,6 @@
 #include "lumen_engine/io/log.hpp"
 #include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
-#include "vulkan_validation.hpp"
+#include "lumen_engine/rhi/vulkan_backend/vulkan_validation.hpp"
 
 #include <format>
 

@@ -2,7 +2,6 @@
 
 #include "lumen_engine/io/log.hpp"
 #include "vulkan_translate.hpp"
-#include "vulkan_validation.hpp"
 
 #include <cstring>
 #include <tuple>
@@ -146,38 +145,6 @@ void VulkanRenderingDevice::UploadViaStagingBuffer(VkBuffer dst, const void *dat
 
 	vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
 	vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-}
-
-template <typename F>
-	requires std::invocable<F, VkCommandBuffer>
-inline void VulkanRenderingDevice::SubmitSingleTimeCommand(F &&func) {
-	VkCommandBufferAllocateInfo allocInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.commandPool = m_CommandPool,
-		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = 1,
-	};
-	VkCommandBuffer cmd;
-	CHECK_VK(vkAllocateCommandBuffers(m_Device, &allocInfo, &cmd));
-
-	VkCommandBufferBeginInfo beginInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-	};
-	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
-
-	func(cmd);
-
-	CHECK_VK(vkEndCommandBuffer(cmd));
-
-	VkSubmitInfo submitInfo{
-		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.commandBufferCount = 1,
-		.pCommandBuffers = &cmd,
-	};
-
-	SingleTimeQueueSubmit(m_GraphicsQueue, submitInfo);
-	vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &cmd);
 }
 
 } // namespace lm::rhi

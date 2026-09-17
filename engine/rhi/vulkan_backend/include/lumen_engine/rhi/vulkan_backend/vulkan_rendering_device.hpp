@@ -7,8 +7,9 @@
 #if defined(LUMEN_PLATFORM_WINDOWS)
 	#define VK_USE_PLATFORM_WIN32_KHR
 #endif
-#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
+//
+#include "lumen_engine/rhi/vulkan_backend/vulkan_validation.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -144,5 +145,37 @@ private:
 	std::vector<const char *> FilterSupportedInstanceLayers(const std::vector<const char *> &wanted, bool required) const;
 	std::vector<const char *> FilterSupportedInstanceExtensions(const std::vector<const char *> &wanted, bool required) const;
 };
+
+template <typename F>
+	requires std::invocable<F, VkCommandBuffer>
+inline void VulkanRenderingDevice::SubmitSingleTimeCommand(F &&func) {
+	VkCommandBufferAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = m_CommandPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1,
+	};
+	VkCommandBuffer cmd;
+	CHECK_VK(vkAllocateCommandBuffers(m_Device, &allocInfo, &cmd));
+
+	VkCommandBufferBeginInfo beginInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+	};
+	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
+
+	func(cmd);
+
+	CHECK_VK(vkEndCommandBuffer(cmd));
+
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &cmd,
+	};
+
+	SingleTimeQueueSubmit(m_GraphicsQueue, submitInfo);
+	vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &cmd);
+}
 
 } // namespace lm::rhi
