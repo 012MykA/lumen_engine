@@ -70,15 +70,19 @@ void VulkanRenderLayer::OnAttach() {
 	CreateTextureImageView();
 	CreateTextureSampler();
 
-	lm::rhi::BufferDesc desc{
+	const lm::rhi::BufferDesc vertexBufferDesc{
 		.size = sizeof(s_Vertices[0]) * s_Vertices.size(),
 		.usage = lm::rhi::BufferUsage::VertexBuffer,
 		.memory = lm::rhi::MemoryUsage::DeviceLocal,
 	};
-	m_VertexBuffer = m_Device->CreateBuffer(desc, s_Vertices.data());
+	m_VertexBuffer = m_Device->CreateBuffer(vertexBufferDesc, s_Vertices.data());
 
-	desc.usage = lm::rhi::BufferUsage::IndexBuffer;
-	m_IndexBuffer = m_Device->CreateBuffer(desc, s_Indices.data());
+	const lm::rhi::BufferDesc indexBufferDesc{
+		.size = sizeof(s_Indices[0]) * s_Indices.size(),
+		.usage = lm::rhi::BufferUsage::IndexBuffer,
+		.memory = lm::rhi::MemoryUsage::DeviceLocal,
+	};
+	m_IndexBuffer = m_Device->CreateBuffer(indexBufferDesc, s_Indices.data());
 
 	CreateUniformBuffers();
 	CreateDescriptorPool();
@@ -880,23 +884,6 @@ std::pair<VkBuffer, VkDeviceMemory> VulkanRenderLayer::CreateBuffer(VkDeviceSize
 	return { buffer, memory };
 }
 
-void VulkanRenderLayer::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
-	SubmitSingleTimeCommand([&](VkCommandBuffer cmd) {
-		VkBufferCopy2 region{
-			.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
-			.size = size,
-		};
-		VkCopyBufferInfo2 copyInfo{
-			.sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
-			.srcBuffer = src,
-			.dstBuffer = dst,
-			.regionCount = 1,
-			.pRegions = &region,
-		};
-		vkCmdCopyBuffer2(cmd, &copyInfo);
-	});
-}
-
 std::pair<VkImage, VkDeviceMemory> VulkanRenderLayer::CreateImage(uint32_t width, uint32_t height,
 		VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties) {
 	VkImageCreateInfo imageInfo{
@@ -1016,7 +1003,7 @@ void VulkanRenderLayer::TransitionImageLayout(VkCommandBuffer cmd, VkImage image
 	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 }
 
-void VulkanRenderLayer::SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo) {
+void VulkanRenderLayer::SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo &submitInfo) {
 	VkFenceCreateInfo fenceInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 	VkFence copyFinishedFence;
 	CHECK_VK(vkCreateFence(m_Context.device, &fenceInfo, nullptr, &copyFinishedFence));

@@ -131,7 +131,7 @@ private:
 
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
-	void SingleTimeQueueSubmit(VkQueue queue, VkSubmitInfo submitInfo);
+	void SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo& submitInfo);
 
 	template <typename F>
 		requires std::invocable<F, VkCommandBuffer>
