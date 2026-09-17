@@ -37,7 +37,6 @@ struct Handle {
 };
 
 using BufferHandle = Handle<struct BufferTag>;
-using TextureHandle = Handle<struct TextureTag>;
 
 enum class MemoryUsage : uint8_t {
 	DeviceLocal,
@@ -67,26 +66,6 @@ constexpr BufferUsage operator|(BufferUsage a, BufferUsage b) {
 constexpr BufferUsage operator&(BufferUsage a, BufferUsage b) {
 	using T = std::underlying_type_t<BufferUsage>;
 	return static_cast<BufferUsage>(static_cast<T>(a) & static_cast<T>(b));
-}
-
-enum class TextureFormat : uint8_t {
-	RGBA8_UNorm,
-	RGBA8_SRGB,
-	Depth32F,
-};
-
-enum class TextureUsage : uint32_t {
-	Sampled = 1 << 0,
-	ColorAttachment = 1 << 1,
-	DepthStencilAttachment = 1 << 2,
-};
-constexpr TextureUsage operator|(TextureUsage a, TextureUsage b) {
-	using T = std::underlying_type_t<TextureUsage>;
-	return static_cast<TextureUsage>(static_cast<T>(a) | static_cast<T>(b));
-}
-constexpr TextureUsage operator&(TextureUsage a, TextureUsage b) {
-	using T = std::underlying_type_t<TextureUsage>;
-	return static_cast<TextureUsage>(static_cast<T>(a) & static_cast<T>(b));
 }
 
 } // namespace lm::rhi

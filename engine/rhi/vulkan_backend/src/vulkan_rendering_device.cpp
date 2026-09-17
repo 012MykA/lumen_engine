@@ -81,6 +81,18 @@ BufferHandle VulkanRenderingDevice::CreateBuffer(const BufferDesc &desc, const v
 	return m_BufferPool.Insert(buf);
 }
 
+void VulkanRenderingDevice::DestroyBuffer(BufferHandle handle) {
+	if (VulkanBuffer *buf = m_BufferPool.Get(handle)) {
+		DestroyVulkanBuffer(*buf);
+		m_BufferPool.Remove(handle);
+	}
+}
+
+void *VulkanRenderingDevice::GetVkBuffer(BufferHandle handle) const {
+	const VulkanBuffer *buf = m_BufferPool.Get(handle);
+	return buf ? buf->buffer : nullptr;
+}
+
 void VulkanRenderingDevice::CreateCommandPool() {
 	VkCommandPoolCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -119,31 +131,6 @@ void VulkanRenderingDevice::SingleTimeQueueSubmit(VkQueue queue, const VkSubmitI
 	CHECK_VK(vkWaitForFences(m_Device, 1, &copyFinishedFence, VK_TRUE, noTimeout));
 
 	vkDestroyFence(m_Device, copyFinishedFence, nullptr);
-}
-
-void VulkanRenderingDevice::DestroyVulkanBuffer(VulkanBuffer &buf) {
-	if (buf.mapped) {
-		vkUnmapMemory(m_Device, buf.memory);
-	}
-	vkFreeMemory(m_Device, buf.memory, nullptr);
-	vkDestroyBuffer(m_Device, buf.buffer, nullptr);
-}
-
-void VulkanRenderingDevice::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
-	SubmitSingleTimeCommand([&](VkCommandBuffer cmd) {
-		VkBufferCopy2 region{
-			.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
-			.size = size,
-		};
-		VkCopyBufferInfo2 copyInfo{
-			.sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
-			.srcBuffer = src,
-			.dstBuffer = dst,
-			.regionCount = 1,
-			.pRegions = &region,
-		};
-		vkCmdCopyBuffer2(cmd, &copyInfo);
-	});
 }
 
 void VulkanRenderingDevice::UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDeviceSize size) {

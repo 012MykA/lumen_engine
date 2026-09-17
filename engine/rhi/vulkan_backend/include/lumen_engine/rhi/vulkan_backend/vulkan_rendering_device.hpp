@@ -24,14 +24,6 @@ struct VulkanBuffer {
 	void *mapped = nullptr;
 };
 
-struct VulkanTexture {
-	VkImage image = VK_NULL_HANDLE;
-	VkDeviceMemory memory = VK_NULL_HANDLE;
-	VkImageView view = VK_NULL_HANDLE;
-	VkFormat format = VK_FORMAT_UNDEFINED;
-	VkExtent2D extent;
-};
-
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentFamily;
@@ -73,12 +65,8 @@ public:
 
 	BufferHandle CreateBuffer(const BufferDesc &desc, const void *data = nullptr) override;
 	void DestroyBuffer(BufferHandle handle) override;
-
 	// Write host-visible only buffer
 	void WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset = 0) override;
-
-	TextureHandle CreateTexture(const TextureDesc &desc, const void *data = nullptr) override;
-	void DestroyTexture(TextureHandle handle) override;
 
 	void *GetVkInstance() const override { return m_Instance; }
 	void *GetVkDebugUtilsMessengerEXT() const override { return m_DebugMessenger; }
@@ -108,7 +96,6 @@ private:
 	VkCommandPool m_CommandPool = VK_NULL_HANDLE;
 
 	ResourcePool<VulkanBuffer, BufferTag> m_BufferPool;
-	ResourcePool<VulkanTexture, TextureTag> m_TexturePool;
 
 private:
 	// --- Init ---

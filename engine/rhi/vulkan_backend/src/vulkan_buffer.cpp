@@ -35,9 +35,29 @@ std::pair<VkBuffer, VkDeviceMemory> VulkanRenderingDevice::CreateVkBuffer(
 	return { buffer, memory };
 }
 
-void VulkanRenderingDevice::DestroyBuffer(BufferHandle handle) {
-	DestroyVulkanBuffer(*m_BufferPool.Get(handle));
-	m_BufferPool.Remove(handle);
+void VulkanRenderingDevice::DestroyVulkanBuffer(VulkanBuffer &buf) {
+	if (buf.mapped) {
+		vkUnmapMemory(m_Device, buf.memory);
+	}
+	vkFreeMemory(m_Device, buf.memory, nullptr);
+	vkDestroyBuffer(m_Device, buf.buffer, nullptr);
+}
+
+void VulkanRenderingDevice::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size) {
+	SubmitSingleTimeCommand([&](VkCommandBuffer cmd) {
+		VkBufferCopy2 region{
+			.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
+			.size = size,
+		};
+		VkCopyBufferInfo2 copyInfo{
+			.sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
+			.srcBuffer = src,
+			.dstBuffer = dst,
+			.regionCount = 1,
+			.pRegions = &region,
+		};
+		vkCmdCopyBuffer2(cmd, &copyInfo);
+	});
 }
 
 void VulkanRenderingDevice::WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset) {
@@ -52,11 +72,6 @@ void VulkanRenderingDevice::WriteBuffer(BufferHandle handle, const void *data, u
 		throw std::runtime_error("WriteBuffer: buffer is not host-visible (create it with MemoryUsage::HostVisible)");
 	}
 	std::memcpy(static_cast<uint8_t *>(buf->mapped) + offset, data, size);
-}
-
-void *VulkanRenderingDevice::GetVkBuffer(BufferHandle handle) const {
-	const VulkanBuffer *buf = m_BufferPool.Get(handle);
-	return buf ? buf->buffer : nullptr;
 }
 
 } // namespace lm::rhi
