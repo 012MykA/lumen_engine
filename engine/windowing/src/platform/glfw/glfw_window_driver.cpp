@@ -3,8 +3,7 @@
 #include "lumen_engine/events/keyboard_events.hpp"
 #include "lumen_engine/events/mouse_events.hpp"
 #include "lumen_engine/events/window_events.hpp"
-
-#include "platform/glfw/glfw_context.hpp"
+#include "lumen_engine/windowing/window_context.hpp"
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
 	#define GLFW_EXPOSE_NATIVE_WIN32
@@ -22,8 +21,8 @@
 namespace lm {
 
 GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) {
-	if (!GlfwContext::Init()) {
-		throw std::runtime_error{ "failed to initialize GLFW" };
+	if (!WindowContext::IsInitialized()) {
+		throw std::runtime_error{ "WindowContext is not initialized yet. Call WindowContext::Init() first." };
 	}
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -35,7 +34,6 @@ GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) {
 			static_cast<int>(desc.extent.height),
 			desc.title.c_str(), nullptr, nullptr);
 	if (!m_Handle) {
-		GlfwContext::Shutdown();
 		throw std::runtime_error{ "failed to create window" };
 	}
 
@@ -47,7 +45,6 @@ GlfwWindowDriver::~GlfwWindowDriver() {
 	if (m_Handle) {
 		glfwDestroyWindow(m_Handle);
 	}
-	GlfwContext::Shutdown();
 }
 
 void GlfwWindowDriver::OnUpdate() {

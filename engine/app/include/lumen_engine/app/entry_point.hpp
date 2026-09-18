@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lumen_engine/app/application.hpp"
-#include "lumen_engine/io/log.hpp"
+#include "lumen_engine/logging/log.hpp"
 
 #include <stdexcept>
 
@@ -15,7 +15,7 @@ inline int Main(int argc, char **argv) {
 		app->Run();
 
 	} catch (const std::exception &e) {
-		LUMEN_CORE_CRITICAL("Citical error: {}", e.what());
+		LUMEN_CORE_CRITICAL("Citical: {}", e.what());
 		return EXIT_FAILURE;
 	}
 

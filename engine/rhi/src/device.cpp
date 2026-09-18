@@ -1,6 +1,6 @@
 #include "lumen_engine/rhi/device.hpp"
 
-#include "lumen_engine/io/log.hpp"
+#include "lumen_engine/logging/log.hpp"
 
 #if defined(LUMEN_HAS_VULKAN)
 	#include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"

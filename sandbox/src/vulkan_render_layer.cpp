@@ -48,7 +48,7 @@ const std::vector<uint32_t> s_Indices = {
 
 VulkanRenderLayer::VulkanRenderLayer(lm::Window *window) : Layer("VulkanRenderLayer"), m_Window(window) {}
 
-void VulkanRenderLayer::OnAttach() {
+void VulkanRenderLayer::OnAttach() {	
 	auto api = lm::rhi::GraphicsAPI::Vulkan;
 	m_Device = lm::rhi::CreateDevice(api, m_Window->GetNativeHandle());
 
@@ -104,10 +104,10 @@ void VulkanRenderLayer::OnDetach() {
 	CHECK_VK(vkDeviceWaitIdle(m_Context.device));
 
 	// --- ImGui ---
-	DestroyImGuiDescriptorPool();
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+	vkDestroyDescriptorPool(m_Context.device, m_ImGuiDescriptorPool, nullptr);
 
 	// --- Main ---
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
@@ -517,10 +517,6 @@ void VulkanRenderLayer::CreateImGuiDescriptorPool() {
 	};
 
 	CHECK_VK(vkCreateDescriptorPool(m_Context.device, &createInfo, nullptr, &m_ImGuiDescriptorPool));
-}
-
-void VulkanRenderLayer::DestroyImGuiDescriptorPool() {
-	vkDestroyDescriptorPool(m_Context.device, m_ImGuiDescriptorPool, nullptr);
 }
 
 void VulkanRenderLayer::InitImGui() {

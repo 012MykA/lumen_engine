@@ -43,25 +43,29 @@
       "name": "win-debug",
       "displayName": "Windows Debug",
       "configurePreset": "windows-x64",
-      "configuration": "Debug"
+      "configuration": "Debug",
+      "jobs": 8
     },
     {
       "name": "win-release",
       "displayName": "Windows Release",
       "configurePreset": "windows-x64",
-      "configuration": "Release"
+      "configuration": "Release",
+      "jobs": 8
     },
     {
       "name": "linux-debug",
       "displayName": "Linux Debug",
       "configurePreset": "linux-x64",
-      "configuration": "Debug"
+      "configuration": "Debug",
+      "jobs": 8
     },
     {
       "name": "linux-release",
       "displayName": "Linux Release",
       "configurePreset": "linux-x64",
-      "configuration": "Release"
+      "configuration": "Release",
+      "jobs": 8
     }
   ]
 }

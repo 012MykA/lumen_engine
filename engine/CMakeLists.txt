@@ -32,7 +32,8 @@ add_library(engine::common ALIAS engine_common)
 add_subdirectory(core)
 add_subdirectory(events)
 add_subdirectory(windowing)
-add_subdirectory(io)
+add_subdirectory("input")
+add_subdirectory(logging)
 add_subdirectory(app)
 add_subdirectory(rhi)
 
@@ -41,7 +42,8 @@ target_link_libraries(lumen_engine INTERFACE
     engine::core
     engine::events
     engine::windowing
-    engine::io
+    engine::input
+    engine::logging
     engine::app
     engine::rhi
 )

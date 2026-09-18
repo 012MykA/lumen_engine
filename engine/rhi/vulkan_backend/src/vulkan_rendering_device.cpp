@@ -1,6 +1,6 @@
 #include "lumen_engine/rhi/vulkan_backend/vulkan_rendering_device.hpp"
 
-#include "lumen_engine/io/log.hpp"
+#include "lumen_engine/logging/log.hpp"
 #include "vulkan_translate.hpp"
 
 #include <cstring>

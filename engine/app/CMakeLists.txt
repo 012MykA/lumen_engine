@@ -14,7 +14,8 @@ target_link_libraries(engine_app
         engine::core
         engine::events
         engine::windowing
-        engine::io
+        engine::logging
+        engine::input
 )
 
 target_compile_definitions(engine_app PRIVATE LUMEN_BUILD_DLL)

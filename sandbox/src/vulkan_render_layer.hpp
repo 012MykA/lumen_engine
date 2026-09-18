@@ -215,6 +215,7 @@ private:
 
 	// --- ImGui ---
 	VkDescriptorPool m_ImGuiDescriptorPool;
+	std::unique_ptr<lm::Window> m_TempWindow;
 };
 
 template <typename F>

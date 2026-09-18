@@ -17,15 +17,16 @@
 
 // --- Windowing ---
 #include "lumen_engine/windowing/window.hpp"
+#include "lumen_engine/windowing/window_context.hpp"
 #include "lumen_engine/windowing/window_manager.hpp"
 
 // --- IO ---
-#include "lumen_engine/io/input.hpp"
-#include "lumen_engine/io/log.hpp"
+#include "lumen_engine/input/input.hpp"
+#include "lumen_engine/logging/log.hpp"
 
 // --- App ---
 #include "lumen_engine/app/application.hpp"
 
 // --- RHI ---
-#include "lumen_engine/rhi/types.hpp"
 #include "lumen_engine/rhi/device.hpp"
+#include "lumen_engine/rhi/types.hpp"

@@ -1,4 +1,4 @@
-#include "lumen_engine/io/log.hpp"
+#include "lumen_engine/logging/log.hpp"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 

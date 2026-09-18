@@ -4,7 +4,7 @@ add_library(engine_windowing
     src/window_manager.cpp
     src/window.cpp
     
-    src/platform/glfw/glfw_context.cpp
+    src/platform/glfw/glfw_window_context.cpp
     src/platform/glfw/glfw_window_driver.cpp
 )
 
@@ -14,8 +14,7 @@ target_include_directories(engine_windowing
 )
 
 target_link_libraries(engine_windowing
-    PUBLIC  engine::core engine::events
-    PRIVATE glfw
+    PUBLIC  engine::core engine::events engine::logging glfw
 )
 
 target_compile_definitions(engine_windowing PRIVATE LUMEN_BUILD_DLL)

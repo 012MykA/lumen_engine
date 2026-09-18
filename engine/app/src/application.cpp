@@ -2,8 +2,9 @@
 
 #include "lumen_engine/events/event_dispatcher.hpp"
 #include "lumen_engine/events/window_events.hpp"
-#include "lumen_engine/io/input.hpp"
+#include "lumen_engine/input/input.hpp"
 #include "lumen_engine/windowing/window.hpp"
+#include "lumen_engine/windowing/window_context.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,9 +17,13 @@ namespace lm {
 Application::Application(const ApplicationCommandLineArgs &args) : m_Args(args) {
 	assert(!s_Instance && "Application already exists!");
 	s_Instance = this;
+	if (!WindowContext::Init()) {
+		throw std::runtime_error("failed to initialize WindowContext");
+	}
 }
 
 Application::~Application() {
+	WindowContext::Shutdown();
 	s_Instance = nullptr;
 }
 

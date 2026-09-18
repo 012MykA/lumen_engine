@@ -47,7 +47,7 @@ add_library(engine_rhi_interface INTERFACE)
 target_include_directories(engine_rhi_interface INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-target_link_libraries(engine_rhi_interface INTERFACE engine::core engine::io)
+target_link_libraries(engine_rhi_interface INTERFACE engine::core engine::logging)
 add_library(engine::rhi::interface ALIAS engine_rhi_interface)
 # ---
 
@@ -63,7 +63,7 @@ target_include_directories(engine_rhi
 target_link_libraries(engine_rhi
     PUBLIC
         engine::core
-        engine::io
+        engine::logging
 )
 
 target_compile_definitions(engine_rhi PUBLIC
