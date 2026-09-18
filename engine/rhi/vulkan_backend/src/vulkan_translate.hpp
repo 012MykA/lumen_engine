@@ -10,4 +10,8 @@ VkMemoryPropertyFlags TranslateMemoryUsage(MemoryUsage usage);
 
 VkBufferUsageFlags TranslateBufferUsage(BufferUsage usage);
 
+VkFormat TranslateFormat(Format format);
+
+VkImageUsageFlags TranslateTextureUsage(TextureUsage usage);
+
 } // namespace lm::rhi

@@ -23,6 +23,29 @@ struct VulkanBuffer {
 	VkDeviceMemory memory = VK_NULL_HANDLE;
 	VkDeviceSize size = 0;
 	void *mapped = nullptr;
+
+	void Destroy(VkDevice device) {
+		if (mapped) {
+			vkUnmapMemory(device, memory);
+		}
+		vkFreeMemory(device, memory, nullptr);
+		vkDestroyBuffer(device, buffer, nullptr);
+	}
+};
+
+struct VulkanTexture {
+	VkImage image = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
+	VkImageView view = VK_NULL_HANDLE;
+	VkFormat format = VK_FORMAT_UNDEFINED;
+	uint32_t width = 0, height = 0;
+	uint32_t mipLevels = 1;
+
+	void Destroy(VkDevice device) {
+		vkDestroyImageView(device, view, nullptr);
+		vkFreeMemory(device, memory, nullptr);
+		vkDestroyImage(device, image, nullptr);
+	}
 };
 
 struct QueueFamilyIndices {
@@ -69,6 +92,9 @@ public:
 	// Write host-visible only buffer
 	void WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset = 0) override;
 
+	TextureHandle CreateTexture(const TextureDesc &desc, const void *data = nullptr) override;
+	void DestroyTexture(TextureHandle handle) override;
+
 	void *GetVkInstance() const override { return m_Instance; }
 	void *GetVkDebugUtilsMessengerEXT() const override { return m_DebugMessenger; }
 	void *GetVkSurfaceKHR() const override { return m_Surface; }
@@ -77,6 +103,8 @@ public:
 	void *GetVkDevice() const override { return m_Device; }
 	void *GetVkCommandPool() const override { return m_CommandPool; }
 	void *GetVkBuffer(BufferHandle handle) const override;
+	void *GetVkImage(TextureHandle handle) const override;
+	void *GetVkImageView(TextureHandle handle) const override;
 
 private:
 	// Instance
@@ -97,6 +125,7 @@ private:
 	VkCommandPool m_CommandPool = VK_NULL_HANDLE;
 
 	ResourcePool<VulkanBuffer, BufferTag> m_BufferPool;
+	ResourcePool<VulkanTexture, TextureTag> m_TexturePool;
 
 private:
 	// --- Init ---
@@ -130,9 +159,36 @@ private:
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags properties);
-	void DestroyVulkanBuffer(VulkanBuffer &buf);
 	void CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size);
 	void UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDeviceSize size);
+
+	// --- Texture ---
+	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+	std::pair<VkImage, VkDeviceMemory> CreateVkImage(
+			VkFormat format,
+			VkExtent3D extent,
+			uint32_t mipLevels,
+			VkImageUsageFlags usage,
+			VkMemoryPropertyFlags properties);
+
+	VkImageView CreateVkImageView(
+			VkImage image,
+			VkFormat format,
+			VkImageAspectFlags aspectFlags,
+			uint32_t mipLevels);
+
+	void TransitionImageLayout(
+			VkCommandBuffer cmd,
+			VkImage image,
+			VkImageLayout oldLayout,
+			VkImageLayout newLayout);
+
+	void CopyBufferToImage(
+			VkCommandBuffer cmd,
+			VkBuffer buffer,
+			VkImage image,
+			VkExtent3D extent);
 
 	// --- Enumerate ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;

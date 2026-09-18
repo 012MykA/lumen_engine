@@ -136,21 +136,7 @@ private:
 	[[nodiscard]] std::pair<VkBuffer, VkDeviceMemory> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 
 	// Image
-	[[nodiscard]] std::pair<VkImage, VkDeviceMemory> CreateImage(uint32_t width, uint32_t height,
-			VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
-
 	[[nodiscard]] VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-
-	void CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-
-	void TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
-
-	// Single commands
-	void SingleTimeQueueSubmit(VkQueue queue, const VkSubmitInfo &submitInfo);
-
-	template <typename F>
-		requires std::invocable<F, VkCommandBuffer>
-	void SubmitSingleTimeCommand(F &&func);
 
 	VkFormat FindSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
@@ -163,6 +149,7 @@ private:
 
 	lm::rhi::BufferHandle m_VertexBuffer;
 	lm::rhi::BufferHandle m_IndexBuffer;
+	lm::rhi::TextureHandle m_Texture;
 
 	std::vector<lm::rhi::BufferHandle> m_UniformBuffers;
 
@@ -191,14 +178,15 @@ private:
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 
-		VkFormat depthFormat = VK_FORMAT_UNDEFINED;
-		VkImage depthImage = VK_NULL_HANDLE;
-		VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
-		VkImageView depthImageView = VK_NULL_HANDLE;
+		lm::rhi::TextureHandle depthTexture;
+		// VkImage depthImage = VK_NULL_HANDLE;
+		// VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+		// VkImageView depthImageView = VK_NULL_HANDLE;
 
-		VkImage textureImage = VK_NULL_HANDLE;
-		VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
-		VkImageView textureImageView = VK_NULL_HANDLE;
+		// VkImage textureImage = VK_NULL_HANDLE;
+		// VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+		// VkImageView textureImageView = VK_NULL_HANDLE;
+
 		VkSampler textureImageSampler = VK_NULL_HANDLE;
 
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -215,37 +203,4 @@ private:
 
 	// --- ImGui ---
 	VkDescriptorPool m_ImGuiDescriptorPool;
-	std::unique_ptr<lm::Window> m_TempWindow;
 };
-
-template <typename F>
-	requires std::invocable<F, VkCommandBuffer>
-inline void VulkanRenderLayer::SubmitSingleTimeCommand(F &&func) {
-	VkCommandBufferAllocateInfo allocInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.commandPool = m_Context.commandPool,
-		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = 1,
-	};
-	VkCommandBuffer cmd;
-	CHECK_VK(vkAllocateCommandBuffers(m_Context.device, &allocInfo, &cmd));
-
-	VkCommandBufferBeginInfo beginInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-	};
-	CHECK_VK(vkBeginCommandBuffer(cmd, &beginInfo));
-
-	func(cmd);
-
-	CHECK_VK(vkEndCommandBuffer(cmd));
-
-	VkSubmitInfo submitInfo{
-		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.commandBufferCount = 1,
-		.pCommandBuffers = &cmd,
-	};
-
-	SingleTimeQueueSubmit(m_Context.graphicsQueue, submitInfo);
-	vkFreeCommandBuffers(m_Context.device, m_Context.commandPool, 1, &cmd);
-}

@@ -16,7 +16,7 @@ namespace {
 
 constexpr uint64_t noTimeout = std::numeric_limits<uint64_t>::max();
 
-}
+} //namespace
 
 VulkanRenderingDevice::VulkanRenderingDevice(void *window) {
 	LUMEN_CORE_INFO("[RHI] Initializing Vulkan backend...");
@@ -41,7 +41,8 @@ VulkanRenderingDevice::~VulkanRenderingDevice() {
 		LUMEN_CORE_CRITICAL("{}", e.what());
 	}
 
-	m_BufferPool.ForEach([this](BufferHandle handle, VulkanBuffer &buf) { DestroyVulkanBuffer(buf); });
+	m_TexturePool.ForEach([this](TextureHandle handle, VulkanTexture &tex) { tex.Destroy(m_Device); });
+	m_BufferPool.ForEach([this](BufferHandle handle, VulkanBuffer &buf) { buf.Destroy(m_Device); });
 
 	DestroyCommandPool();
 	DestroyLogicalDevice();
@@ -50,46 +51,6 @@ VulkanRenderingDevice::~VulkanRenderingDevice() {
 		DestroyDebugMessenger();
 	}
 	DestroyInstance();
-}
-
-BufferHandle VulkanRenderingDevice::CreateBuffer(const BufferDesc &desc, const void *data) {
-	VulkanBuffer buf;
-	buf.size = static_cast<VkDeviceSize>(desc.size);
-
-	VkBufferUsageFlags usage = TranslateBufferUsage(desc.usage);
-	VkMemoryPropertyFlags memProps = TranslateMemoryUsage(desc.memory);
-
-	if (desc.memory == MemoryUsage::HostVisible) {
-		std::tie(buf.buffer, buf.memory) = CreateVkBuffer(buf.size, usage, memProps);
-		CHECK_VK(vkMapMemory(m_Device, buf.memory, 0, buf.size, 0, &buf.mapped));
-		if (data) {
-			std::memcpy(buf.mapped, data, buf.size);
-		}
-	} else {
-		std::tie(buf.buffer, buf.memory) = CreateVkBuffer(buf.size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, memProps);
-		if (data) {
-			UploadViaStagingBuffer(buf.buffer, data, buf.size);
-		}
-	}
-
-	LUMEN_CORE_INFO("Buffer created:");
-	LUMEN_CORE_INFO("\tsize: {} bytes", buf.size);
-	LUMEN_CORE_INFO("\tusage: {}", string_VkBufferUsageFlags(usage));
-	LUMEN_CORE_INFO("\tmemProps: {}", string_VkMemoryPropertyFlags(memProps));
-
-	return m_BufferPool.Insert(buf);
-}
-
-void VulkanRenderingDevice::DestroyBuffer(BufferHandle handle) {
-	if (VulkanBuffer *buf = m_BufferPool.Get(handle)) {
-		DestroyVulkanBuffer(*buf);
-		m_BufferPool.Remove(handle);
-	}
-}
-
-void *VulkanRenderingDevice::GetVkBuffer(BufferHandle handle) const {
-	const VulkanBuffer *buf = m_BufferPool.Get(handle);
-	return buf ? buf->buffer : nullptr;
 }
 
 void VulkanRenderingDevice::CreateCommandPool() {

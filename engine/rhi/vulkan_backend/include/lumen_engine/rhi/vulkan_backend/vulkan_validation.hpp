@@ -14,3 +14,13 @@
 			} \
 		} while (0)
 #endif
+
+// namespace lm::rhi {
+
+// void CHECK_VK(VkResult res) {
+// 	if (res != VK_SUCCESS) {
+// 		throw std::runtime_error(std::format("Vulkan error: {} at {}:{}", string_VkResult(res), __FILE__, __LINE__));
+// 	}
+// }
+
+// } // namespace lm::rhi
