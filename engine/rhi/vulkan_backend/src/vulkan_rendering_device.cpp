@@ -41,6 +41,7 @@ VulkanRenderingDevice::~VulkanRenderingDevice() {
 		LUMEN_CORE_CRITICAL("{}", e.what());
 	}
 
+	m_SamplerPool.ForEach([this](SamplerHandle handle, VulkanSampler &sampler) { sampler.Destroy(m_Device); });
 	m_TexturePool.ForEach([this](TextureHandle handle, VulkanTexture &tex) { tex.Destroy(m_Device); });
 	m_BufferPool.ForEach([this](BufferHandle handle, VulkanBuffer &buf) { buf.Destroy(m_Device); });
 

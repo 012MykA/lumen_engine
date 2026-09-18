@@ -71,7 +71,7 @@ void VulkanRenderLayer::OnAttach() {
 	CreateDepthResources();
 
 	CreateTextureImage();
-	CreateTextureSampler();
+	m_TextureSampler = m_Device->CreateSampler({});
 
 	const lm::rhi::BufferDesc vertexBufferDesc{
 		.size = sizeof(s_Vertices[0]) * s_Vertices.size(),
@@ -123,9 +123,6 @@ void VulkanRenderLayer::OnDetach() {
 	vkDestroyDescriptorPool(m_Context.device, m_Context.descriptorPool, nullptr);
 	m_Context.descriptorSets.clear();
 
-	// Sampler
-	vkDestroySampler(m_Context.device, m_Context.textureImageSampler, nullptr);
-
 	vkDestroyPipeline(m_Context.device, m_Context.graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Context.device, m_Context.graphicsPipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(m_Context.device, m_Context.descriptorSetLayout, nullptr);
@@ -159,7 +156,8 @@ void VulkanRenderLayer::OnRender() {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::Begin("Test");
+	if (ImGui::Begin("Test")) {
+	}
 	ImGui::End();
 
 	ImGui::Render();
@@ -576,27 +574,6 @@ void VulkanRenderLayer::CreateTextureImage() {
 	stbi_image_free(pixels);
 }
 
-void VulkanRenderLayer::CreateTextureSampler() {
-	VkPhysicalDeviceProperties properties;
-	vkGetPhysicalDeviceProperties(m_Context.physicalDevice, &properties);
-
-	VkSamplerCreateInfo samplerInfo{
-		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-		.magFilter = VK_FILTER_LINEAR,
-		.minFilter = VK_FILTER_LINEAR,
-		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.mipLodBias = 0.0f,
-		.anisotropyEnable = VK_TRUE,
-		.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
-		.compareEnable = VK_FALSE,
-		.compareOp = VK_COMPARE_OP_ALWAYS,
-	};
-	CHECK_VK(vkCreateSampler(m_Context.device, &samplerInfo, nullptr, &m_Context.textureImageSampler));
-}
-
 void VulkanRenderLayer::CreateUniformBuffers() {
 	m_UniformBuffers.resize(k_MaxFramesInFlight);
 	for (size_t i = 0; i < k_MaxFramesInFlight; ++i) {
@@ -666,7 +643,7 @@ void VulkanRenderLayer::CreateDescriptorSets() {
 
 		// Binding 1
 		imageInfos[i] = VkDescriptorImageInfo{
-			.sampler = m_Context.textureImageSampler,
+			.sampler = reinterpret_cast<VkSampler>(m_Device->GetVkSampler(m_TextureSampler)),
 			.imageView = reinterpret_cast<VkImageView>(m_Device->GetVkImageView(m_Texture)),
 			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		};

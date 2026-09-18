@@ -87,8 +87,6 @@ private:
 	void CreateDepthResources();
 
 	void CreateTextureImage();
-	void CreateTextureImageView();
-	void CreateTextureSampler();
 
 	void CreateUniformBuffers();
 	void CreateDescriptorPool();
@@ -99,7 +97,6 @@ private:
 
 	// ImGui
 	void CreateImGuiDescriptorPool();
-	void DestroyImGuiDescriptorPool();
 	void InitImGui();
 
 	// Swapchain
@@ -149,7 +146,9 @@ private:
 
 	lm::rhi::BufferHandle m_VertexBuffer;
 	lm::rhi::BufferHandle m_IndexBuffer;
+
 	lm::rhi::TextureHandle m_Texture;
+	lm::rhi::SamplerHandle m_TextureSampler;
 
 	std::vector<lm::rhi::BufferHandle> m_UniformBuffers;
 
@@ -179,15 +178,6 @@ private:
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 
 		lm::rhi::TextureHandle depthTexture;
-		// VkImage depthImage = VK_NULL_HANDLE;
-		// VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
-		// VkImageView depthImageView = VK_NULL_HANDLE;
-
-		// VkImage textureImage = VK_NULL_HANDLE;
-		// VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
-		// VkImageView textureImageView = VK_NULL_HANDLE;
-
-		VkSampler textureImageSampler = VK_NULL_HANDLE;
 
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		std::vector<VkDescriptorSet> descriptorSets;

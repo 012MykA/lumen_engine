@@ -22,6 +22,9 @@ struct TextureDesc {
 	MemoryUsage memory = MemoryUsage::DeviceLocal;
 };
 
+struct SamplerDesc {
+};
+
 class LUMEN_API IDevice {
 public:
 	virtual ~IDevice() = default;
@@ -34,6 +37,9 @@ public:
 	virtual TextureHandle CreateTexture(const TextureDesc &desc, const void *data = nullptr) = 0;
 	virtual void DestroyTexture(TextureHandle handle) = 0;
 
+	virtual SamplerHandle CreateSampler(const SamplerDesc &desc) = 0;
+	virtual void DestroySampler(SamplerHandle handle) = 0;
+
 	virtual void *GetVkInstance() const = 0;
 	virtual void *GetVkDebugUtilsMessengerEXT() const = 0;
 	virtual void *GetVkSurfaceKHR() const = 0;
@@ -44,6 +50,7 @@ public:
 	virtual void *GetVkBuffer(BufferHandle handle) const = 0;
 	virtual void *GetVkImage(TextureHandle handle) const = 0;
 	virtual void *GetVkImageView(TextureHandle handle) const = 0;
+	virtual void *GetVkSampler(SamplerHandle handle) const = 0;
 };
 
 LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window);
