@@ -52,6 +52,9 @@ public:
 	virtual SamplerHandle CreateSampler(const SamplerDesc &desc) = 0;
 	virtual void DestroySampler(SamplerHandle handle) = 0;
 
+	virtual ShaderHandle CreateShader(size_t codeSize, const void *code) = 0;
+	virtual void DestroyShader(ShaderHandle handle) = 0;
+
 	virtual void *GetVkInstance() const = 0;
 	virtual void *GetVkDebugUtilsMessengerEXT() const = 0;
 	virtual void *GetVkSurfaceKHR() const = 0;
@@ -63,6 +66,7 @@ public:
 	virtual void *GetVkImage(TextureHandle handle) const = 0;
 	virtual void *GetVkImageView(TextureHandle handle) const = 0;
 	virtual void *GetVkSampler(SamplerHandle handle) const = 0;
+	virtual void *GetVkShaderModule(ShaderHandle handle) const = 0;
 };
 
 LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window);

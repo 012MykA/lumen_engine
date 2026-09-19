@@ -39,6 +39,8 @@ struct Handle {
 using BufferHandle = Handle<struct BufferTag>;
 using TextureHandle = Handle<struct TextureTag>;
 using SamplerHandle = Handle<struct SamplerTag>;
+using ShaderHandle = Handle<struct ShaderTag>;
+using PipelineHandle = Handle<struct PipelineTag>;
 
 enum class MemoryUsage : uint8_t {
 	DeviceLocal,

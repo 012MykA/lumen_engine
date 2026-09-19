@@ -119,6 +119,8 @@ private:
 
 	std::vector<lm::rhi::BufferHandle> m_UniformBuffers;
 
+	lm::rhi::ShaderHandle m_Shader;
+
 	struct Context {
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;

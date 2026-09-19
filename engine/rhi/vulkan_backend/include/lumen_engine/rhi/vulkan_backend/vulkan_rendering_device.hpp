@@ -52,14 +52,6 @@ struct VulkanTexture {
 	}
 };
 
-struct VulkanSampler {
-	VkSampler sampler = VK_NULL_HANDLE;
-
-	void Destroy(VkDevice device) {
-		vkDestroySampler(device, sampler, nullptr);
-	}
-};
-
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentFamily;
@@ -110,6 +102,9 @@ public:
 	SamplerHandle CreateSampler(const SamplerDesc &desc) override;
 	void DestroySampler(SamplerHandle handle) override;
 
+	ShaderHandle CreateShader(size_t codeSize, const void *code) override;
+	void DestroyShader(ShaderHandle handle) override;
+
 	void *GetVkInstance() const override { return m_Instance; }
 	void *GetVkDebugUtilsMessengerEXT() const override { return m_DebugMessenger; }
 	void *GetVkSurfaceKHR() const override { return m_Surface; }
@@ -121,6 +116,7 @@ public:
 	void *GetVkImage(TextureHandle handle) const override;
 	void *GetVkImageView(TextureHandle handle) const override;
 	void *GetVkSampler(SamplerHandle handle) const override;
+	void *GetVkShaderModule(ShaderHandle handle) const override;
 
 private:
 	// Instance
@@ -142,7 +138,8 @@ private:
 
 	ResourcePool<VulkanBuffer, BufferTag> m_BufferPool;
 	ResourcePool<VulkanTexture, TextureTag> m_TexturePool;
-	ResourcePool<VulkanSampler, SamplerTag> m_SamplerPool;
+	ResourcePool<VkSampler, SamplerTag> m_SamplerPool;
+	ResourcePool<VkShaderModule, ShaderTag> m_ShaderPool;
 
 private:
 	// --- Init ---
@@ -214,8 +211,6 @@ private:
 			VkBuffer buffer,
 			VkImage image,
 			VkExtent3D extent);
-
-	VkSampler CreateVkSampler(const VkSamplerCreateInfo &createInfo);
 
 	// --- Enumerate ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;

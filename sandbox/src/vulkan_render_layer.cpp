@@ -196,9 +196,9 @@ void VulkanRenderLayer::UpdateUniformBuffer() {
 	float aspectRatio = static_cast<float>(m_Context.swapchainExtent.width) / m_Context.swapchainExtent.height;
 	UniformBufferObject ubo{
 		.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-		.view = glm::lookAt(glm::vec3(2.0f), glm::vec3(0.0f), { 0.0f, 0.0f, 1.0f }),
-		.proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f),
+		.view = glm::lookAt(glm::vec3(3.0f), glm::vec3(0.0f), { 0.0f, 0.0f, 1.0f }),
 	};
+	ubo.proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
 	ubo.proj[1][1] *= -1;
 
 	m_Device->WriteBuffer(m_UniformBuffers[m_FrameIndex], &ubo, sizeof(ubo));
@@ -305,7 +305,11 @@ void VulkanRenderLayer::CreateImageViews() {
 }
 
 void VulkanRenderLayer::CreateGraphicsPipeline() {
-	VkShaderModule shaderModule = CreateShaderModule(readSpirV("shaders/bin/shader.spv"));
+	auto code = readSpirV("shaders/bin/shader.spv");
+	m_Shader = m_Device->CreateShader(code.size() * sizeof(uint32_t), code.data());
+
+	VkShaderModule shaderModule = reinterpret_cast<VkShaderModule>(m_Device->GetVkShaderModule(m_Shader));
+
 	VkPipelineShaderStageCreateInfo vertShaderStage{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_VERTEX_BIT,
@@ -433,7 +437,7 @@ void VulkanRenderLayer::CreateGraphicsPipeline() {
 	};
 	CHECK_VK(vkCreateGraphicsPipelines(m_Context.device, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &m_Context.graphicsPipeline));
 
-	vkDestroyShaderModule(m_Context.device, shaderModule, nullptr);
+	m_Device->DestroyShader(m_Shader);
 }
 
 void VulkanRenderLayer::CreateDepthResources() {
@@ -731,17 +735,6 @@ std::vector<uint32_t> VulkanRenderLayer::readSpirV(const std::string &filename) 
 	file.read(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(fileSize));
 	file.close();
 	return buffer;
-}
-
-VkShaderModule VulkanRenderLayer::CreateShaderModule(const std::vector<uint32_t> &code) const {
-	VkShaderModuleCreateInfo createInfo{
-		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-		.codeSize = code.size() * sizeof(uint32_t),
-		.pCode = code.data(),
-	};
-	VkShaderModule shaderModule;
-	CHECK_VK(vkCreateShaderModule(m_Context.device, &createInfo, nullptr, &shaderModule));
-	return shaderModule;
 }
 
 void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {

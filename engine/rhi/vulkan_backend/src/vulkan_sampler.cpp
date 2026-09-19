@@ -11,7 +11,7 @@ SamplerHandle VulkanRenderingDevice::CreateSampler(const SamplerDesc &desc) {
 			? props.limits.maxSamplerAnisotropy
 			: desc.maxAnisotropy;
 
-	const VkSamplerCreateInfo samplerInfo{
+	const VkSamplerCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 		.magFilter = TranslateFilter(desc.magFilter),
 		.minFilter = TranslateFilter(desc.minFilter),
@@ -27,29 +27,22 @@ SamplerHandle VulkanRenderingDevice::CreateSampler(const SamplerDesc &desc) {
 		.minLod = 0.0f,
 		.maxLod = VK_LOD_CLAMP_NONE,
 	};
+	VkSampler sampler;
+	CHECK_VK(vkCreateSampler(m_Device, &createInfo, nullptr, &sampler));
 
-	VulkanSampler sampler{
-		.sampler = CreateVkSampler(samplerInfo),
-	};
 	return m_SamplerPool.Insert(sampler);
 }
 
 void VulkanRenderingDevice::DestroySampler(SamplerHandle handle) {
-	if (VulkanSampler *sampler = m_SamplerPool.Get(handle)) {
-		sampler->Destroy(m_Device);
+	if (VkSampler *sampler = m_SamplerPool.Get(handle)) {
+		vkDestroySampler(m_Device, *sampler, nullptr);
 		m_SamplerPool.Remove(handle);
 	}
 }
 
 void *VulkanRenderingDevice::GetVkSampler(SamplerHandle handle) const {
-	const VulkanSampler *sampler = m_SamplerPool.Get(handle);
-	return sampler ? sampler->sampler : nullptr;
-}
-
-VkSampler VulkanRenderingDevice::CreateVkSampler(const VkSamplerCreateInfo &createInfo) {
-	VkSampler sampler;
-	CHECK_VK(vkCreateSampler(m_Device, &createInfo, nullptr, &sampler));
-	return sampler;
+	const VkSampler *sampler = m_SamplerPool.Get(handle);
+	return sampler ? *sampler : nullptr;
 }
 
 } // namespace lm::rhi

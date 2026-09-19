@@ -14,6 +14,7 @@ add_library(engine_rhi_vulkan_backend
     src/vulkan_translate.cpp
     src/vulkan_texture.cpp
     src/vulkan_sampler.cpp
+    src/vulkan_shader_module.cpp
 )
 
 target_include_directories(engine_rhi_vulkan_backend
