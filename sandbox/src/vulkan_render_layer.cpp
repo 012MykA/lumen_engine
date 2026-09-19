@@ -1,4 +1,7 @@
 #include "vulkan_render_layer.hpp"
+
+#include "cube.hpp"
+
 #ifdef max
 	#undef max
 #endif
@@ -26,23 +29,6 @@
 namespace {
 
 constexpr auto noTimeout = std::numeric_limits<uint64_t>::max();
-
-const std::vector<Vertex> s_Vertices = {
-	{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-	{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-	{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-	{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
-
-	{ { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-	{ { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-	{ { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-	{ { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
-};
-
-const std::vector<uint32_t> s_Indices = {
-	0, 1, 2, 2, 3, 0,
-	4, 5, 6, 6, 7, 4
-};
 
 } // namespace
 
@@ -74,18 +60,18 @@ void VulkanRenderLayer::OnAttach() {
 	m_TextureSampler = m_Device->CreateSampler({});
 
 	const lm::rhi::BufferDesc vertexBufferDesc{
-		.size = sizeof(s_Vertices[0]) * s_Vertices.size(),
+		.size = sizeof(Cube::vertices[0]) * Cube::vertices.size(),
 		.usage = lm::rhi::BufferUsage::VertexBuffer,
 		.memory = lm::rhi::MemoryUsage::DeviceLocal,
 	};
-	m_VertexBuffer = m_Device->CreateBuffer(vertexBufferDesc, s_Vertices.data());
+	m_VertexBuffer = m_Device->CreateBuffer(vertexBufferDesc, Cube::vertices.data());
 
 	const lm::rhi::BufferDesc indexBufferDesc{
-		.size = sizeof(s_Indices[0]) * s_Indices.size(),
+		.size = sizeof(Cube::indices[0]) * Cube::indices.size(),
 		.usage = lm::rhi::BufferUsage::IndexBuffer,
 		.memory = lm::rhi::MemoryUsage::DeviceLocal,
 	};
-	m_IndexBuffer = m_Device->CreateBuffer(indexBufferDesc, s_Indices.data());
+	m_IndexBuffer = m_Device->CreateBuffer(indexBufferDesc, Cube::indices.data());
 
 	CreateUniformBuffers();
 	CreateDescriptorPool();
@@ -156,10 +142,6 @@ void VulkanRenderLayer::OnRender() {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	if (ImGui::Begin("Test")) {
-	}
-	ImGui::End();
-
 	ImGui::Render();
 	// ---
 
@@ -209,11 +191,12 @@ void VulkanRenderLayer::UpdateUniformBuffer() {
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	UniformBufferObject ubo{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f), glm::vec3(0.0f), { 0.0f, 0.0f, 1.0f });
 	float aspectRatio = static_cast<float>(m_Context.swapchainExtent.width) / m_Context.swapchainExtent.height;
-	ubo.proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
+	UniformBufferObject ubo{
+		.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+		.view = glm::lookAt(glm::vec3(2.0f), glm::vec3(0.0f), { 0.0f, 0.0f, 1.0f }),
+		.proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f),
+	};
 	ubo.proj[1][1] *= -1;
 
 	m_Device->WriteBuffer(m_UniformBuffers[m_FrameIndex], &ubo, sizeof(ubo));
@@ -571,7 +554,7 @@ void VulkanRenderLayer::InitImGui() {
 void VulkanRenderLayer::CreateTextureImage() {
 	int texWidth, texHeight, texChannels;
 	const int desiredChannels = STBI_rgb_alpha;
-	stbi_uc *pixels = stbi_load("textures/texture4k.jpg", &texWidth, &texHeight, &texChannels, desiredChannels);
+	stbi_uc *pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, desiredChannels);
 	if (!pixels) {
 		throw std::runtime_error("failed to load image");
 	}
@@ -843,7 +826,7 @@ void VulkanRenderLayer::RecordCommandBuffer(uint32_t imageIndex) {
 					static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(),
 					0, nullptr);
 
-			vkCmdDrawIndexed(cmd, static_cast<uint32_t>(s_Indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(cmd, static_cast<uint32_t>(Cube::indices.size()), 1, 0, 0, 0);
 
 			// ImGui
 			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
