@@ -571,7 +571,7 @@ void VulkanRenderLayer::InitImGui() {
 void VulkanRenderLayer::CreateTextureImage() {
 	int texWidth, texHeight, texChannels;
 	const int desiredChannels = STBI_rgb_alpha;
-	stbi_uc *pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, desiredChannels);
+	stbi_uc *pixels = stbi_load("textures/texture4k.jpg", &texWidth, &texHeight, &texChannels, desiredChannels);
 	if (!pixels) {
 		throw std::runtime_error("failed to load image");
 	}
@@ -579,6 +579,8 @@ void VulkanRenderLayer::CreateTextureImage() {
 	lm::rhi::TextureDesc desc{
 		.width = static_cast<uint32_t>(texWidth),
 		.height = static_cast<uint32_t>(texHeight),
+		.mipLevels = lm::rhi::TextureDesc::k_AutoCalcMipLevels,
+		.generateMipmaps = true,
 		.format = lm::rhi::Format::RGBA8_SRGB,
 	};
 	m_Texture = m_Device->CreateTexture(desc, pixels);

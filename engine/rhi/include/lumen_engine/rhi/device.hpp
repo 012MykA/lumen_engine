@@ -3,7 +3,6 @@
 #include "lumen_engine/core/export.hpp"
 #include "lumen_engine/rhi/types.hpp"
 
-#include <limits>
 #include <memory>
 
 namespace lm::rhi {
@@ -15,24 +14,27 @@ struct BufferDesc {
 };
 
 struct TextureDesc {
+	static constexpr uint32_t k_AutoCalcMipLevels = 0;
+
 	uint32_t width = 1;
 	uint32_t height = 1;
 	uint32_t mipLevels = 1;
+	bool generateMipmaps = false;
 	Format format = Format::RGBA8_UNORM;
 	TextureUsage usage = TextureUsage::Sampled;
 	MemoryUsage memory = MemoryUsage::DeviceLocal;
 };
 
 struct SamplerDesc {
-	static constexpr float k_MaxSupportableAnisotropy = std::numeric_limits<float>::max();
+	static constexpr float k_AutoAnisotropy = 0.0f;
 
 	Filter magFilter = Filter::Linear;
 	Filter minFilter = Filter::Linear;
 	AddressMode addressModeU = AddressMode::Repeat;
 	AddressMode addressModeV = AddressMode::Repeat;
-	AddressMode addressModeM = AddressMode::Repeat;
-	bool anistropyEnabled = true;
-	float maxAnisotropy = k_MaxSupportableAnisotropy;
+	AddressMode addressModeW = AddressMode::Repeat;
+	bool anisotropyEnabled = true;
+	float maxAnisotropy = k_AutoAnisotropy;
 };
 
 class LUMEN_API IDevice {

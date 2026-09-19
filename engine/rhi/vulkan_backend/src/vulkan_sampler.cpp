@@ -4,12 +4,10 @@
 namespace lm::rhi {
 
 SamplerHandle VulkanRenderingDevice::CreateSampler(const SamplerDesc &desc) {
-	VulkanSampler sampler;
-
 	VkPhysicalDeviceProperties props;
 	vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
 
-	const float maxAnisotropy = (desc.maxAnisotropy == SamplerDesc::k_MaxSupportableAnisotropy)
+	const float maxAnisotropy = (desc.maxAnisotropy == SamplerDesc::k_AutoAnisotropy)
 			? props.limits.maxSamplerAnisotropy
 			: desc.maxAnisotropy;
 
@@ -20,16 +18,18 @@ SamplerHandle VulkanRenderingDevice::CreateSampler(const SamplerDesc &desc) {
 		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		.addressModeU = TranslateAddressMode(desc.addressModeU),
 		.addressModeV = TranslateAddressMode(desc.addressModeV),
-		.addressModeW = TranslateAddressMode(desc.addressModeM),
+		.addressModeW = TranslateAddressMode(desc.addressModeW),
 		.mipLodBias = 0.0f,
-		.anisotropyEnable = desc.anistropyEnabled ? VK_TRUE : VK_FALSE,
+		.anisotropyEnable = desc.anisotropyEnabled ? VK_TRUE : VK_FALSE,
 		.maxAnisotropy = maxAnisotropy,
 		.compareEnable = VK_FALSE,
 		.compareOp = VK_COMPARE_OP_ALWAYS,
+		.maxLod = VK_LOD_CLAMP_NONE,
 	};
 
-	sampler.sampler = CreateVkSampler(samplerInfo);
-
+	VulkanSampler sampler{
+		.sampler = CreateVkSampler(samplerInfo),
+	};
 	return m_SamplerPool.Insert(sampler);
 }
 

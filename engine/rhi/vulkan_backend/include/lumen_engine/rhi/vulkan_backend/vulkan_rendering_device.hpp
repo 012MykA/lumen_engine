@@ -11,6 +11,10 @@
 //
 #include "lumen_engine/rhi/vulkan_backend/vulkan_validation.hpp"
 
+#ifdef max
+	#undef max
+#endif
+
 #include <cstdint>
 #include <optional>
 #include <utility> // for std::pair
@@ -193,7 +197,17 @@ private:
 			VkCommandBuffer cmd,
 			VkImage image,
 			VkImageLayout oldLayout,
-			VkImageLayout newLayout);
+			VkImageLayout newLayout,
+			VkImageAspectFlags aspectFlags,
+			uint32_t mipLevels);
+
+	void GenerateMipmaps(
+			VkCommandBuffer cmd,
+			VkImage image,
+			VkFormat format,
+			int32_t width,
+			int32_t height,
+			uint32_t mipLevels);
 
 	void CopyBufferToImage(
 			VkCommandBuffer cmd,

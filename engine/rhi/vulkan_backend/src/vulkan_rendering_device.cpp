@@ -6,10 +6,6 @@
 #include <cstring>
 #include <tuple>
 
-#ifdef max
-	#undef max
-#endif
-
 namespace lm::rhi {
 
 namespace {
