@@ -11,7 +11,7 @@ inline int Main(int argc, char **argv) {
 	Log::Init();
 
 	try {
-		auto app = lm::CreateApplication({ argc, argv });
+		std::unique_ptr<lm::Application> app = lm::CreateApplication({ argc, argv });
 		app->Run();
 
 	} catch (const std::exception &e) {

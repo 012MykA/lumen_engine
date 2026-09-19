@@ -24,6 +24,7 @@ SamplerHandle VulkanRenderingDevice::CreateSampler(const SamplerDesc &desc) {
 		.maxAnisotropy = maxAnisotropy,
 		.compareEnable = VK_FALSE,
 		.compareOp = VK_COMPARE_OP_ALWAYS,
+		.minLod = 0.0f,
 		.maxLod = VK_LOD_CLAMP_NONE,
 	};
 

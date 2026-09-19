@@ -114,6 +114,8 @@ void VulkanRenderLayer::OnDetach() {
 	vkDestroyDescriptorSetLayout(m_Context.device, m_Context.descriptorSetLayout, nullptr);
 
 	CleanupSwapchain();
+
+	m_Device.reset();
 }
 
 void VulkanRenderLayer::OnEvent(lm::Event &e) {
