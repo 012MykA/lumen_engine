@@ -126,20 +126,6 @@ private:
 			VkPipelineStageFlags2 dstStageMask,
 			VkImageAspectFlags aspectFlags);
 
-	// Memory
-	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-	// Buffer
-	[[nodiscard]] std::pair<VkBuffer, VkDeviceMemory> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-
-	// Image
-	[[nodiscard]] VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-
-	VkFormat FindSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-
-	// Depth
-	VkFormat FindDepthFormat();
-
 private:
 	lm::Window *m_Window;
 	std::unique_ptr<lm::rhi::IDevice> m_Device;
@@ -177,6 +163,7 @@ private:
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 
+		VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 		lm::rhi::TextureHandle depthTexture;
 
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;

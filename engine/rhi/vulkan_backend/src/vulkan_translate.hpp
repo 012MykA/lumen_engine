@@ -14,4 +14,8 @@ VkFormat TranslateFormat(Format format);
 
 VkImageUsageFlags TranslateTextureUsage(TextureUsage usage);
 
+VkFilter TranslateFilter(Filter filter);
+
+VkSamplerAddressMode TranslateAddressMode(AddressMode mode);
+
 } // namespace lm::rhi

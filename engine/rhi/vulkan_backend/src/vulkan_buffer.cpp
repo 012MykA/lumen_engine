@@ -42,6 +42,20 @@ void VulkanRenderingDevice::DestroyBuffer(BufferHandle handle) {
 	}
 }
 
+void VulkanRenderingDevice::WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset) {
+	VulkanBuffer *buf = m_BufferPool.Get(handle);
+	if (!buf) {
+		throw std::runtime_error("WriteBuffer: invalid buffer handle");
+	}
+	if (offset + size > buf->size) {
+		throw std::runtime_error("WriteBuffer: write out of buffer bounds");
+	}
+	if (!buf->mapped) {
+		throw std::runtime_error("WriteBuffer: buffer is not host-visible (create it with MemoryUsage::HostVisible)");
+	}
+	std::memcpy(static_cast<uint8_t *>(buf->mapped) + offset, data, size);
+}
+
 void *VulkanRenderingDevice::GetVkBuffer(BufferHandle handle) const {
 	const VulkanBuffer *buf = m_BufferPool.Get(handle);
 	return buf ? buf->buffer : nullptr;

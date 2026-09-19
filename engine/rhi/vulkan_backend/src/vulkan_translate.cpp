@@ -17,10 +17,10 @@ VkMemoryPropertyFlags TranslateMemoryUsage(MemoryUsage usage) {
 VkBufferUsageFlags TranslateBufferUsage(BufferUsage usage) {
 	VkBufferUsageFlags flags = 0;
 	// clang-format off
-	if (HasUsage(BufferUsage::VertexBuffer,  usage))		return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	if (HasUsage(BufferUsage::IndexBuffer,   usage))		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	if (HasUsage(BufferUsage::UniformBuffer, usage))		return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	if (HasUsage(BufferUsage::StorageBuffer, usage))		return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	if (HasUsage(BufferUsage::VertexBuffer,  usage))	flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	if (HasUsage(BufferUsage::IndexBuffer,   usage))	flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	if (HasUsage(BufferUsage::UniformBuffer, usage))	flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	if (HasUsage(BufferUsage::StorageBuffer, usage))	flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	// clang-format on
 	return flags;
 }
@@ -53,6 +53,28 @@ VkImageUsageFlags TranslateTextureUsage(TextureUsage usage) {
 	if (HasUsage(TextureUsage::TransferDst, usage))				flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	// clang-format on
 	return flags;
+}
+
+VkFilter TranslateFilter(Filter filter) {
+	// clang-format off
+	switch (filter) {
+		case Filter::Linear:	return VK_FILTER_LINEAR;
+		case Filter::Nearest:	return VK_FILTER_NEAREST;
+	}
+	// clang-format on
+	throw std::runtime_error("TranslateFilter(): Unknown Filter");
+}
+
+VkSamplerAddressMode TranslateAddressMode(AddressMode mode) {
+	// clang-format off
+	switch (mode) {
+		case AddressMode::Repeat:				return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case AddressMode::MirroredRepeat:		return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case AddressMode::ClampToEdge:			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case AddressMode::ClampToBorder:		return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+	}
+	// clang-format on
+	throw std::runtime_error("TranslateAddressMode(): Unknown AddressMode");
 }
 
 } // namespace lm::rhi

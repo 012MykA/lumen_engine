@@ -25,20 +25,6 @@ bool IsDepthFormat(VkFormat format) {
 
 } //namespace
 
-void VulkanRenderingDevice::WriteBuffer(BufferHandle handle, const void *data, uint64_t size, uint64_t offset) {
-	VulkanBuffer *buf = m_BufferPool.Get(handle);
-	if (!buf) {
-		throw std::runtime_error("WriteBuffer: invalid buffer handle");
-	}
-	if (offset + size > buf->size) {
-		throw std::runtime_error("WriteBuffer: write out of buffer bounds");
-	}
-	if (!buf->mapped) {
-		throw std::runtime_error("WriteBuffer: buffer is not host-visible (create it with MemoryUsage::HostVisible)");
-	}
-	std::memcpy(static_cast<uint8_t *>(buf->mapped) + offset, data, size);
-}
-
 TextureHandle VulkanRenderingDevice::CreateTexture(const TextureDesc &desc, const void *data) {
 	VulkanTexture tex{
 		.format = TranslateFormat(desc.format),
@@ -106,18 +92,6 @@ void *VulkanRenderingDevice::GetVkImage(TextureHandle handle) const {
 void *VulkanRenderingDevice::GetVkImageView(TextureHandle handle) const {
 	const VulkanTexture *tex = m_TexturePool.Get(handle);
 	return tex ? tex->view : nullptr;
-}
-
-uint32_t VulkanRenderingDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-	VkPhysicalDeviceMemoryProperties memoryProperties;
-	vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
-
-	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
-		if ((typeFilter & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-			return i;
-		}
-	}
-	throw std::runtime_error("Failed to find suitable memory type.");
 }
 
 std::pair<VkImage, VkDeviceMemory> VulkanRenderingDevice::CreateVkImage(

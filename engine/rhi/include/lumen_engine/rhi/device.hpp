@@ -3,6 +3,7 @@
 #include "lumen_engine/core/export.hpp"
 #include "lumen_engine/rhi/types.hpp"
 
+#include <limits>
 #include <memory>
 
 namespace lm::rhi {
@@ -23,6 +24,15 @@ struct TextureDesc {
 };
 
 struct SamplerDesc {
+	static constexpr float k_MaxSupportableAnisotropy = std::numeric_limits<float>::max();
+
+	Filter magFilter = Filter::Linear;
+	Filter minFilter = Filter::Linear;
+	AddressMode addressModeU = AddressMode::Repeat;
+	AddressMode addressModeV = AddressMode::Repeat;
+	AddressMode addressModeM = AddressMode::Repeat;
+	bool anistropyEnabled = true;
+	float maxAnisotropy = k_MaxSupportableAnisotropy;
 };
 
 class LUMEN_API IDevice {

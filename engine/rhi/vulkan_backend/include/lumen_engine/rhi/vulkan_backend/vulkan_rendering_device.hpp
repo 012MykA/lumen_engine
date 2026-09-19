@@ -176,8 +176,6 @@ private:
 	void UploadViaStagingBuffer(VkBuffer dst, const void *data, VkDeviceSize size);
 
 	// --- Texture ---
-	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
 	std::pair<VkImage, VkDeviceMemory> CreateVkImage(
 			VkFormat format,
 			VkExtent3D extent,
@@ -203,7 +201,7 @@ private:
 			VkImage image,
 			VkExtent3D extent);
 
-	VkSampler CreateVkSampler(float maxAnisotropy);
+	VkSampler CreateVkSampler(const VkSamplerCreateInfo &createInfo);
 
 	// --- Enumerate ---
 	std::vector<VkLayerProperties> EnumerateInstanceLayers() const;

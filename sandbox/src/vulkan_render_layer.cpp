@@ -302,8 +302,20 @@ void VulkanRenderLayer::CreateImageViews() {
 	size_t imageCount = m_Context.swapchainImages.size();
 	m_Context.swapchainImageViews.resize(imageCount);
 	for (size_t i = 0; i < imageCount; ++i) {
-		m_Context.swapchainImageViews[i] = CreateImageView(m_Context.swapchainImages[i],
-				m_Context.swapchainSurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
+		VkImageViewCreateInfo createInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = m_Context.swapchainImages[i],
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = m_Context.swapchainSurfaceFormat.format,
+			.subresourceRange{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1,
+			},
+		};
+		CHECK_VK(vkCreateImageView(m_Context.device, &createInfo, nullptr, &m_Context.swapchainImageViews[i]));
 	}
 }
 
@@ -415,7 +427,7 @@ void VulkanRenderLayer::CreateGraphicsPipeline() {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 		.colorAttachmentCount = 1,
 		.pColorAttachmentFormats = &m_Context.swapchainSurfaceFormat.format,
-		.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
+		.depthAttachmentFormat = m_Context.depthFormat,
 	};
 
 	VkGraphicsPipelineCreateInfo graphicsPipelineInfo{
@@ -443,7 +455,7 @@ void VulkanRenderLayer::CreateDepthResources() {
 	lm::rhi::TextureDesc desc{
 		.width = m_Context.swapchainExtent.width,
 		.height = m_Context.swapchainExtent.height,
-		.format = lm::rhi::Format::D32_SFLOAT,
+		.format = lm::rhi::Format::D32_SFLOAT, // m_Context.depthFormat
 		.usage = lm::rhi::TextureUsage::DepthStencilAttachment
 	};
 	m_Context.depthTexture = m_Device->CreateTexture(desc);
@@ -545,7 +557,7 @@ void VulkanRenderLayer::InitImGui() {
 						.viewMask = 0,
 						.colorAttachmentCount = 1,
 						.pColorAttachmentFormats = &m_Context.swapchainSurfaceFormat.format,
-						.depthAttachmentFormat = FindDepthFormat(),
+						.depthAttachmentFormat = m_Context.depthFormat,
 						.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
 				},
 		},
@@ -886,81 +898,4 @@ void VulkanRenderLayer::TransitionImageLayout(
 		.pImageMemoryBarriers = &barrier,
 	};
 	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
-}
-
-uint32_t VulkanRenderLayer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-	VkPhysicalDeviceMemoryProperties memoryProperties;
-	vkGetPhysicalDeviceMemoryProperties(m_Context.physicalDevice, &memoryProperties);
-
-	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
-		if ((typeFilter & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-			return i;
-		}
-	}
-
-	throw std::runtime_error("Failed to find suitable memory type.");
-}
-
-std::pair<VkBuffer, VkDeviceMemory> VulkanRenderLayer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
-	VkBufferCreateInfo bufferInfo{
-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-		.flags = 0,
-		.size = size,
-		.usage = usage,
-		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-	};
-	VkBuffer buffer;
-	CHECK_VK(vkCreateBuffer(m_Context.device, &bufferInfo, nullptr, &buffer));
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(m_Context.device, buffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo{
-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-		.allocationSize = memRequirements.size,
-		.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties),
-	};
-	VkDeviceMemory memory;
-	CHECK_VK(vkAllocateMemory(m_Context.device, &allocInfo, nullptr, &memory));
-
-	CHECK_VK(vkBindBufferMemory(m_Context.device, buffer, memory, 0));
-
-	return { buffer, memory };
-}
-
-VkImageView VulkanRenderLayer::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
-	VkImageViewCreateInfo createInfo{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		.image = image,
-		.viewType = VK_IMAGE_VIEW_TYPE_2D,
-		.format = format,
-		.subresourceRange{
-				.aspectMask = aspectFlags,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-		},
-	};
-	VkImageView imageView;
-	CHECK_VK(vkCreateImageView(m_Context.device, &createInfo, nullptr, &imageView));
-	return imageView;
-}
-
-VkFormat VulkanRenderLayer::FindSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-	for (const auto &format : candidates) {
-		VkFormatProperties props;
-		vkGetPhysicalDeviceFormatProperties(m_Context.physicalDevice, format, &props);
-
-		if (((tiling == VK_IMAGE_TILING_LINEAR) && ((props.linearTilingFeatures & features) == features)) ||
-				((tiling == VK_IMAGE_TILING_OPTIMAL) && ((props.optimalTilingFeatures & features) == features))) {
-			return format;
-		}
-	}
-	throw std::runtime_error("Failed to find supported format.");
-}
-
-VkFormat VulkanRenderLayer::FindDepthFormat() {
-	return FindSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-			VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }

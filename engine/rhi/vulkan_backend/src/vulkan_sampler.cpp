@@ -3,13 +3,32 @@
 
 namespace lm::rhi {
 
-SamplerHandle lm::rhi::VulkanRenderingDevice::CreateSampler(const SamplerDesc &desc) {
+SamplerHandle VulkanRenderingDevice::CreateSampler(const SamplerDesc &desc) {
 	VulkanSampler sampler;
 
 	VkPhysicalDeviceProperties props;
 	vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
 
-	sampler.sampler = CreateVkSampler(props.limits.maxSamplerAnisotropy);
+	const float maxAnisotropy = (desc.maxAnisotropy == SamplerDesc::k_MaxSupportableAnisotropy)
+			? props.limits.maxSamplerAnisotropy
+			: desc.maxAnisotropy;
+
+	const VkSamplerCreateInfo samplerInfo{
+		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		.magFilter = TranslateFilter(desc.magFilter),
+		.minFilter = TranslateFilter(desc.minFilter),
+		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		.addressModeU = TranslateAddressMode(desc.addressModeU),
+		.addressModeV = TranslateAddressMode(desc.addressModeV),
+		.addressModeW = TranslateAddressMode(desc.addressModeM),
+		.mipLodBias = 0.0f,
+		.anisotropyEnable = desc.anistropyEnabled ? VK_TRUE : VK_FALSE,
+		.maxAnisotropy = maxAnisotropy,
+		.compareEnable = VK_FALSE,
+		.compareOp = VK_COMPARE_OP_ALWAYS,
+	};
+
+	sampler.sampler = CreateVkSampler(samplerInfo);
 
 	return m_SamplerPool.Insert(sampler);
 }
@@ -26,23 +45,9 @@ void *VulkanRenderingDevice::GetVkSampler(SamplerHandle handle) const {
 	return sampler ? sampler->sampler : nullptr;
 }
 
-VkSampler VulkanRenderingDevice::CreateVkSampler(float maxAnisotropy) {
-	VkSamplerCreateInfo samplerInfo{
-		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-		.magFilter = VK_FILTER_LINEAR,
-		.minFilter = VK_FILTER_LINEAR,
-		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.mipLodBias = 0.0f,
-		.anisotropyEnable = VK_TRUE,
-		.maxAnisotropy = maxAnisotropy,
-		.compareEnable = VK_FALSE,
-		.compareOp = VK_COMPARE_OP_ALWAYS,
-	};
+VkSampler VulkanRenderingDevice::CreateVkSampler(const VkSamplerCreateInfo &createInfo) {
 	VkSampler sampler;
-	CHECK_VK(vkCreateSampler(m_Device, &samplerInfo, nullptr, &sampler));
+	CHECK_VK(vkCreateSampler(m_Device, &createInfo, nullptr, &sampler));
 	return sampler;
 }
 
