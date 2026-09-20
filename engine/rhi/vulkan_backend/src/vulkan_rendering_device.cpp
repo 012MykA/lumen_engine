@@ -37,6 +37,7 @@ VulkanRenderingDevice::~VulkanRenderingDevice() {
 		LUMEN_CORE_CRITICAL("{}", e.what());
 	}
 
+	m_PipelinePool.ForEach([this](PipelineHandle handle, VkPipeline &pipeline) { vkDestroyPipeline(m_Device, pipeline, nullptr); });
 	m_ShaderPool.ForEach([this](ShaderHandle handle, VkShaderModule &shader) { vkDestroyShaderModule(m_Device, shader, nullptr); });
 	m_SamplerPool.ForEach([this](SamplerHandle handle, VkSampler &sampler) { vkDestroySampler(m_Device, sampler, nullptr); });
 	m_TexturePool.ForEach([this](TextureHandle handle, VulkanTexture &tex) { tex.Destroy(m_Device); });

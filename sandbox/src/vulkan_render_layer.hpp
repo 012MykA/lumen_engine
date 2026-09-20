@@ -91,7 +91,6 @@ private:
 
 	// Shader
 	static std::vector<uint32_t> readSpirV(const std::string &filename);
-	[[nodiscard]] VkShaderModule CreateShaderModule(const std::vector<uint32_t> &code) const;
 
 	// Command buffer
 	void RecordCommandBuffer(uint32_t imageIndex);
@@ -120,6 +119,7 @@ private:
 	std::vector<lm::rhi::BufferHandle> m_UniformBuffers;
 
 	lm::rhi::ShaderHandle m_Shader;
+	lm::rhi::PipelineHandle m_GraphicsPipeline;
 
 	struct Context {
 		VkInstance instance = VK_NULL_HANDLE;
@@ -142,7 +142,6 @@ private:
 
 		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 		VkPipelineLayout graphicsPipelineLayout = VK_NULL_HANDLE;
-		VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 

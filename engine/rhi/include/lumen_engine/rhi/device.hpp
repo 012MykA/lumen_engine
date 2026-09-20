@@ -4,6 +4,8 @@
 #include "lumen_engine/rhi/types.hpp"
 
 #include <memory>
+#include <span>
+#include <vector>
 
 namespace lm::rhi {
 
@@ -37,6 +39,24 @@ struct SamplerDesc {
 	float maxAnisotropy = k_AutoAnisotropy;
 };
 
+struct GraphicsPipelineDesc {
+	std::vector<PipelineShaderStageDesc> shaderStages;
+
+	std::vector<VertexBinding> vertexBindings;
+
+	PrimitiveTopology topology = PrimitiveTopology::TriangleList;
+	CullMode cullMode = CullMode::Back;
+	FrontFace frontFace = FrontFace::CounterClockwise;
+
+	DepthStencilState depthStencil{};
+	ColorBlendState colorBlend{};
+
+	std::vector<Format> colorAttachmentFormats;
+	Format depthAttachmentFormat = Format::Undefined;
+
+	void *pipelineLayout;
+};
+
 class LUMEN_API IDevice {
 public:
 	virtual ~IDevice() = default;
@@ -52,8 +72,11 @@ public:
 	virtual SamplerHandle CreateSampler(const SamplerDesc &desc) = 0;
 	virtual void DestroySampler(SamplerHandle handle) = 0;
 
-	virtual ShaderHandle CreateShader(size_t codeSize, const void *code) = 0;
+	virtual ShaderHandle CreateShader(std::span<const uint32_t> spirvCode) = 0;
 	virtual void DestroyShader(ShaderHandle handle) = 0;
+
+	virtual PipelineHandle CreatePipeline(const GraphicsPipelineDesc &desc) = 0;
+	virtual void DestroyPipeline(PipelineHandle handle) = 0;
 
 	virtual void *GetVkInstance() const = 0;
 	virtual void *GetVkDebugUtilsMessengerEXT() const = 0;
@@ -67,6 +90,7 @@ public:
 	virtual void *GetVkImageView(TextureHandle handle) const = 0;
 	virtual void *GetVkSampler(SamplerHandle handle) const = 0;
 	virtual void *GetVkShaderModule(ShaderHandle handle) const = 0;
+	virtual void *GetVkPipeline(PipelineHandle handle) const = 0;
 };
 
 LUMEN_API std::unique_ptr<IDevice> CreateDevice(GraphicsAPI api, void *window);

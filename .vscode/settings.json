@@ -1,3 +1,4 @@
 {
-  "cmake.configureArgs": ["-DBUILD_SHARED_LIBS=ON"]
+  "cmake.configureArgs": ["-DBUILD_SHARED_LIBS=ON"],
+  "C_Cpp.errorSquiggles": "disabled"
 }

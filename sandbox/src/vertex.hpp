@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lumen_engine/lumen_engine.hpp"
+
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
@@ -10,15 +12,15 @@ struct Vertex {
 	glm::vec3 normal;
 	glm::vec2 uv;
 
-	static VkVertexInputBindingDescription GetBindingDescription() {
-		return { .binding = 0, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX };
-	}
-
-	static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions() {
+	static constexpr lm::rhi::VertexBinding GetVertexBinding() {
 		return {
-			VkVertexInputAttributeDescription{ .location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, position) },
-			VkVertexInputAttributeDescription{ .location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, normal) },
-			VkVertexInputAttributeDescription{ .location = 2, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, uv) },
+			.binding = 0,
+			.stride = sizeof(Vertex),
+			.attributtes = {
+					{ 0, lm::rhi::VertexAttribFormat::Float3, offsetof(Vertex, position) },
+					{ 1, lm::rhi::VertexAttribFormat::Float3, offsetof(Vertex, normal) },
+					{ 2, lm::rhi::VertexAttribFormat::Float2, offsetof(Vertex, uv) },
+			},
 		};
 	}
 };

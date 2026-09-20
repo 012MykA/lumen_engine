@@ -18,4 +18,17 @@ VkFilter TranslateFilter(Filter filter);
 
 VkSamplerAddressMode TranslateAddressMode(AddressMode mode);
 
+VkShaderStageFlags TranslateShaderStageFlags(ShaderStage stage);
+VkShaderStageFlagBits TranslateShaderStageBits(ShaderStage stage);
+
+VkFormat TranslateVertexAttribFormat(VertexAttribFormat format);
+
+VkPrimitiveTopology TranslatePrimitiveTopology(PrimitiveTopology topology);
+
+VkCullModeFlags TranslateCullMode(CullMode mode);
+
+VkFrontFace TranslateFrontFace(FrontFace face);
+
+VkCompareOp TranslateCompareOp(CompareOp op);
+
 } // namespace lm::rhi

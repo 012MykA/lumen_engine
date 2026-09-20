@@ -102,8 +102,11 @@ public:
 	SamplerHandle CreateSampler(const SamplerDesc &desc) override;
 	void DestroySampler(SamplerHandle handle) override;
 
-	ShaderHandle CreateShader(size_t codeSize, const void *code) override;
+	ShaderHandle CreateShader(std::span<const uint32_t> spirvCode) override;
 	void DestroyShader(ShaderHandle handle) override;
+
+	PipelineHandle CreatePipeline(const GraphicsPipelineDesc &desc) override;
+	void DestroyPipeline(PipelineHandle handle) override;
 
 	void *GetVkInstance() const override { return m_Instance; }
 	void *GetVkDebugUtilsMessengerEXT() const override { return m_DebugMessenger; }
@@ -117,6 +120,7 @@ public:
 	void *GetVkImageView(TextureHandle handle) const override;
 	void *GetVkSampler(SamplerHandle handle) const override;
 	void *GetVkShaderModule(ShaderHandle handle) const override;
+	void *GetVkPipeline(PipelineHandle handle) const override;
 
 private:
 	// Instance
@@ -140,6 +144,7 @@ private:
 	ResourcePool<VulkanTexture, TextureTag> m_TexturePool;
 	ResourcePool<VkSampler, SamplerTag> m_SamplerPool;
 	ResourcePool<VkShaderModule, ShaderTag> m_ShaderPool;
+	ResourcePool<VkPipeline, PipelineTag> m_PipelinePool;
 
 private:
 	// --- Init ---

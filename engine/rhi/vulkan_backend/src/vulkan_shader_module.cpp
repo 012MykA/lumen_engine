@@ -5,15 +5,11 @@
 
 namespace lm::rhi {
 
-ShaderHandle VulkanRenderingDevice::CreateShader(size_t codeSize, const void *code) {
-	if (codeSize % 4 != 0) {
-		throw std::runtime_error("CreateShader(): wrong SPIR-V code size. It must be alligned to 4 bytes");
-	}
-
+ShaderHandle VulkanRenderingDevice::CreateShader(std::span<const uint32_t> spirvCode) {
 	VkShaderModuleCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-		.codeSize = codeSize,
-		.pCode = reinterpret_cast<const uint32_t *>(code),
+		.codeSize = spirvCode.size_bytes(),
+		.pCode = spirvCode.data(),
 	};
 	VkShaderModule shaderModule;
 	CHECK_VK(vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule));
