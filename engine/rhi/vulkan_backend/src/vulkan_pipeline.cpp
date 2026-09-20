@@ -3,10 +3,15 @@
 #include "vulkan_translate.hpp"
 
 #include <array>
+#include <stdexcept>
 
 namespace lm::rhi {
 
 PipelineHandle VulkanRenderingDevice::CreatePipeline(const GraphicsPipelineDesc &desc) {
+	if (!desc.pipelineLayout) {
+		throw std::runtime_error("CreatePipeline(): pipelineLayout must be set");
+	}
+
 	// Shader stages
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 	shaderStages.reserve(desc.shaderStages.size());

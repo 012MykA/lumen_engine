@@ -54,7 +54,7 @@ struct GraphicsPipelineDesc {
 	std::vector<Format> colorAttachmentFormats;
 	Format depthAttachmentFormat = Format::Undefined;
 
-	void *pipelineLayout;
+	void *pipelineLayout = nullptr;
 };
 
 class LUMEN_API IDevice {

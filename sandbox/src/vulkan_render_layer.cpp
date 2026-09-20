@@ -328,7 +328,7 @@ void VulkanRenderLayer::CreateGraphicsPipeline() {
 			break;
 		}
 		default:
-			swapchainFormat = lm::rhi::Format::Undefined;
+			throw std::runtime_error("CreateGraphicsPipeline(): unsupported swapchain surface format");
 	}
 
 	lm::rhi::GraphicsPipelineDesc desc{
