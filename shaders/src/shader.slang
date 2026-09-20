@@ -1,6 +1,11 @@
 struct VertexInput {
+	[[vk::location(0)]]
 	float3 position;
+
+	[[vk::location(1)]]
 	float3 normal;
+
+	[[vk::location(2)]]
 	float2 uv;
 };
 
@@ -15,6 +20,7 @@ struct UniformBuffer {
 	float4x4 view;
 	float4x4 proj;
 };
+[[vk::binding(0, 0)]]
 ConstantBuffer<UniformBuffer> ubo;
 
 [shader("vertex")]
@@ -26,6 +32,7 @@ VertexOutput vertMain(VertexInput input) {
 	return output;
 }
 
+[[vk::binding(1, 0)]]
 Sampler2D texture;
 
 [shader("fragment")]
