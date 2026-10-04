@@ -27,6 +27,8 @@
 // --- App ---
 #include "lumen_engine/app/application.hpp"
 
-// --- RHI ---
-#include "lumen_engine/rhi/device.hpp"
-#include "lumen_engine/rhi/types.hpp"
+// --- Vulkan Core ---
+#include "lumen_engine/vulkan_core/check_vk.hpp"
+#include "lumen_engine/vulkan_core/device.hpp"
+#include "lumen_engine/vulkan_core/instance.hpp"
+#include "lumen_engine/vulkan_core/physical_device.hpp"

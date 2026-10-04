@@ -2,14 +2,13 @@
   "name": "lumen-engine",
   "version-string": "1.0.0",
   "dependencies": [
-    "vulkan-headers",
     "glfw3",
     "spdlog",
     "glm",
     "stb",
-    {
-      "name": "imgui",
-      "features": ["vulkan-binding", "glfw-binding"]
-    }
+
+    "volk",
+    "vulkan-utility-libraries",
+    "vulkan-memory-allocator"
   ]
 }

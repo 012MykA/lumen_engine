@@ -2,13 +2,9 @@
 
 #include <lumen_engine/app/entry_point.hpp>
 
-#ifdef CreateWindow
-	#undef CreateWindow
-#endif
-
 static void SetWindowDarkMode(lm::Window *window);
 
-class SandboxApp : public lm::Application {
+class SandboxApp final : public lm::Application {
 public:
 	explicit SandboxApp(const lm::ApplicationCommandLineArgs &args) : lm::Application(args) {
 		constexpr std::string_view buildType =
@@ -23,7 +19,6 @@ public:
 
 		m_MainWindow = CreateWindow({});
 		SetWindowDarkMode(m_MainWindow);
-		m_MainWindow->PushLayer<VulkanRenderLayer>(m_MainWindow);
 	}
 
 private:

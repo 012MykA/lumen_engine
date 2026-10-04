@@ -35,7 +35,7 @@ add_subdirectory(windowing)
 add_subdirectory("input")
 add_subdirectory(logging)
 add_subdirectory(app)
-add_subdirectory(rhi)
+add_subdirectory(vulkan_core)
 
 add_library(lumen_engine INTERFACE)
 target_link_libraries(lumen_engine INTERFACE
@@ -45,7 +45,7 @@ target_link_libraries(lumen_engine INTERFACE
     engine::input
     engine::logging
     engine::app
-    engine::rhi
+    engine::vulkan_core
 )
 target_include_directories(lumen_engine INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(lumen::engine ALIAS lumen_engine)
