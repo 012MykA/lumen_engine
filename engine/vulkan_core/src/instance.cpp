@@ -53,9 +53,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 } // namespace
 
 Instance::Instance(const InstanceDesc &desc) {
-	if (!volkInitialize()) {
-		throw std::runtime_error("failed to initialize volk");
-	}
+	CHECK_VK(volkInitialize());
 
 	CreateVkInstance(desc);
 	if (desc.enableValidation) {

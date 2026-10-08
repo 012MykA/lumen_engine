@@ -6,7 +6,7 @@ add_library(engine_vulkan_core
     src/instance.cpp
     src/physical_device.cpp
     src/device.cpp
-    # src/vma_allocator.cpp
+    src/vma_allocator.cpp
 )
 
 target_include_directories(engine_vulkan_core
@@ -24,8 +24,9 @@ target_link_libraries(engine_vulkan_core PUBLIC
 )
 
 target_compile_definitions(engine_vulkan_core
-    PRIVATE
+    PUBLIC
         VK_NO_PROTOTYPES
+    PRIVATE
         LUMEN_BUILD_DLL
 )
 
