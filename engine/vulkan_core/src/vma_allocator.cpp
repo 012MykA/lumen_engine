@@ -2,6 +2,9 @@
 
 #include "lumen_engine/vulkan_core/check_vk.hpp"
 
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+
 #include <utility>
 
 namespace lm::vk {

@@ -1,14 +1,12 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
-
 #include <string>
 
 namespace lm {
 
 class Event;
 
-class LUMEN_API Layer {
+class Layer {
 public:
 	explicit Layer(std::string debugName = "Unnamed");
 	virtual ~Layer() = default;

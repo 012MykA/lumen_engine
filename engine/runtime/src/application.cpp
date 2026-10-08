@@ -1,8 +1,7 @@
-#include "lumen_engine/app/application.hpp"
+#include "lumen_engine/runtime/application.hpp"
 
-#include "lumen_engine/events/event_dispatcher.hpp"
-#include "lumen_engine/events/window_events.hpp"
-#include "lumen_engine/input/input.hpp"
+#include "lumen_engine/core/events/event_dispatcher.hpp"
+#include "lumen_engine/core/events/window_events.hpp"
 #include "lumen_engine/windowing/window.hpp"
 #include "lumen_engine/windowing/window_context.hpp"
 
@@ -56,7 +55,6 @@ Window *Application::CreateWindow(const WindowDesc &desc) {
 	Window *window = m_WindowManager.CreateWindow(desc, [this](Window *sender, Event &e) {
 		OnWindowEvent(sender, e);
 	});
-	Input::SetActiveWindow(window);
 	return window;
 }
 
@@ -82,7 +80,6 @@ bool Application::OnWindowClose(Window *sender, WindowCloseEvent &e) {
 }
 
 bool Application::OnWindowFocus(Window *sender, WindowFocusEvent &e) {
-	Input::SetActiveWindow(sender);
 	return true;
 }
 

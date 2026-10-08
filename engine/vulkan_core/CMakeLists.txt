@@ -2,7 +2,7 @@ find_package(volk CONFIG REQUIRED)
 find_package(VulkanUtilityLibraries CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
-add_library(engine_vulkan_core
+add_library(engine_vulkan_core STATIC
     src/instance.cpp
     src/physical_device.cpp
     src/device.cpp
@@ -16,7 +16,6 @@ target_include_directories(engine_vulkan_core
 
 target_link_libraries(engine_vulkan_core PUBLIC
     engine::core
-    engine::logging
     
     volk::volk
     Vulkan::UtilityHeaders
@@ -26,8 +25,6 @@ target_link_libraries(engine_vulkan_core PUBLIC
 target_compile_definitions(engine_vulkan_core
     PUBLIC
         VK_NO_PROTOTYPES
-    PRIVATE
-        LUMEN_BUILD_DLL
 )
 
 add_library(engine::vulkan_core ALIAS engine_vulkan_core)

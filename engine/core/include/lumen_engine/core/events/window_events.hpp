@@ -1,15 +1,14 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
 #include "lumen_engine/core/window_desc.hpp"
-#include "lumen_engine/events/event.hpp"
+#include "lumen_engine/core/events/event.hpp"
 
 #include <cstdint>
 #include <string>
 
 namespace lm {
 
-class LUMEN_API WindowCloseEvent final : public Event {
+class WindowCloseEvent final : public Event {
 public:
 	WindowCloseEvent() = default;
 
@@ -17,11 +16,13 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
-class LUMEN_API WindowResizeEvent final : public Event {
+class WindowResizeEvent final : public Event {
 public:
-	WindowResizeEvent(WindowExtent extent);
+	WindowResizeEvent(uint32_t width, uint32_t height);
 
-	WindowExtent GetExtent() const { return m_Extent; }
+	std::pair<uint32_t, uint32_t> GetExtent() const { return { m_Width, m_Height }; }
+	uint32_t GetWidth() const { return m_Width; }
+	uint32_t GetHeight() const { return m_Height; }
 
 	std::string ToString() const override;
 
@@ -29,10 +30,10 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Window)
 
 private:
-	WindowExtent m_Extent;
+	uint32_t m_Width, m_Height;
 };
 
-class LUMEN_API WindowFocusEvent final : public Event {
+class WindowFocusEvent final : public Event {
 public:
 	WindowFocusEvent() = default;
 
@@ -40,7 +41,7 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
-class LUMEN_API WindowLostFocusEvent final : public Event {
+class WindowLostFocusEvent final : public Event {
 public:
 	WindowLostFocusEvent() = default;
 
@@ -48,7 +49,7 @@ public:
 	EVENT_CLASS_CATEGORY(EventCategory::Window)
 };
 
-class LUMEN_API WindowMovedEvent final : public Event {
+class WindowMovedEvent final : public Event {
 public:
 	WindowMovedEvent(int32_t x, int32_t y) : m_PositionX{ x }, m_PositionY{ y } {}
 

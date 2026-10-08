@@ -1,13 +1,12 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
 #include "lumen_engine/vulkan_core/physical_device.hpp"
 
 #include <volk.h>
 
 namespace lm::vk {
 
-class LUMEN_API Device final {
+class Device final {
 public:
 	Device(const PhysicalDevice &physicalDevice);
 	~Device();

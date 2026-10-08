@@ -8,15 +8,6 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} PRIVATE lumen::engine)
 
-if (WIN32 AND BUILD_SHARED_LIBS)
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>
-        COMMAND_EXPAND_LISTS
-    )
-endif()
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
 elseif(MSVC)

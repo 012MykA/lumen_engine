@@ -1,15 +1,14 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
 #include "lumen_engine/core/key_codes.hpp"
-#include "lumen_engine/events/event.hpp"
+#include "lumen_engine/core/events/event.hpp"
 
 #include <cstdint>
 #include <string>
 
 namespace lm {
 
-class LUMEN_API KeyEvent : public Event {
+class KeyEvent : public Event {
 public:
 	virtual ~KeyEvent() = default;
 
@@ -24,7 +23,7 @@ protected:
 	KeyCode m_Key;
 };
 
-class LUMEN_API KeyPressedEvent final : public KeyEvent {
+class KeyPressedEvent final : public KeyEvent {
 public:
 	KeyPressedEvent(KeyCode key, uint32_t repeatCount);
 
@@ -38,7 +37,7 @@ private:
 	uint32_t m_RepeatCount;
 };
 
-class LUMEN_API KeyReleasedEvent final : public KeyEvent {
+class KeyReleasedEvent final : public KeyEvent {
 public:
 	KeyReleasedEvent(KeyCode key);
 
@@ -47,7 +46,7 @@ public:
 	EVENT_CLASS_TYPE(KeyReleased)
 };
 
-class LUMEN_API KeyTypedEvent final : public KeyEvent {
+class KeyTypedEvent final : public KeyEvent {
 public:
 	KeyTypedEvent(KeyCode key);
 

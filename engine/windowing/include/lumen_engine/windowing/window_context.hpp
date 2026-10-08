@@ -1,12 +1,10 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
-
 #include <cstdint>
 
 namespace lm {
 
-class LUMEN_API WindowContext {
+class WindowContext {
 public:
 	WindowContext(const WindowContext &) = delete;
 	WindowContext &operator=(const WindowContext &) = delete;

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
-
 #include <volk.h>
 
 #include <string>
@@ -15,7 +13,7 @@ struct InstanceDesc {
 	std::vector<const char *> extraExtensions;
 };
 
-class LUMEN_API Instance final {
+class Instance final {
 public:
 	explicit Instance(const InstanceDesc &desc);
 	~Instance();

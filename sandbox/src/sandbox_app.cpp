@@ -1,24 +1,15 @@
 #include "vulkan_render_layer.hpp"
 
-#include <lumen_engine/app/entry_point.hpp>
+#include <lumen_engine/runtime/entry_point.hpp>
 
 static void SetWindowDarkMode(lm::Window *window);
 
 class SandboxApp final : public lm::Application {
 public:
 	explicit SandboxApp(const lm::ApplicationCommandLineArgs &args) : lm::Application(args) {
-		constexpr std::string_view buildType =
-#if defined(LUMEN_DYNAMIC_LINK)
-				"Dynamic Library";
-#elif defined(LUMEN_STATIC_LINK)
-				"Static Library";
-#else
-				"Unknown";
-#endif
-		LUMEN_TRACE("Built as: {}", buildType);
-
 		m_MainWindow = CreateWindow({});
 		SetWindowDarkMode(m_MainWindow);
+		m_MainWindow->PushLayer<VulkanRenderLayer>();
 	}
 
 private:

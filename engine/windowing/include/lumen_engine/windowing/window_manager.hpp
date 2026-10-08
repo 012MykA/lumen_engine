@@ -1,6 +1,5 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
 #include "lumen_engine/windowing/window.hpp"
 
 #include <functional>
@@ -9,7 +8,7 @@
 
 namespace lm {
 
-class LUMEN_API WindowManager final {
+class WindowManager final {
 public:
 	using WindowEventCallbackFn = std::function<void(Window *, Event &)>;
 

@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.23)
 project(engine)
 
-option(BUILD_SHARED_LIBS "Build libraries as shared" ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 23)
 
 # Platform
 if(WIN32)
@@ -20,31 +21,22 @@ else()
 endif()
 
 add_library(engine_common INTERFACE)
-
 target_compile_definitions(engine_common INTERFACE
     ${LUMEN_PLATFORM_DEF}
-    $<$<BOOL:${BUILD_SHARED_LIBS}>:LUMEN_DYNAMIC_LINK>
-    $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:LUMEN_STATIC_LINK>
 )
 target_compile_features(engine_common INTERFACE cxx_std_23)
 add_library(engine::common ALIAS engine_common)
 
 add_subdirectory(core)
-add_subdirectory(events)
+add_subdirectory(runtime)
 add_subdirectory(windowing)
-add_subdirectory("input")
-add_subdirectory(logging)
-add_subdirectory(app)
 add_subdirectory(vulkan_core)
 
 add_library(lumen_engine INTERFACE)
 target_link_libraries(lumen_engine INTERFACE
     engine::core
-    engine::events
+    engine::runtime
     engine::windowing
-    engine::input
-    engine::logging
-    engine::app
     engine::vulkan_core
 )
 target_include_directories(lumen_engine INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)

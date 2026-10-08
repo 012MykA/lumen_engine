@@ -1,9 +1,8 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
 #include "lumen_engine/core/layer_stack.hpp"
 #include "lumen_engine/core/window_desc.hpp"
-#include "lumen_engine/events/event.hpp"
+#include "lumen_engine/core/events/event.hpp"
 
 #include <functional>
 #include <memory>
@@ -11,7 +10,7 @@
 
 namespace lm {
 
-class LUMEN_API Window {
+class Window {
 public:
 	using EventCallbackFn = std::function<void(Event &)>;
 
@@ -31,8 +30,8 @@ public:
 	virtual void SetTitle(std::string_view title) = 0;
 	virtual std::string_view GetTitle() const = 0;
 
-	virtual void SetExtent(WindowExtent extent) = 0;
-	virtual WindowExtent GetExtent() const = 0;
+	virtual void SetExtent(uint32_t width, uint32_t height) = 0;
+	virtual std::pair<uint32_t, uint32_t> GetExtent() const = 0;
 
 	virtual void *GetNativeHandle() const = 0;
 	virtual void *GetGLFWwindow() const = 0;

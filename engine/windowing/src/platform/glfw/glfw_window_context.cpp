@@ -1,4 +1,4 @@
-#include "lumen_engine/logging/log.hpp"
+#include "lumen_engine/core/log.hpp"
 #include "lumen_engine/windowing/window_context.hpp"
 
 #include <GLFW/glfw3.h>

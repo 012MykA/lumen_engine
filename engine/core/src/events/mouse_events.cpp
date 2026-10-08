@@ -1,4 +1,4 @@
-#include "lumen_engine/events/mouse_events.hpp"
+#include "lumen_engine/core/events/mouse_events.hpp"
 
 #include <format>
 

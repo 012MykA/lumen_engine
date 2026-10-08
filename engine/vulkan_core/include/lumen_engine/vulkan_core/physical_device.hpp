@@ -1,7 +1,5 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
-
 #include <volk.h>
 
 #include <optional>
@@ -20,13 +18,13 @@ struct QueueFamilyIndices {
 	}
 };
 
-LUMEN_API QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 struct PhysicalDeviceDesc {
 	std::vector<const char *> requiredExtensions;
 };
 
-class LUMEN_API PhysicalDevice final {
+class PhysicalDevice final {
 public:
 	PhysicalDevice(VkInstance instance, VkSurfaceKHR surface, const PhysicalDeviceDesc &desc);
 

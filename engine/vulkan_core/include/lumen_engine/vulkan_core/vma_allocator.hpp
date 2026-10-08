@@ -1,14 +1,11 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
-
-#define VMA_IMPLEMENTATION
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #include <vk_mem_alloc.h>
 
 namespace lm::vk {
 
-class LUMEN_API VmaAllocatorWrapper final {
+class VmaAllocatorWrapper final {
 public:
 	VmaAllocatorWrapper(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device);
 	~VmaAllocatorWrapper();

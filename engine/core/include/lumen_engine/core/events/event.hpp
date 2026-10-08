@@ -1,7 +1,5 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
-
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -61,7 +59,7 @@ enum class EventType {
 	MouseButtonReleased,
 };
 
-class LUMEN_API Event {
+class Event {
 public:
 	virtual ~Event() = default;
 

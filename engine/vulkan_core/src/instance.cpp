@@ -1,6 +1,6 @@
 #include "lumen_engine/vulkan_core/instance.hpp"
 
-#include "lumen_engine/logging/log.hpp"
+#include "lumen_engine/core/log.hpp"
 #include "lumen_engine/vulkan_core/check_vk.hpp"
 
 #include <algorithm>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lumen_engine/app/application.hpp"
-#include "lumen_engine/logging/log.hpp"
+#include "lumen_engine/core/log.hpp"
+#include "lumen_engine/runtime/application.hpp"
 
 #include <stdexcept>
 

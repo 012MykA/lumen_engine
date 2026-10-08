@@ -1,8 +1,8 @@
 #include "glfw_window_driver.hpp"
 
-#include "lumen_engine/events/keyboard_events.hpp"
-#include "lumen_engine/events/mouse_events.hpp"
-#include "lumen_engine/events/window_events.hpp"
+#include "lumen_engine/core/events/keyboard_events.hpp"
+#include "lumen_engine/core/events/mouse_events.hpp"
+#include "lumen_engine/core/events/window_events.hpp"
 #include "lumen_engine/windowing/window_context.hpp"
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
@@ -30,8 +30,8 @@ GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) {
 	glfwWindowHint(GLFW_FOCUSED, desc.focused ? GLFW_TRUE : GLFW_FALSE);
 
 	m_Handle = glfwCreateWindow(
-			static_cast<int>(desc.extent.width),
-			static_cast<int>(desc.extent.height),
+			static_cast<int>(desc.width),
+			static_cast<int>(desc.height),
 			desc.title.c_str(), nullptr, nullptr);
 	if (!m_Handle) {
 		throw std::runtime_error{ "failed to create window" };
@@ -67,11 +67,11 @@ std::string_view GlfwWindowDriver::GetTitle() const {
 	return glfwGetWindowTitle(m_Handle);
 }
 
-void GlfwWindowDriver::SetExtent(WindowExtent extent) {
-	glfwSetWindowSize(m_Handle, static_cast<int>(extent.width), static_cast<int>(extent.height));
+void GlfwWindowDriver::SetExtent(uint32_t width, uint32_t height) {
+	glfwSetWindowSize(m_Handle, static_cast<int>(width), static_cast<int>(height));
 }
 
-WindowExtent GlfwWindowDriver::GetExtent() const {
+std::pair<uint32_t, uint32_t> GlfwWindowDriver::GetExtent() const {
 	int w, h;
 	glfwGetFramebufferSize(m_Handle, &w, &h);
 	return { static_cast<uint32_t>(w), static_cast<uint32_t>(h) };
@@ -108,7 +108,7 @@ void GlfwWindowDriver::InitCallbacks() {
 	glfwSetWindowSizeCallback(m_Handle, [](GLFWwindow *window, int width, int height) {
 		auto *self = static_cast<GlfwWindowDriver *>(glfwGetWindowUserPointer(window));
 
-		WindowResizeEvent e{ WindowExtent{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) } };
+		WindowResizeEvent e{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 		self->OnEvent(e);
 	});
 

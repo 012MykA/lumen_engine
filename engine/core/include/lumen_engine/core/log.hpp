@@ -1,7 +1,5 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
-
 #include <spdlog/fmt/std.h>
 #include <spdlog/spdlog.h>
 
@@ -9,7 +7,7 @@
 
 namespace lm {
 
-class LUMEN_API Log final {
+class Log final {
 public:
 	static void Init();
 

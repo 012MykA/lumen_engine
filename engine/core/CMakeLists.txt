@@ -1,6 +1,15 @@
-add_library(engine_core
+find_package(spdlog CONFIG REQUIRED)
+
+add_library(engine_core STATIC
     src/layer_stack.cpp
     src/layer.cpp
+
+    src/events/event.cpp
+    src/events/keyboard_events.cpp
+    src/events/mouse_events.cpp
+    src/events/window_events.cpp
+
+    src/log.cpp
 )
 
 target_include_directories(engine_core
@@ -9,9 +18,9 @@ target_include_directories(engine_core
 )
 
 target_link_libraries(engine_core
-    PUBLIC engine::common
+    PUBLIC
+        engine::common
+        spdlog::spdlog
 )
-
-target_compile_definitions(engine_core PRIVATE LUMEN_BUILD_DLL)
 
 add_library(engine::core ALIAS engine_core)

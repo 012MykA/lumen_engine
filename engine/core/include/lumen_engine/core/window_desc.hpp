@@ -5,13 +5,9 @@
 
 namespace lm {
 
-struct WindowExtent {
-	uint32_t width{}, height{};
-};
-
 struct WindowDesc {
-	std::string title = "Lumen Engine";
-	WindowExtent extent{ 1280, 720 };
+	std::string title{ "Lumen Window" };
+	uint32_t width{ 1280 }, height{ 720 };
 	bool resizable{ true };
 	bool focused{ true };
 };

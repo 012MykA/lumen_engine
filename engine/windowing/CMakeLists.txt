@@ -1,6 +1,6 @@
 find_package(glfw3 3.4 CONFIG REQUIRED)
 
-add_library(engine_windowing
+add_library(engine_windowing STATIC
     src/window_manager.cpp
     src/window.cpp
     
@@ -14,9 +14,9 @@ target_include_directories(engine_windowing
 )
 
 target_link_libraries(engine_windowing
-    PUBLIC  engine::core engine::events engine::logging glfw
+    PUBLIC
+        engine::core
+        glfw
 )
-
-target_compile_definitions(engine_windowing PRIVATE LUMEN_BUILD_DLL)
 
 add_library(engine::windowing ALIAS engine_windowing)

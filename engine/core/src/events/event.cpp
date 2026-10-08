@@ -1,4 +1,4 @@
-#include "lumen_engine/events/event.hpp"
+#include "lumen_engine/core/events/event.hpp"
 
 namespace lm {
 

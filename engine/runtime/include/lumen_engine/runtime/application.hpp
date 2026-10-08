@@ -1,6 +1,5 @@
 #pragma once
 
-#include "lumen_engine/core/export.hpp"
 #include "lumen_engine/windowing/window_manager.hpp"
 
 #include <memory>
@@ -9,7 +8,7 @@
 
 namespace lm {
 
-struct LUMEN_API ApplicationCommandLineArgs {
+struct ApplicationCommandLineArgs {
 	ApplicationCommandLineArgs(int argc, char **argv) : args(argv, argv + argc) {}
 
 	const std::string &operator[](size_t idx) const { return args[idx]; }
@@ -24,7 +23,7 @@ class Event;
 class WindowCloseEvent;
 class WindowFocusEvent;
 
-class LUMEN_API Application {
+class Application {
 public:
 	explicit Application(const ApplicationCommandLineArgs &args);
 	virtual ~Application();
