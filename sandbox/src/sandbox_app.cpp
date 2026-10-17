@@ -1,14 +1,17 @@
+#include "platform.hpp"
 #include "vulkan_render_layer.hpp"
 
 #include <lumen_engine/runtime/entry_point.hpp>
-
-static void SetWindowDarkMode(lm::Window *window);
 
 class SandboxApp final : public lm::Application {
 public:
 	explicit SandboxApp(const lm::ApplicationCommandLineArgs &args) : lm::Application(args) {
 		m_MainWindow = CreateWindow({});
-		SetWindowDarkMode(m_MainWindow);
+
+		if (IsSystemDarkTheme()) {
+			SetWindowDarkMode(m_MainWindow);
+		}
+
 		m_MainWindow->PushLayer<VulkanRenderLayer>();
 	}
 
@@ -16,21 +19,7 @@ private:
 	lm::Window *m_MainWindow;
 };
 
-std::unique_ptr<lm::Application> lm::CreateApplication(const lm::ApplicationCommandLineArgs &args) {
+std::unique_ptr<lm::Application> lm::CreateApplication(
+		const lm::ApplicationCommandLineArgs &args) {
 	return std::make_unique<SandboxApp>(args);
 }
-
-#if defined(LUMEN_PLATFORM_WINDOWS)
-	#include <Windows.h>
-
-	#include <dwmapi.h>
-	#pragma comment(lib, "dwmapi.lib")
-
-void SetWindowDarkMode(lm::Window *window) {
-	HWND hwnd = static_cast<HWND>(window->GetNativeHandle());
-	BOOL useDarkMode = TRUE;
-	DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
-}
-#else
-void SetWindowDarkMode(lm::Window *window, char value) {}
-#endif

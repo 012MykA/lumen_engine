@@ -4,6 +4,7 @@ project(sandbox)
 add_executable(${PROJECT_NAME}
     src/sandbox_app.cpp
     src/vulkan_render_layer.cpp
+    src/platform.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE lumen::engine)
