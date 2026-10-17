@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace lm::vk {
+namespace lmvk {
 
 struct InstanceDesc {
 	std::string appName = "Lumen Application";
@@ -39,4 +39,4 @@ private:
 	VkDebugUtilsMessengerEXT m_DebugMessenger = VK_NULL_HANDLE;
 };
 
-} //namespace lm::vk
+} //namespace lmvk

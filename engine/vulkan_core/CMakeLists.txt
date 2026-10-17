@@ -7,6 +7,7 @@ add_library(engine_vulkan_core STATIC
     src/physical_device.cpp
     src/device.cpp
     src/vma_allocator.cpp
+    src/volk_loader.cpp
 )
 
 target_include_directories(engine_vulkan_core
@@ -25,6 +26,8 @@ target_link_libraries(engine_vulkan_core PUBLIC
 target_compile_definitions(engine_vulkan_core
     PUBLIC
         VK_NO_PROTOTYPES
+        VMA_STATIC_VULKAN_FUNCTIONS=0
+        VMA_DYNAMIC_VULKAN_FUNCTIONS=1
 )
 
 add_library(engine::vulkan_core ALIAS engine_vulkan_core)

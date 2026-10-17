@@ -5,7 +5,7 @@
 #include <optional>
 #include <vector>
 
-namespace lm::vk {
+namespace lmvk {
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
@@ -40,4 +40,4 @@ private:
 	std::vector<const char *> m_EnabledExtensions;
 };
 
-} // namespace lm::vk
+} // namespace lmvk

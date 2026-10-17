@@ -2,18 +2,25 @@
 
 #include "lumen_engine/vulkan_core/check_vk.hpp"
 
+#include <volk.h>
+
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
 #include <utility>
 
-namespace lm::vk {
+namespace lmvk {
 
 VmaAllocatorWrapper::VmaAllocatorWrapper(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device) {
+	VmaVulkanFunctions funcs{
+		.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+		.vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+	};
 	VmaAllocatorCreateInfo createInfo{
 		.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
 		.physicalDevice = physicalDevice,
 		.device = device,
+		.pVulkanFunctions = &funcs,
 		.instance = instance,
 		.vulkanApiVersion = VK_API_VERSION_1_3,
 	};
@@ -39,4 +46,4 @@ VmaAllocatorWrapper &VmaAllocatorWrapper::operator=(VmaAllocatorWrapper &&other)
 	return *this;
 }
 
-} // namespace lm::vk
+} // namespace lmvk

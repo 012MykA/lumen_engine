@@ -4,7 +4,7 @@
 
 #include <volk.h>
 
-namespace lm::vk {
+namespace lmvk {
 
 class Device final {
 public:
@@ -30,4 +30,4 @@ private:
 	VkQueue m_ComputeQueue = VK_NULL_HANDLE;
 };
 
-} // namespace lm::vk
+} // namespace lmvk

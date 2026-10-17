@@ -6,7 +6,7 @@
 #include <cstring>
 #include <stdexcept>
 
-namespace lm::vk {
+namespace lmvk {
 
 QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
 	QueueFamilyIndices indices;
@@ -115,4 +115,4 @@ PhysicalDevice::PhysicalDevice(VkInstance instance, VkSurfaceKHR surface, const 
 	vkGetPhysicalDeviceProperties(m_Device, &m_Properties);
 }
 
-} // namespace lm::vk
+} // namespace lmvk

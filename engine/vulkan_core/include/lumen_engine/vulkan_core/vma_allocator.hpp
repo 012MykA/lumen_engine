@@ -1,9 +1,8 @@
 #pragma once
 
-#define VMA_STATIC_VULKAN_FUNCTIONS 0
 #include <vk_mem_alloc.h>
 
-namespace lm::vk {
+namespace lmvk {
 
 class VmaAllocatorWrapper final {
 public:
@@ -22,4 +21,4 @@ private:
 	VmaAllocator m_Allocator = nullptr;
 };
 
-} // namespace lm::vk
+} // namespace lmvk

@@ -1,5 +1,7 @@
 #include "lumen_engine/windowing/window_manager.hpp"
 
+#include <algorithm>
+
 namespace lm {
 
 Window *WindowManager::CreateWindow(const WindowDesc &desc, WindowEventCallbackFn onEvent) {

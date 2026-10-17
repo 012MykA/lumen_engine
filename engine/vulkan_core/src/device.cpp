@@ -5,7 +5,7 @@
 #include <set>
 #include <utility>
 
-namespace lm::vk {
+namespace lmvk {
 
 Device::Device(const PhysicalDevice &physicalDevice) {
 	const QueueFamilyIndices &indices = physicalDevice.GetQueueFamilies();
@@ -93,4 +93,4 @@ void Device::WaitIdle() const {
 	CHECK_VK(vkDeviceWaitIdle(m_Device));
 }
 
-} // namespace lm::vk
+} // namespace lmvk

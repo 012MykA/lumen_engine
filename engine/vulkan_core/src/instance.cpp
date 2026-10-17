@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace lm::vk {
+namespace lmvk {
 
 namespace {
 
@@ -53,8 +53,6 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 } // namespace
 
 Instance::Instance(const InstanceDesc &desc) {
-	CHECK_VK(volkInitialize());
-
 	CreateVkInstance(desc);
 	if (desc.enableValidation) {
 		SetupDebugMessenger();
@@ -62,13 +60,12 @@ Instance::Instance(const InstanceDesc &desc) {
 }
 
 Instance::~Instance() {
-	if (m_DebugMessenger != VK_NULL_HANDLE) {
-		DestroyDebugMessenger();
-	}
 	if (m_Instance != VK_NULL_HANDLE) {
+		if (m_DebugMessenger != VK_NULL_HANDLE) {
+			DestroyDebugMessenger();
+		}
 		vkDestroyInstance(m_Instance, nullptr);
 	}
-	volkFinalize();
 }
 
 Instance::Instance(Instance &&other) noexcept
@@ -178,4 +175,4 @@ std::vector<const char *> Instance::FilterSupportedInstanceExtensions(const std:
 	return enabled;
 }
 
-} // namespace lm::vk
+} // namespace lmvk
