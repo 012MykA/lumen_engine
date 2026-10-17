@@ -5,6 +5,16 @@
 
 namespace lm {
 
+WindowContext::WindowContext() {
+	if (!Init()) {
+		throw std::runtime_error("failed to initialize WindowContext");
+	}
+}
+
+WindowContext::~WindowContext() {
+	Shutdown();
+}
+
 bool WindowContext::Init() {
 	if (s_RefCount++ == 0) {
 		glfwSetErrorCallback([](int code, const char *desc) {

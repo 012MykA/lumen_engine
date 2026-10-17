@@ -3,7 +3,6 @@
 #include "lumen_engine/core/events/keyboard_events.hpp"
 #include "lumen_engine/core/events/mouse_events.hpp"
 #include "lumen_engine/core/events/window_events.hpp"
-#include "lumen_engine/windowing/window_context.hpp"
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
 	#define GLFW_EXPOSE_NATIVE_WIN32
@@ -21,10 +20,6 @@
 namespace lm {
 
 GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) {
-	if (!WindowContext::IsInitialized()) {
-		throw std::runtime_error{ "WindowContext is not initialized yet. Call WindowContext::Init() first." };
-	}
-
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, desc.resizable ? GLFW_TRUE : GLFW_FALSE);
 	glfwWindowHint(GLFW_FOCUSED, desc.focused ? GLFW_TRUE : GLFW_FALSE);

@@ -6,16 +6,15 @@ namespace lm {
 
 class WindowContext {
 public:
-	WindowContext(const WindowContext &) = delete;
-	WindowContext &operator=(const WindowContext &) = delete;
+	WindowContext();
+	~WindowContext();
 
-	static bool Init();
-	static void Shutdown();
+	bool Init();
+	void Shutdown();
 
-	static bool IsInitialized();
+	bool IsInitialized();
 
 private:
-	WindowContext() = default;
 	inline static int32_t s_RefCount{ 0 };
 };
 

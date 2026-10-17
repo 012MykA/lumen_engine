@@ -52,6 +52,7 @@ private:
 private:
 	ApplicationCommandLineArgs m_Args;
 	bool m_Running{ true };
+
 	WindowManager m_WindowManager;
 
 private:
