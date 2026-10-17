@@ -9,10 +9,14 @@ public:
 	WindowContext();
 	~WindowContext();
 
+	WindowContext(const WindowContext &) = delete;
+	WindowContext &operator=(const WindowContext &) = delete;
+
+	static bool IsInitialized();
+
+private:
 	bool Init();
 	void Shutdown();
-
-	bool IsInitialized();
 
 private:
 	inline static int32_t s_RefCount{ 0 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lumen_engine/windowing/window_context.hpp"
 #include "lumen_engine/windowing/window_manager.hpp"
 
 #include <memory>
@@ -53,6 +54,7 @@ private:
 	ApplicationCommandLineArgs m_Args;
 	bool m_Running{ true };
 
+	WindowContext m_Context;
 	WindowManager m_WindowManager;
 
 private:

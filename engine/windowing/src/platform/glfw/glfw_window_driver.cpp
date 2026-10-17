@@ -3,6 +3,7 @@
 #include "lumen_engine/core/events/keyboard_events.hpp"
 #include "lumen_engine/core/events/mouse_events.hpp"
 #include "lumen_engine/core/events/window_events.hpp"
+#include "lumen_engine/windowing/window_context.hpp"
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
 	#define GLFW_EXPOSE_NATIVE_WIN32
@@ -14,12 +15,15 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
+#include <cassert>
 #include <format>
 #include <stdexcept>
 
 namespace lm {
 
 GlfwWindowDriver::GlfwWindowDriver(const WindowDesc &desc) {
+	assert(WindowContext::IsInitialized());
+
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, desc.resizable ? GLFW_TRUE : GLFW_FALSE);
 	glfwWindowHint(GLFW_FOCUSED, desc.focused ? GLFW_TRUE : GLFW_FALSE);

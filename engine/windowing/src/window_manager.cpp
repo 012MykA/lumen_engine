@@ -29,4 +29,10 @@ void WindowManager::ProcessPendingDestructions() {
 	m_PendingDestroy.clear();
 }
 
+void WindowManager::PollEvents() const {
+	for (auto &window : m_Windows) {
+		window->OnUpdate();
+	}
+}
+
 } // namespace lm

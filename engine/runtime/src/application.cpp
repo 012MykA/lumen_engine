@@ -29,8 +29,8 @@ void Application::Run() {
 		float ts = std::chrono::duration<float>(now - lastTime).count();
 		lastTime = now;
 
+		m_WindowManager.PollEvents();
 		for (auto &window : m_WindowManager) {
-			window->OnUpdate();
 			window->UpdateLayers(ts);
 			window->RenderLayers();
 		}

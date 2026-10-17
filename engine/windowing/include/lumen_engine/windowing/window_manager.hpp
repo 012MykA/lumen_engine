@@ -1,7 +1,6 @@
 #pragma once
 
 #include "lumen_engine/windowing/window.hpp"
-#include "lumen_engine/windowing/window_context.hpp"
 
 #include <functional>
 #include <memory>
@@ -23,13 +22,14 @@ public:
 	void MarkForDestruction(Window *window);
 	void ProcessPendingDestructions();
 
+	void PollEvents() const;
+
 	bool IsEmpty() const { return m_Windows.empty(); }
 
 	auto begin() { return m_Windows.begin(); }
 	auto end() { return m_Windows.end(); }
 
 private:
-	WindowContext m_Context;
 	std::vector<std::unique_ptr<Window>> m_Windows;
 	std::vector<Window *> m_PendingDestroy;
 };
