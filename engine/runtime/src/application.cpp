@@ -32,7 +32,7 @@ void Application::Run() {
 
 	auto lastTime = std::chrono::steady_clock::now();
 
-	while (m_Running && !glfwWindowShouldClose(m_WindowHandle)) {
+	while (m_Running && !glfwWindowShouldClose(m_Window.handle)) {
 		glfwPollEvents();
 
 		auto now = std::chrono::steady_clock::now();
@@ -62,18 +62,14 @@ void Application::Init() {
 		throw std::runtime_error{ "failed to initialize GLFW" };
 	}
 
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	m_WindowHandle = glfwCreateWindow(1280, 720, "Lumen Engine", nullptr, nullptr);
-	if (!m_WindowHandle) {
-		throw std::runtime_error{ "failed to create window" };
-	}
+	m_Window.Create();
 
-	glfwSetWindowUserPointer(m_WindowHandle, this);
-	InitGlfwCallbacks(m_WindowHandle);
+	glfwSetWindowUserPointer(m_Window.handle, this);
+	InitGlfwCallbacks(m_Window.handle);
 }
 
 void Application::Shutdown() {
-	glfwDestroyWindow(m_WindowHandle);
+	m_Window.Destroy();
 	glfwTerminate();
 }
 

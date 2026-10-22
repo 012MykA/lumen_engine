@@ -2,6 +2,7 @@
 
 #include "lumen_engine/core/layer.hpp"
 #include "lumen_engine/core/layer_stack.hpp"
+#include "lumen_engine/core/window.hpp"
 #include "lumen_engine/gfx/graphics_context.hpp"
 #include "lumen_engine/runtime/app_cmd_args.hpp"
 
@@ -31,7 +32,7 @@ public:
 
 public:
 	const ApplicationCmdArgs &GetArgs() const { return m_Args; }
-	GLFWwindow *GetWindowHandle() const { return m_WindowHandle; }
+	const Window &GetWindow() const { return m_Window; }
 
 private:
 	void Init();
@@ -45,7 +46,7 @@ private:
 	ApplicationCmdArgs m_Args;
 	bool m_Running{ true };
 
-	GLFWwindow *m_WindowHandle{ nullptr };
+	Window m_Window;
 	LayerStack m_LayerStack;
 
 	GraphicsContext m_Graphics;

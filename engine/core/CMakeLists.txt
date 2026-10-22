@@ -10,6 +10,7 @@ add_library(engine_core STATIC
     src/events/window_events.cpp
 
     src/log.cpp
+    src/window.cpp
 )
 
 target_include_directories(engine_core

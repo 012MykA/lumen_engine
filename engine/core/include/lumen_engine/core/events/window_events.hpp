@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lumen_engine/core/events/event.hpp"
+#include "lumen_engine/core/window.hpp"
 
 #include <cstdint>
 #include <string>
@@ -19,7 +20,7 @@ class WindowResizeEvent final : public Event {
 public:
 	WindowResizeEvent(uint32_t width, uint32_t height);
 
-	std::pair<uint32_t, uint32_t> GetExtent() const { return { m_Width, m_Height }; }
+	WindowExtent GetExtent() const { return { m_Width, m_Height }; }
 	uint32_t GetWidth() const { return m_Width; }
 	uint32_t GetHeight() const { return m_Height; }
 

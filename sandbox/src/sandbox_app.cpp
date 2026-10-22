@@ -8,11 +8,11 @@
 class SandboxApp final : public lm::Application {
 public:
 	explicit SandboxApp(const lm::ApplicationCmdArgs &args) : lm::Application(args) {
-		GLFWwindow *window = App.GetWindowHandle();
-		App.PushLayer<VulkanRenderLayer>();
+		auto window = App.GetWindow();
+		App.PushLayer<VulkanRenderLayer>(window);
 
 		if (IsSystemDarkTheme()) {
-			SetWindowDarkMode(window);
+			SetWindowDarkMode(window.handle);
 		}
 	}
 };

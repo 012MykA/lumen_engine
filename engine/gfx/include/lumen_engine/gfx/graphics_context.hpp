@@ -16,8 +16,6 @@ struct GraphicsContextDesc {
 	bool enableValidation = true;
 };
 
-class Window;
-
 class GraphicsContext final {
 public:
 	explicit GraphicsContext(const GraphicsContextDesc &desc = {});
