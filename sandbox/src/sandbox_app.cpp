@@ -1,4 +1,5 @@
-#include "render_layer.hpp"
+#include "platform.hpp"
+#include "vulkan_render_layer.hpp"
 
 #include <lumen_engine/runtime/entry_point.hpp>
 
@@ -6,7 +7,14 @@ class SandboxApp final : public lm::Application {
 public:
 	explicit SandboxApp(const lm::ApplicationCmdArgs &args) : lm::Application(args) {
 		auto &app = lm::Application::Get();
-		app.PushLayer<RenderLayer>();
+
+		const auto &window = app.GetWindow();
+
+		app.PushLayer<VulkanRenderLayer>(window);
+
+		if (IsSystemDarkTheme()) {
+			SetWindowDarkMode(window.handle);
+		}
 	}
 };
 
