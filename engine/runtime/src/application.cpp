@@ -1,5 +1,11 @@
 #include "lumen_engine/runtime/application.hpp"
 
+#include "lumen_engine/core/events/event.hpp"
+#include "lumen_engine/core/events/event_dispatcher.hpp"
+#include "lumen_engine/core/events/keyboard_events.hpp"
+#include "lumen_engine/core/events/mouse_events.hpp"
+#include "lumen_engine/core/events/window_events.hpp"
+
 #include <cassert>
 #include <chrono>
 #include <stdexcept>
@@ -26,7 +32,7 @@ void Application::Run() {
 
 	auto lastTime = std::chrono::steady_clock::now();
 
-	while (m_Running) {
+	while (m_Running && !glfwWindowShouldClose(m_WindowHandle)) {
 		glfwPollEvents();
 
 		auto now = std::chrono::steady_clock::now();
@@ -62,12 +68,110 @@ void Application::Init() {
 		throw std::runtime_error{ "failed to create window" };
 	}
 
-	// glfwSetWindowUserPointer(m_Handle, this);
-	// InitCallbacks();
+	glfwSetWindowUserPointer(m_WindowHandle, this);
+	InitGlfwCallbacks(m_WindowHandle);
 }
 
 void Application::Shutdown() {
+	glfwDestroyWindow(m_WindowHandle);
 	glfwTerminate();
+}
+
+void Application::OnEvent(Event &e) {
+	EventDispatcher dp{ e };
+	dp.Dispatch<WindowCloseEvent>([this](WindowCloseEvent &) { Close(); return false; });
+}
+
+void Application::InitGlfwCallbacks(GLFWwindow *handle) {
+	glfwSetWindowCloseCallback(handle, [](GLFWwindow *window) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+		WindowCloseEvent e{};
+		self->OnEvent(e);
+	});
+
+	glfwSetWindowSizeCallback(handle, [](GLFWwindow *window, int width, int height) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+		WindowResizeEvent e{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+		self->OnEvent(e);
+	});
+
+	glfwSetWindowFocusCallback(handle, [](GLFWwindow *window, int focused) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+		if (focused) {
+			WindowFocusEvent e{};
+			self->OnEvent(e);
+		} else {
+			WindowLostFocusEvent e{};
+			self->OnEvent(e);
+		}
+	});
+
+	glfwSetWindowPosCallback(handle, [](GLFWwindow *window, int xpos, int ypos) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+		WindowMovedEvent e{ xpos, ypos };
+		self->OnEvent(e);
+	});
+
+	glfwSetKeyCallback(handle, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+		switch (action) {
+			case GLFW_PRESS: {
+				KeyPressedEvent e{ static_cast<KeyCode>(key), 0 };
+				self->OnEvent(e);
+				break;
+			}
+			case GLFW_RELEASE: {
+				KeyReleasedEvent e{ static_cast<KeyCode>(key) };
+				self->OnEvent(e);
+				break;
+			}
+			case GLFW_REPEAT: {
+				KeyPressedEvent e{ static_cast<KeyCode>(key), static_cast<uint32_t>(1) };
+				self->OnEvent(e);
+				break;
+			}
+		}
+	});
+
+	glfwSetCharCallback(handle, [](GLFWwindow *window, unsigned int codepoint) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+		KeyTypedEvent e{ static_cast<KeyCode>(codepoint) };
+		self->OnEvent(e);
+	});
+
+	glfwSetCursorPosCallback(handle, [](GLFWwindow *window, double xpos, double ypos) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+		MouseMovedEvent e{ static_cast<float>(xpos), static_cast<float>(ypos) };
+		self->OnEvent(e);
+	});
+
+	glfwSetScrollCallback(handle, [](GLFWwindow *window, double xoffset, double yoffset) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+		MouseScrolledEvent e{ static_cast<float>(xoffset), static_cast<float>(yoffset) };
+		self->OnEvent(e);
+	});
+
+	glfwSetMouseButtonCallback(handle, [](GLFWwindow *window, int button, int action, int mods) {
+		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+		switch (action) {
+			case GLFW_PRESS: {
+				MouseButtonPressedEvent e{ static_cast<MouseCode>(button) };
+				self->OnEvent(e);
+				break;
+			}
+			case GLFW_RELEASE: {
+				MouseButtonReleasedEvent e{ static_cast<MouseCode>(button) };
+				self->OnEvent(e);
+				break;
+			}
+		}
+	});
 }
 
 } // namespace lm

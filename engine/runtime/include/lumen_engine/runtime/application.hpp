@@ -37,6 +37,10 @@ private:
 	void Init();
 	void Shutdown();
 
+	void OnEvent(Event &e);
+
+	static void InitGlfwCallbacks(GLFWwindow *handle);
+
 private:
 	ApplicationCmdArgs m_Args;
 	bool m_Running{ true };

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "lumen_engine/core/window_desc.hpp"
 #include "lumen_engine/core/events/event.hpp"
 
 #include <cstdint>

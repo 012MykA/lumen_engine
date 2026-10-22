@@ -11,7 +11,6 @@
 #include "lumen_engine/core/layer_stack.hpp"
 #include "lumen_engine/core/log.hpp"
 #include "lumen_engine/core/mouse_codes.hpp"
-#include "lumen_engine/core/window_desc.hpp"
 
 // --- Runtime ---
 #include "lumen_engine/runtime/application.hpp"
