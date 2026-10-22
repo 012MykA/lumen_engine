@@ -1,12 +1,14 @@
 #pragma once
 
+#include "check_vk.hpp"
+
+#include <lumen_engine/lumen_engine.hpp>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <lumen_engine/lumen_engine.hpp>
-#include <vulkan/vk_enum_string_helper.h>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <array>
 #include <concepts>
@@ -16,16 +18,6 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
-
-#ifndef CHECK_VK
-	#define CHECK_VK(x) \
-		do { \
-			VkResult res = (x); \
-			if (res != VK_SUCCESS) { \
-				throw std::runtime_error(std::format("Vulkan error: {} at {}:{}", string_VkResult(res), __FILE__, __LINE__)); \
-			} \
-		} while (0)
-#endif
 
 struct Vertex {
 	glm::vec3 pos;

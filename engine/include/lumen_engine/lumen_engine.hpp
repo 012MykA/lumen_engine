@@ -15,14 +15,3 @@
 
 // --- Runtime ---
 #include "lumen_engine/runtime/application.hpp"
-
-// --- Vulkan Core ---
-#include "lumen_engine/vulkan_core/check_vk.hpp"
-#include "lumen_engine/vulkan_core/device.hpp"
-#include "lumen_engine/vulkan_core/instance.hpp"
-#include "lumen_engine/vulkan_core/physical_device.hpp"
-#include "lumen_engine/vulkan_core/vma_allocator.hpp"
-#include "lumen_engine/vulkan_core/volk_loader.hpp"
-
-// --- Graphics ---
-#include "lumen_engine/gfx/graphics_context.hpp"

@@ -3,7 +3,6 @@
 #include "lumen_engine/core/layer.hpp"
 #include "lumen_engine/core/layer_stack.hpp"
 #include "lumen_engine/core/window.hpp"
-#include "lumen_engine/gfx/graphics_context.hpp"
 #include "lumen_engine/runtime/app_cmd_args.hpp"
 
 #include <GLFW/glfw3.h>
@@ -48,8 +47,6 @@ private:
 
 	Window m_Window;
 	LayerStack m_LayerStack;
-
-	GraphicsContext m_Graphics;
 
 private:
 	inline static Application *s_Instance{ nullptr };

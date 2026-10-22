@@ -1,10 +1,8 @@
 #include "vulkan_render_layer.hpp"
-#ifdef max
-	#undef max
-#endif
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <vulkan/vk_enum_string_helper.h>
 
 #include <algorithm>
 #include <array>

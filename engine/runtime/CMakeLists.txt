@@ -12,9 +12,6 @@ target_include_directories(engine_runtime
 target_link_libraries(engine_runtime
     PUBLIC
         engine::core
-        engine::gfx
-    
-    PUBLIC
         glfw
 )
 

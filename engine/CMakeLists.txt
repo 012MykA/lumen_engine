@@ -29,15 +29,11 @@ add_library(engine::common ALIAS engine_common)
 
 add_subdirectory(core)
 add_subdirectory(runtime)
-add_subdirectory(vulkan_core)
-add_subdirectory(gfx)
 
 add_library(lumen_engine INTERFACE)
 target_link_libraries(lumen_engine INTERFACE
     engine::core
     engine::runtime
-    engine::vulkan_core
-    engine::gfx
 )
 target_include_directories(lumen_engine INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(lumen::engine ALIAS lumen_engine)
