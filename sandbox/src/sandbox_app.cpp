@@ -3,10 +3,13 @@
 
 #include <lumen_engine/runtime/entry_point.hpp>
 
+#define App lm::Application::Get()
+
 class SandboxApp final : public lm::Application {
 public:
 	explicit SandboxApp(const lm::ApplicationCmdArgs &args) : lm::Application(args) {
-		GLFWwindow *window = lm::Application::Get().GetWindowHandle();
+		GLFWwindow *window = App.GetWindowHandle();
+		App.PushLayer<VulkanRenderLayer>();
 
 		if (IsSystemDarkTheme()) {
 			SetWindowDarkMode(window);
