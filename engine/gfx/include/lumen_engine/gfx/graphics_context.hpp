@@ -6,6 +6,7 @@
 #include "lumen_engine/vulkan_core/vma_allocator.hpp"
 #include "lumen_engine/vulkan_core/volk_loader.hpp"
 
+#include <memory>
 #include <string>
 
 namespace lm {
@@ -19,7 +20,7 @@ class Window;
 
 class GraphicsContext final {
 public:
-	explicit GraphicsContext(const Window &target, const GraphicsContextDesc &desc);
+	explicit GraphicsContext(const GraphicsContextDesc &desc = {});
 	~GraphicsContext();
 
 	GraphicsContext(const GraphicsContext &) = delete;
@@ -27,10 +28,10 @@ public:
 
 private:
 	lmvk::VolkLoader m_Loader;
-	lmvk::Instance m_Instance;
-	lmvk::PhysicalDevice m_PhysicalDevice;
-	lmvk::Device m_Device;
-	lmvk::VmaAllocatorWrapper m_Allocator;
+	std::unique_ptr<lmvk::Instance> m_Instance;
+	std::unique_ptr<lmvk::PhysicalDevice> m_PhysicalDevice;
+	std::unique_ptr<lmvk::Device> m_Device;
+	std::unique_ptr<lmvk::VmaAllocatorWrapper> m_Allocator;
 };
 
 } // namespace lm

@@ -13,11 +13,6 @@
 #include "lumen_engine/core/mouse_codes.hpp"
 #include "lumen_engine/core/window_desc.hpp"
 
-// --- Windowing ---
-#include "lumen_engine/windowing/window.hpp"
-#include "lumen_engine/windowing/window_context.hpp"
-#include "lumen_engine/windowing/window_manager.hpp"
-
 // --- Runtime ---
 #include "lumen_engine/runtime/application.hpp"
 

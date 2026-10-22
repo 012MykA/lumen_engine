@@ -1,45 +1,48 @@
 #include "lumen_engine/runtime/application.hpp"
 
-#include "lumen_engine/core/events/event_dispatcher.hpp"
-#include "lumen_engine/core/events/window_events.hpp"
-#include "lumen_engine/windowing/window.hpp"
-
-#include <algorithm>
-#include <array>
 #include <cassert>
 #include <chrono>
-#include <thread>
+#include <stdexcept>
 
 namespace lm {
 
-Application::Application(const ApplicationCommandLineArgs &args) :
-		m_Args{ args },
-		m_Graphics(**m_WindowManager.begin(), {}) {
+Application::Application(const ApplicationCmdArgs &args) : m_Args{ args } {
 	assert(!s_Instance && "Application already exists!");
 	s_Instance = this;
+	Init();
 }
 
 Application::~Application() {
+	Shutdown();
 	s_Instance = nullptr;
 }
 
+Application &Application::Get() {
+	return *s_Instance;
+}
+
 void Application::Run() {
+	m_Running = true;
+
 	auto lastTime = std::chrono::steady_clock::now();
 
 	while (m_Running) {
+		glfwPollEvents();
+
 		auto now = std::chrono::steady_clock::now();
 		float ts = std::chrono::duration<float>(now - lastTime).count();
 		lastTime = now;
 
-		m_WindowManager.PollEvents();
-		for (auto &window : m_WindowManager) {
-			window->UpdateLayers(ts);
-			window->RenderLayers();
+		for (auto &layer : m_LayerStack) {
+			layer->OnUpdate(ts);
 		}
 
-		m_WindowManager.ProcessPendingDestructions();
-		if (m_WindowManager.IsEmpty()) {
-			Close();
+		for (auto &layer : m_LayerStack) {
+			layer->OnRender();
+		}
+
+		for (auto &layer : m_LayerStack) {
+			layer->OnUIRender();
 		}
 	}
 }
@@ -48,36 +51,23 @@ void Application::Close() {
 	m_Running = false;
 }
 
-Window *Application::CreateWindow(const WindowDesc &desc) {
-	Window *window = m_WindowManager.CreateWindow(desc, [this](Window *sender, Event &e) {
-		OnWindowEvent(sender, e);
-	});
-	return window;
+void Application::Init() {
+	if (!glfwInit()) {
+		throw std::runtime_error{ "failed to initialize GLFW" };
+	}
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	m_WindowHandle = glfwCreateWindow(1280, 720, "Lumen Engine", nullptr, nullptr);
+	if (!m_WindowHandle) {
+		throw std::runtime_error{ "failed to create window" };
+	}
+
+	// glfwSetWindowUserPointer(m_Handle, this);
+	// InitCallbacks();
 }
 
-void Application::OnEvent(Window *sender, Event &e) {
-	EventDispatcher dp(e);
-	dp.Dispatch<WindowCloseEvent>([this, sender](WindowCloseEvent &event) {
-		return OnWindowClose(sender, event);
-	});
-	dp.Dispatch<WindowFocusEvent>([this, sender](WindowFocusEvent &event) {
-		return OnWindowFocus(sender, event);
-	});
-}
-
-void Application::OnWindowEvent(Window *sender, Event &e) {
-	EventDispatcher dp(e);
-	dp.Dispatch<WindowCloseEvent>([this, sender](auto &ev) { return OnWindowClose(sender, ev); });
-	dp.Dispatch<WindowFocusEvent>([this, sender](auto &ev) { return OnWindowFocus(sender, ev); });
-}
-
-bool Application::OnWindowClose(Window *sender, WindowCloseEvent &e) {
-	m_WindowManager.MarkForDestruction(sender);
-	return true;
-}
-
-bool Application::OnWindowFocus(Window *sender, WindowFocusEvent &e) {
-	return true;
+void Application::Shutdown() {
+	glfwTerminate();
 }
 
 } // namespace lm

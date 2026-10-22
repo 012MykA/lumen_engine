@@ -29,7 +29,6 @@ add_library(engine::common ALIAS engine_common)
 
 add_subdirectory(core)
 add_subdirectory(runtime)
-add_subdirectory(windowing)
 add_subdirectory(vulkan_core)
 add_subdirectory(gfx)
 
@@ -37,7 +36,6 @@ add_library(lumen_engine INTERFACE)
 target_link_libraries(lumen_engine INTERFACE
     engine::core
     engine::runtime
-    engine::windowing
     engine::vulkan_core
     engine::gfx
 )

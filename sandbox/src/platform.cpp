@@ -9,8 +9,11 @@
 	#include <dwmapi.h>
 	#pragma comment(lib, "dwmapi.lib")
 
-void SetWindowDarkMode(lm::Window *window) {
-	HWND hwnd = static_cast<HWND>(window->GetNativeHandle());
+	#define GLFW_EXPOSE_NATIVE_WIN32
+	#include <GLFW/glfw3native.h>
+
+void SetWindowDarkMode(GLFWwindow *window) {
+	HWND hwnd = glfwGetWin32Window(window);
 	BOOL useDarkMode = TRUE;
 	DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode,
 			sizeof(useDarkMode));
@@ -40,7 +43,7 @@ bool IsSystemDarkTheme() {
 
 #else
 
-void SetWindowDarkMode(lm::Window *window, char value) {}
+void SetWindowDarkMode(GLFWwindow *window, char value) {}
 
 bool IsSystemDarkTheme() {
 	return false;

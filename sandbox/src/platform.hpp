@@ -1,9 +1,7 @@
 #pragma once
 
-namespace lm {
-class Window;
-}
+#include <GLFW/glfw3.h>
 
-void SetWindowDarkMode(lm::Window *window);
+void SetWindowDarkMode(GLFWwindow *window);
 
 bool IsSystemDarkTheme();

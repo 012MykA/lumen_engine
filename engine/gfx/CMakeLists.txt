@@ -10,7 +10,6 @@ target_include_directories(engine_gfx
 target_link_libraries(engine_gfx
     PUBLIC
     engine::core
-    engine::windowing
     engine::vulkan_core
 )
 

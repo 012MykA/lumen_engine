@@ -1,68 +1,66 @@
 #pragma once
 
+#include "lumen_engine/core/layer.hpp"
+#include "lumen_engine/core/layer_stack.hpp"
 #include "lumen_engine/gfx/graphics_context.hpp"
-#include "lumen_engine/windowing/window_context.hpp"
-#include "lumen_engine/windowing/window_manager.hpp"
+#include "lumen_engine/runtime/app_cmd_args.hpp"
 
-#include <memory>
-#include <string>
-#include <vector>
+#include <GLFW/glfw3.h>
+
+#include <type_traits>
 
 namespace lm {
 
-struct ApplicationCommandLineArgs {
-	ApplicationCommandLineArgs(int argc, char **argv) : args(argv, argv + argc) {}
-
-	const std::string &operator[](size_t idx) const { return args[idx]; }
-
-	std::vector<std::string> args;
-};
-
-class Window;
-struct WindowDesc;
-
-class Event;
-class WindowCloseEvent;
-class WindowFocusEvent;
-
 class Application {
 public:
-	explicit Application(const ApplicationCommandLineArgs &args);
-	virtual ~Application();
+	explicit Application(const ApplicationCmdArgs &args);
+	~Application();
 
-	Application(const Application &) = delete;
-	Application &operator=(const Application &) = delete;
+	static Application &Get();
 
-	Application(Application &&) = delete;
-	Application &operator=(Application &&) = delete;
-
+public:
 	void Run();
 	void Close();
 
-	Window *CreateWindow(const WindowDesc &desc);
+	template <typename T>
+	void PushLayer(std::shared_ptr<T> layer);
 
-	void OnEvent(Window *sender, Event &e);
+	template <typename T, typename... Args>
+		requires std::derived_from<T, Layer>
+	void PushLayer(Args &&...args);
 
-	static Application &Get() { return *s_Instance; }
-	const ApplicationCommandLineArgs &GetArgs() const { return m_Args; }
+public:
+	const ApplicationCmdArgs &GetArgs() const { return m_Args; }
+	GLFWwindow *GetWindowHandle() const { return m_WindowHandle; }
 
 private:
-	void OnWindowEvent(Window *sender, Event &e);
-	bool OnWindowClose(Window *sender, WindowCloseEvent &e);
-	bool OnWindowFocus(Window *sender, WindowFocusEvent &e);
+	void Init();
+	void Shutdown();
 
 private:
-	ApplicationCommandLineArgs m_Args;
+	ApplicationCmdArgs m_Args;
 	bool m_Running{ true };
 
-	WindowContext m_Context;
+	GLFWwindow *m_WindowHandle{ nullptr };
+	LayerStack m_LayerStack;
+
 	GraphicsContext m_Graphics;
-	WindowManager m_WindowManager;
 
 private:
 	inline static Application *s_Instance{ nullptr };
 };
 
-std::unique_ptr<Application> CreateApplication(const ApplicationCommandLineArgs &args);
+std::unique_ptr<Application> CreateApplication(const ApplicationCmdArgs &args);
+
+template <typename T>
+inline void Application::PushLayer(std::shared_ptr<T> layer) {
+	m_LayerStack.PushLayer(layer);
+}
+
+template <typename T, typename... Args>
+	requires std::derived_from<T, Layer>
+inline void Application::PushLayer(Args &&...args) {
+	m_LayerStack.PushLayer<T>(std::forward<Args>(args)...);
+}
 
 } // namespace lm

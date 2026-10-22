@@ -5,21 +5,16 @@
 
 class SandboxApp final : public lm::Application {
 public:
-	explicit SandboxApp(const lm::ApplicationCommandLineArgs &args) : lm::Application(args) {
-		m_MainWindow = CreateWindow({});
+	explicit SandboxApp(const lm::ApplicationCmdArgs &args) : lm::Application(args) {
+		GLFWwindow *window = lm::Application::Get().GetWindowHandle();
 
 		if (IsSystemDarkTheme()) {
-			SetWindowDarkMode(m_MainWindow);
+			SetWindowDarkMode(window);
 		}
-
-		m_MainWindow->PushLayer<VulkanRenderLayer>();
 	}
-
-private:
-	lm::Window *m_MainWindow;
 };
 
 std::unique_ptr<lm::Application> lm::CreateApplication(
-		const lm::ApplicationCommandLineArgs &args) {
+		const lm::ApplicationCmdArgs &args) {
 	return std::make_unique<SandboxApp>(args);
 }
