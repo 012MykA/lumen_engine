@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lumen_engine/gfx/graphics_context.hpp"
 #include "lumen_engine/windowing/window_context.hpp"
 #include "lumen_engine/windowing/window_manager.hpp"
 
@@ -55,6 +56,7 @@ private:
 	bool m_Running{ true };
 
 	WindowContext m_Context;
+	GraphicsContext m_Graphics;
 	WindowManager m_WindowManager;
 
 private:

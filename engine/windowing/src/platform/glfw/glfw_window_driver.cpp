@@ -12,6 +12,7 @@
 	#define GLFW_EXPOSE_NATIVE_WAYLAND
 #endif
 
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
@@ -94,6 +95,16 @@ void *GlfwWindowDriver::GetNativeHandle() const {
 
 void *GlfwWindowDriver::GetGLFWwindow() const {
 	return reinterpret_cast<void *>(m_Handle);
+}
+
+void *GlfwWindowDriver::CreateVulkanSurface(void *instance) const {
+	VkInstance inst = *reinterpret_cast<VkInstance *>(instance);
+
+	VkSurfaceKHR surface;
+	if (glfwCreateWindowSurface(inst, m_Handle, nullptr, &surface) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create window surface");
+	}
+	return surface;
 }
 
 void GlfwWindowDriver::InitCallbacks() {

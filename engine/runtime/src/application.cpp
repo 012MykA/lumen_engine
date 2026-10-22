@@ -12,7 +12,9 @@
 
 namespace lm {
 
-Application::Application(const ApplicationCommandLineArgs &args) : m_Args(args) {
+Application::Application(const ApplicationCommandLineArgs &args) :
+		m_Args{ args },
+		m_Graphics(**m_WindowManager.begin(), {}) {
 	assert(!s_Instance && "Application already exists!");
 	s_Instance = this;
 }

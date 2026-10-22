@@ -2,7 +2,7 @@
 
 #include "lumen_engine/windowing/window.hpp"
 
-class GLFWwindow;
+struct GLFWwindow;
 
 namespace lm {
 
@@ -23,6 +23,7 @@ public:
 
 	void *GetNativeHandle() const override;
 	void *GetGLFWwindow() const override;
+	void *CreateVulkanSurface(void *instance) const override;
 
 private:
 	void InitCallbacks();

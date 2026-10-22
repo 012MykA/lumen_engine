@@ -1,11 +1,10 @@
+#define VMA_IMPLEMENTATION
 #include "lumen_engine/vulkan_core/vma_allocator.hpp"
 
 #include "lumen_engine/vulkan_core/check_vk.hpp"
 
-#include <volk.h>
-
-#define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
+#include <volk.h>
 
 #include <utility>
 

@@ -72,21 +72,17 @@ bool SupportsExtensions(VkPhysicalDevice device, const std::vector<const char *>
 	});
 }
 
-bool SupportsRequiredFeatures(VkPhysicalDevice device) {
-	VkPhysicalDeviceVulkan11Features f11{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-	VkPhysicalDeviceVulkan12Features f12{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES, .pNext = &f11 };
-	VkPhysicalDeviceVulkan13Features f13{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES, .pNext = &f12 };
-	VkPhysicalDeviceFeatures2 f2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext = &f13 };
-	vkGetPhysicalDeviceFeatures2(device, &f2);
+} // namespace
 
-	return f13.dynamicRendering &&
-			f13.synchronization2 &&
-			f12.bufferDeviceAddress &&
-			f12.descriptorIndexing && // bindless
-			f11.shaderDrawParameters;
+void EnableRequiredFeatures(FeatureChain &chain) {
+	chain.f2.features.samplerAnisotropy = VK_TRUE;
+	chain.f13.dynamicRendering = VK_TRUE;
 }
 
-} // namespace
+bool HasRequiredFeatures(const FeatureChain &q) {
+	return q.f2.features.samplerAnisotropy &&
+			q.f13.dynamicRendering;
+}
 
 PhysicalDevice::PhysicalDevice(VkInstance instance, VkSurfaceKHR surface, const PhysicalDeviceDesc &desc) {
 	uint32_t count = 0;
@@ -100,9 +96,13 @@ PhysicalDevice::PhysicalDevice(VkInstance instance, VkSurfaceKHR surface, const 
 	auto it = std::ranges::find_if(devices, [&](VkPhysicalDevice device) {
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(device, &props);
+
+		FeatureChain features;
+		vkGetPhysicalDeviceFeatures2(device, &features.f2);
+
 		return props.apiVersion >= VK_API_VERSION_1_3 &&
 				SupportsExtensions(device, desc.requiredExtensions) &&
-				SupportsRequiredFeatures(device) &&
+				HasRequiredFeatures(features) &&
 				FindQueueFamilies(device, surface).IsComplete();
 	});
 	if (it == devices.end()) {

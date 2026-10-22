@@ -11,6 +11,7 @@ target_link_libraries(engine_runtime
     PUBLIC
         engine::core
         engine::windowing
+        engine::gfx
 )
 
 add_library(engine::runtime ALIAS engine_runtime)

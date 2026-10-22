@@ -1,8 +1,8 @@
 #pragma once
 
+#include "lumen_engine/core/events/event.hpp"
 #include "lumen_engine/core/layer_stack.hpp"
 #include "lumen_engine/core/window_desc.hpp"
-#include "lumen_engine/core/events/event.hpp"
 
 #include <functional>
 #include <memory>
@@ -35,6 +35,7 @@ public:
 
 	virtual void *GetNativeHandle() const = 0;
 	virtual void *GetGLFWwindow() const = 0;
+	virtual void* CreateVulkanSurface(void* instance) const = 0;
 
 	void SetEventCallback(const EventCallbackFn &callback) { m_EventCallback = callback; }
 	LayerStack &GetLayerStack() { return m_LayerStack; }
