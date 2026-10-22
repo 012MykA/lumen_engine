@@ -36,4 +36,3 @@ target_link_libraries(lumen_engine INTERFACE
     engine::runtime
 )
 target_include_directories(lumen_engine INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(lumen::engine ALIAS lumen_engine)
