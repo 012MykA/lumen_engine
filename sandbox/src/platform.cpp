@@ -1,6 +1,6 @@
 #include "platform.hpp"
 
-#include <lumen_engine/lumen_engine.hpp>
+#include <GLFW/glfw3.h>
 
 #if defined(LUMEN_PLATFORM_WINDOWS)
 

@@ -115,17 +115,17 @@ void Application::InitGlfwCallbacks(GLFWwindow *handle) {
 
 		switch (action) {
 			case GLFW_PRESS: {
-				KeyPressedEvent e{ static_cast<KeyCode>(key), 0 };
+				KeyPressedEvent e{ static_cast<KeyCode>(key), 0, static_cast<Modifiers>(mods) };
 				self->OnEvent(e);
 				break;
 			}
 			case GLFW_RELEASE: {
-				KeyReleasedEvent e{ static_cast<KeyCode>(key) };
+				KeyReleasedEvent e{ static_cast<KeyCode>(key), static_cast<Modifiers>(mods) };
 				self->OnEvent(e);
 				break;
 			}
 			case GLFW_REPEAT: {
-				KeyPressedEvent e{ static_cast<KeyCode>(key), static_cast<uint32_t>(1) };
+				KeyPressedEvent e{ static_cast<KeyCode>(key), 1, static_cast<Modifiers>(mods) };
 				self->OnEvent(e);
 				break;
 			}
