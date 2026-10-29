@@ -3,6 +3,7 @@ project(sandbox)
 
 add_executable(${PROJECT_NAME}
     src/sandbox_app.cpp
+    src/example_layer.cpp
     src/platform.cpp
 )
 
@@ -16,3 +17,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 elseif(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX)
 endif()
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
