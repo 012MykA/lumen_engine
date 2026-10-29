@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lumen_engine/core/mouse_codes.hpp"
 #include "lumen_engine/core/events/event.hpp"
+#include "lumen_engine/core/input/mouse_codes.hpp"
 
 #include <string>
 #include <utility> // for std::pair

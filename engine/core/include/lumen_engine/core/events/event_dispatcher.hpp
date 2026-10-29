@@ -2,8 +2,8 @@
 
 #include "lumen_engine/core/events/event.hpp"
 
-#include <functional>
 #include <concepts>
+#include <functional>
 
 namespace lm {
 
@@ -16,20 +16,16 @@ public:
 
 	template <typename T>
 		requires std::derived_from<T, Event>
-	bool Dispatch(EventFn<T> func);
+	bool Dispatch(EventFn<T> func) {
+		if (m_Event.GetEventType() == T::GetStaticType()) {
+			m_Event.handled |= func(*static_cast<T *>(&m_Event));
+			return true;
+		}
+		return false;
+	}
 
 private:
 	Event &m_Event;
 };
-
-template <typename T>
-	requires std::derived_from<T, Event>
-inline bool EventDispatcher::Dispatch(EventFn<T> func) {
-	if (m_Event.GetEventType() == T::GetStaticType()) {
-		m_Event.handled |= func(*static_cast<T *>(&m_Event));
-		return true;
-	}
-	return false;
-}
 
 } // namespace lm

@@ -21,7 +21,7 @@ enum : MouseCode {
 
 	LeftButton = Button1,
 	RightButton = Button2,
-	ButtonMiddle = Button3,
+	MiddleButton = Button3,
 };
 
 } // namespace Mouse

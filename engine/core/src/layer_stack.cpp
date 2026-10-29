@@ -5,9 +5,7 @@
 namespace lm {
 
 LayerStack::~LayerStack() {
-	for (auto it = m_Layers.rbegin(); it != m_Layers.rend(); ++it) {
-		(*it)->OnDetach();
-	}
+	Clear();
 }
 
 void LayerStack::PushLayer(std::shared_ptr<Layer> layer) {
@@ -36,6 +34,14 @@ void LayerStack::PopOverlay(const std::shared_ptr<Layer> &overlay) {
 		overlay->OnDetach();
 		m_Layers.erase(it);
 	}
+}
+
+void LayerStack::Clear() {
+	for (auto it = m_Layers.rbegin(); it != m_Layers.rend(); ++it) {
+		(*it)->OnDetach();
+	}
+	m_Layers.clear();
+	m_LayerInsertIndex = 0;
 }
 
 } // namespace lm

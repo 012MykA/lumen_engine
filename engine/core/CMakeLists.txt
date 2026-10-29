@@ -1,4 +1,5 @@
 find_package(spdlog CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 
 add_library(engine_core STATIC
     src/layer_stack.cpp
@@ -22,6 +23,7 @@ target_link_libraries(engine_core
     PUBLIC
         engine::common
         spdlog::spdlog
+        glfw
 )
 
 add_library(engine::core ALIAS engine_core)

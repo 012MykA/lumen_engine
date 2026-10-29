@@ -5,8 +5,6 @@
 #include "lumen_engine/core/window.hpp"
 #include "lumen_engine/runtime/app_cmd_args.hpp"
 
-#include <GLFW/glfw3.h>
-
 #include <type_traits>
 
 namespace lm {
@@ -16,6 +14,9 @@ public:
 	explicit Application(const ApplicationCmdArgs &args);
 	~Application();
 
+	Application(const Application &) = delete;
+	Application &operator=(const Application &) = delete;
+
 	static Application &Get();
 
 public:
@@ -23,20 +24,34 @@ public:
 	void Close();
 
 	template <typename T>
-	void PushLayer(std::shared_ptr<T> layer);
+		requires std::derived_from<T, Layer>
+	void PushLayer(std::shared_ptr<T> layer) {
+		m_LayerStack.PushLayer(std::move(layer));
+	}
 
 	template <typename T, typename... Args>
 		requires std::derived_from<T, Layer>
-	void PushLayer(Args &&...args);
+	void PushLayer(Args &&...args) {
+		m_LayerStack.PushLayer<T>(std::forward<Args>(args)...);
+	}
+
+	template <typename T>
+		requires std::derived_from<T, Layer>
+	void PushOverlay(std::shared_ptr<T> overlay) {
+		m_LayerStack.PushOverlay(std::move(overlay));
+	}
+
+	template <typename T, typename... Args>
+		requires std::derived_from<T, Layer>
+	void PushOverlay(Args &&...args) {
+		m_LayerStack.PushOverlay<T>(std::forward<Args>(args)...);
+	}
 
 public:
 	const ApplicationCmdArgs &GetArgs() const { return m_Args; }
 	const Window &GetWindow() const { return m_Window; }
 
 private:
-	void Init();
-	void Shutdown();
-
 	void OnEvent(Event &e);
 
 	static void InitGlfwCallbacks(GLFWwindow *handle);
@@ -45,6 +60,7 @@ private:
 	ApplicationCmdArgs m_Args;
 	bool m_Running{ true };
 
+	GlfwContext m_GlfwContext;
 	Window m_Window;
 	LayerStack m_LayerStack;
 
@@ -53,16 +69,5 @@ private:
 };
 
 std::unique_ptr<Application> CreateApplication(const ApplicationCmdArgs &args);
-
-template <typename T>
-inline void Application::PushLayer(std::shared_ptr<T> layer) {
-	m_LayerStack.PushLayer(layer);
-}
-
-template <typename T, typename... Args>
-	requires std::derived_from<T, Layer>
-inline void Application::PushLayer(Args &&...args) {
-	m_LayerStack.PushLayer<T>(std::forward<Args>(args)...);
-}
 
 } // namespace lm

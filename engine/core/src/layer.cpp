@@ -2,7 +2,6 @@
 
 namespace lm {
 
-Layer::Layer(std::string debugName) : m_DebugName{ std::move(debugName) } {
-}
+Layer::Layer(std::string debugName) : m_DebugName{ std::move(debugName) } {}
 
 } // namespace lm

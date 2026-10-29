@@ -43,7 +43,7 @@ bool IsSystemDarkTheme() {
 
 #else
 
-void SetWindowDarkMode(GLFWwindow *window, char value) {}
+void SetWindowDarkMode(GLFWwindow *) {}
 
 bool IsSystemDarkTheme() {
 	return false;

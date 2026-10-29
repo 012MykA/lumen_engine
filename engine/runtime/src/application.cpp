@@ -6,6 +6,8 @@
 #include "lumen_engine/core/events/mouse_events.hpp"
 #include "lumen_engine/core/events/window_events.hpp"
 
+#include <GLFW/glfw3.h>
+
 #include <cassert>
 #include <chrono>
 #include <stdexcept>
@@ -14,16 +16,21 @@ namespace lm {
 
 Application::Application(const ApplicationCmdArgs &args) : m_Args{ args } {
 	assert(!s_Instance && "Application already exists!");
+
+	m_Window.Create();
+	glfwSetWindowUserPointer(m_Window.handle, this);
+	InitGlfwCallbacks(m_Window.handle);
+
 	s_Instance = this;
-	Init();
 }
 
 Application::~Application() {
-	Shutdown();
+	m_LayerStack.Clear();
 	s_Instance = nullptr;
 }
 
 Application &Application::Get() {
+	assert(s_Instance != nullptr);
 	return *s_Instance;
 }
 
@@ -32,7 +39,7 @@ void Application::Run() {
 
 	auto lastTime = std::chrono::steady_clock::now();
 
-	while (m_Running && !glfwWindowShouldClose(m_Window.handle)) {
+	while (!glfwWindowShouldClose(m_Window.handle) && m_Running) {
 		glfwPollEvents();
 
 		auto now = std::chrono::steady_clock::now();
@@ -57,22 +64,6 @@ void Application::Close() {
 	m_Running = false;
 }
 
-void Application::Init() {
-	if (!glfwInit()) {
-		throw std::runtime_error{ "failed to initialize GLFW" };
-	}
-
-	m_Window.Create();
-
-	glfwSetWindowUserPointer(m_Window.handle, this);
-	InitGlfwCallbacks(m_Window.handle);
-}
-
-void Application::Shutdown() {
-	m_Window.Destroy();
-	glfwTerminate();
-}
-
 void Application::OnEvent(Event &e) {
 	EventDispatcher dp{ e };
 	dp.Dispatch<WindowCloseEvent>([this](WindowCloseEvent &) { Close(); return false; });
@@ -93,7 +84,7 @@ void Application::InitGlfwCallbacks(GLFWwindow *handle) {
 		self->OnEvent(e);
 	});
 
-	glfwSetWindowSizeCallback(handle, [](GLFWwindow *window, int width, int height) {
+	glfwSetFramebufferSizeCallback(handle, [](GLFWwindow *window, int width, int height) {
 		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
 
 		WindowResizeEvent e{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
@@ -143,18 +134,21 @@ void Application::InitGlfwCallbacks(GLFWwindow *handle) {
 
 	glfwSetCharCallback(handle, [](GLFWwindow *window, unsigned int codepoint) {
 		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
-		KeyTypedEvent e{ static_cast<KeyCode>(codepoint) };
+
+		KeyTypedEvent e{ static_cast<char32_t>(codepoint) };
 		self->OnEvent(e);
 	});
 
 	glfwSetCursorPosCallback(handle, [](GLFWwindow *window, double xpos, double ypos) {
 		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
 		MouseMovedEvent e{ static_cast<float>(xpos), static_cast<float>(ypos) };
 		self->OnEvent(e);
 	});
 
 	glfwSetScrollCallback(handle, [](GLFWwindow *window, double xoffset, double yoffset) {
 		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
 		MouseScrolledEvent e{ static_cast<float>(xoffset), static_cast<float>(yoffset) };
 		self->OnEvent(e);
 	});

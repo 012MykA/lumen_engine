@@ -1,7 +1,8 @@
 #pragma once
 
+#include "lumen_engine/core/enum_flags.hpp"
+
 #include <cstdint>
-#include <iostream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -17,23 +18,11 @@ enum class EventCategory : uint32_t {
 	Mouse = 1 << 4,
 };
 
-constexpr EventCategory operator|(EventCategory a, EventCategory b) {
-	using T = std::underlying_type_t<EventCategory>;
-	return static_cast<EventCategory>(static_cast<T>(a) | static_cast<T>(b));
-}
-
-constexpr EventCategory operator&(EventCategory a, EventCategory b) {
-	using T = std::underlying_type_t<EventCategory>;
-	return static_cast<EventCategory>(static_cast<T>(a) & static_cast<T>(b));
-}
-
-constexpr EventCategory operator~(EventCategory e) {
-	using T = std::underlying_type_t<EventCategory>;
-	return static_cast<EventCategory>(~static_cast<T>(e));
-}
+template <>
+struct EnableEnumFlags<EventCategory> : std::true_type {};
 
 constexpr bool HasCategory(EventCategory flags, EventCategory category) {
-	return (flags & category) == category;
+	return HasAnyFlag(flags, category);
 }
 
 enum class EventType {
