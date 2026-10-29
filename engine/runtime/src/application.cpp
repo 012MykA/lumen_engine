@@ -76,6 +76,13 @@ void Application::Shutdown() {
 void Application::OnEvent(Event &e) {
 	EventDispatcher dp{ e };
 	dp.Dispatch<WindowCloseEvent>([this](WindowCloseEvent &) { Close(); return false; });
+
+	for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it) {
+		if (e.handled) {
+			break;
+		}
+		(*it)->OnEvent(e);
+	}
 }
 
 void Application::InitGlfwCallbacks(GLFWwindow *handle) {

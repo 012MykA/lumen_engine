@@ -1,13 +1,10 @@
 #pragma once
 
-#include "check_vk.hpp"
-
-#include <lumen_engine/lumen_engine.hpp>
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <lumen_engine/lumen_engine.hpp>
 #include <volk.h>
 
 #include <array>
@@ -21,7 +18,7 @@
 
 struct Vertex {
 	glm::vec3 pos;
-	glm::vec3 color;
+	glm::vec3 normal;
 	glm::vec2 texCoord;
 
 	static VkVertexInputBindingDescription GetBindingDescription() {
@@ -31,7 +28,7 @@ struct Vertex {
 	static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions() {
 		return {
 			VkVertexInputAttributeDescription{ .location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos) },
-			VkVertexInputAttributeDescription{ .location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color) },
+			VkVertexInputAttributeDescription{ .location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, normal) },
 			VkVertexInputAttributeDescription{ .location = 2, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, texCoord) },
 		};
 	}
@@ -273,6 +270,8 @@ private:
 	bool m_FramebufferResized = false;
 };
 
+#define CHECK_VK(x) (x)
+
 template <typename F>
 	requires std::invocable<F, VkCommandBuffer>
 inline void VulkanRenderLayer::SubmitSingleTimeCommand(F &&func) {
@@ -304,3 +303,5 @@ inline void VulkanRenderLayer::SubmitSingleTimeCommand(F &&func) {
 	SingleTimeQueueSubmit(m_Context.graphicsQueue, submitInfo);
 	vkFreeCommandBuffers(m_Context.device, m_Context.commandPool, 1, &cmd);
 }
+
+#undef CHECK_VK

@@ -21,6 +21,11 @@ target_link_libraries(${PROJECT_NAME}
         GPUOpen::VulkanMemoryAllocator
 )
 
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+        VK_NO_PROTOTYPES
+)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
 elseif(MSVC)
