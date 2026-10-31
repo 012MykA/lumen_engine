@@ -2,7 +2,9 @@
 
 #include "platform.hpp"
 
-ExampleLayer::ExampleLayer() : Layer{ "ExampleLayer" } {
+ExampleLayer::ExampleLayer() :
+		Layer{ "ExampleLayer" },
+		m_Renderer{ lm::Application::Get().GetWindow() } {
 	const auto &window = lm::Application::Get().GetWindow();
 
 	if (IsSystemDarkTheme()) {
@@ -15,16 +17,14 @@ ExampleLayer::ExampleLayer() : Layer{ "ExampleLayer" } {
 
 void ExampleLayer::OnEvent(lm::Event &event) {
 	lm::EventDispatcher dp{ event };
-	dp.Dispatch<lm::WindowResizeEvent>([](lm::WindowResizeEvent &e) {
-		LUMEN_INFO("Resize: {}x{}", e.GetWidth(), e.GetHeight());
-		return false;
-	});
-	dp.Dispatch<lm::KeyPressedEvent>([](lm::KeyPressedEvent &e) {
-		LUMEN_INFO("{}", e.ToString());
-		return false;
-	});
-	dp.Dispatch<lm::KeyTypedEvent>([](lm::KeyTypedEvent &e) {
-		LUMEN_INFO("{}", e.ToString());
-		return false;
-	});
+	dp.Dispatch<lm::WindowResizeEvent>([this](lm::WindowResizeEvent &e) { return OnWindowResize(e); });
+}
+
+void ExampleLayer::OnRender() {
+	m_Renderer.OnRender();
+}
+
+bool ExampleLayer::OnWindowResize(lm::WindowResizeEvent &e) {
+	m_Renderer.OnResize(e.GetExtent());
+	return false;
 }

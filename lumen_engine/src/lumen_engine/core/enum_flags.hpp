@@ -48,6 +48,7 @@ constexpr bool HasAnyFlag(E value, E flag) {
 // --- Operators overload ---
 // --------------------------
 
+// lumen_engine\src\lumen_engine\core\enum_flags.hpp:
 template <EnumFlags E>
 constexpr E operator|(E a, E b) {
 	using T = std::underlying_type_t<E>;

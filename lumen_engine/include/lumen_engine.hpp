@@ -17,3 +17,6 @@
 
 // --- Runtime ---
 #include "lumen_engine/runtime/application.hpp"
+
+// --- Graphics ---
+#include "lumen_engine/gfx/renderer.hpp"

@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.23)
-project(lumen_engine)
+project(lumen_engine LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 23)
-
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE ENGINE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lumen_engine/*.cpp
@@ -27,17 +26,25 @@ else()
     message(FATAL_ERROR "Unknown platform!")
 endif()
 
-target_compile_definitions(lumen_engine PUBLIC ${LUMEN_PLATFORM_DEF})
-
-target_compile_features(lumen_engine PUBLIC cxx_std_23)
+target_compile_definitions(lumen_engine
+    PUBLIC
+        ${LUMEN_PLATFORM_DEF}
+        VK_NO_PROTOTYPES
+)
 
 find_package(spdlog CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
+find_package(volk CONFIG REQUIRED)
+find_package(VulkanUtilityLibraries CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 target_link_libraries(lumen_engine
     PUBLIC
         spdlog::spdlog
         glfw
+        volk::volk
+        Vulkan::UtilityHeaders
+        GPUOpen::VulkanMemoryAllocator
 )
 
 target_include_directories(lumen_engine PUBLIC
