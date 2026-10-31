@@ -14,9 +14,7 @@ namespace lm {
 
 namespace {
 
-constexpr std::array k_InstanceLayers = {
-	"VK_LAYER_KHRONOS_validation",
-};
+constexpr std::array<const char *, 0> k_InstanceLayers;
 
 constexpr std::array<const char *, 0> k_InstanceExtensions;
 
@@ -73,11 +71,17 @@ void VulkanContext::CreateInstance(bool enableValidation) {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
+	// --- Layers ---
+	std::vector<const char *> layers(k_InstanceLayers.begin(), k_InstanceLayers.end());
+	if (enableValidation) {
+		layers.push_back("VK_LAYER_KHRONOS_validation");
+	}
+
 	VkInstanceCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 		.pApplicationInfo = &appInfo,
-		.enabledLayerCount = static_cast<uint32_t>(k_InstanceLayers.size()),
-		.ppEnabledLayerNames = k_InstanceLayers.data(),
+		.enabledLayerCount = static_cast<uint32_t>(layers.size()),
+		.ppEnabledLayerNames = layers.data(),
 		.enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
 		.ppEnabledExtensionNames = extensions.data(),
 	};
