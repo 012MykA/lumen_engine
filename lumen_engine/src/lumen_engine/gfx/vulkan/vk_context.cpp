@@ -2,6 +2,7 @@
 
 #include "lumen_engine/core/log.hpp"
 #include "lumen_engine/core/window.hpp"
+#include "lumen_engine/gfx/vulkan/device_feature_chain.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -10,17 +11,32 @@
 #include <array>
 #include <cstring>
 #include <format>
+#include <set>
 #include <string>
+#include <vector>
 
 namespace lm {
 
 namespace {
 
+constexpr uint32_t k_VulkanApiVersion = VK_API_VERSION_1_3;
+
 constexpr std::array<const char *, 0> k_InstanceLayers;
 
 constexpr std::array<const char *, 0> k_InstanceExtensions;
 
-constexpr uint32_t k_VulkanApiVersion = VK_API_VERSION_1_3;
+constexpr std::array k_DeviceExtensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
+};
+
+DeviceFeatureChain GetReqDeviceFeatures() {
+	DeviceFeatureChain chain;
+	chain.features2.features.samplerAnisotropy = true;
+	chain.extendedDynamicState.extendedDynamicState = true;
+	chain.vk13.dynamicRendering = true;
+	return chain;
+}
 
 // --- Debug Utils Messenger ---
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -44,9 +60,11 @@ VulkanContext::VulkanContext(const Window &window, bool enableValidation) {
 	}
 	CreateSurface(window);
 	PickPhysicalDevice();
+	CreateDevice();
 }
 
 VulkanContext::~VulkanContext() {
+	vkDestroyDevice(m_Device, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	if (m_DebugMessenger != VK_NULL_HANDLE) {
 		DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
@@ -132,6 +150,46 @@ void VulkanContext::PickPhysicalDevice() {
 		throw std::runtime_error{ "Failed to find a suitable Graphics Device" };
 	}
 	m_PhysicalDevice = *it;
+	m_QueueFamilyIndices = FindQueueFamilies(m_PhysicalDevice, m_Surface);
+}
+
+void VulkanContext::CreateDevice() {
+	const QueueFamilyIndices &indices = m_QueueFamilyIndices;
+
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+	std::set<uint32_t> uniqueQueueFamilies = {
+		indices.graphicsFamily.value(),
+		indices.presentFamily.value(),
+		indices.computeFamily.value(),
+	};
+
+	float queuePriority = 1.0f;
+	for (uint32_t queueFamily : uniqueQueueFamilies) {
+		queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				.queueFamilyIndex = queueFamily,
+				.queueCount = 1,
+				.pQueuePriorities = &queuePriority,
+		});
+	}
+
+	DeviceFeatureChain features = GetReqDeviceFeatures();
+
+	VkDeviceCreateInfo createInfo{
+		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+		.pNext = &features.features2,
+		.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+		.pQueueCreateInfos = queueCreateInfos.data(),
+		.enabledExtensionCount = static_cast<uint32_t>(k_DeviceExtensions.size()),
+		.ppEnabledExtensionNames = k_DeviceExtensions.data(),
+		.pEnabledFeatures = nullptr,
+	};
+	CHECK_VK(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device));
+	volkLoadDevice(m_Device);
+
+	vkGetDeviceQueue(m_Device, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
+	vkGetDeviceQueue(m_Device, indices.presentFamily.value(), 0, &m_PresentQueue);
+	vkGetDeviceQueue(m_Device, indices.computeFamily.value(), 0, &m_ComputeQueue);
 }
 
 void VulkanContext::CheckExtensionsSupport(std::span<const char *> extensions) const {
@@ -171,7 +229,13 @@ bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const {
 	vkGetPhysicalDeviceProperties(device, &props);
 	bool supportsVersion = props.apiVersion >= k_VulkanApiVersion;
 
-	return supportsVersion;
+	DeviceFeatureChain chain;
+	chain.QueryFor(device);
+	bool supportsFeatures = chain.features2.features.samplerAnisotropy &&
+			chain.vk13.dynamicRendering &&
+			chain.extendedDynamicState.extendedDynamicState;
+
+	return supportsVersion && supportsFeatures && FindQueueFamilies(device, m_Surface).IsComplete();
 }
 
 namespace {
