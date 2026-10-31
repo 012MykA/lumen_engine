@@ -3,6 +3,8 @@
 #include "lumen_engine/gfx/vulkan/queue_family_indices.hpp"
 #include "lumen_engine/gfx/vulkan/vk_common.hpp"
 
+#include <span>
+
 namespace lm {
 
 struct Window;
@@ -18,6 +20,11 @@ public:
 private:
 	void CreateInstance(bool enableValidation);
 	void SetupDebugMessenger();
+	void CreateSurface(const lm::Window &window);
+
+private:
+	void CheckExtensionsSupport(std::span<const char *> extensions);
+	void CheckLayersSupport(std::span<const char *> layers);
 
 private:
 	VkInstance m_Instance{ VK_NULL_HANDLE };

@@ -6,7 +6,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
 #include <array>
+#include <cstring>
 #include <format>
 #include <string>
 
@@ -35,17 +37,15 @@ VulkanContext::VulkanContext(const Window &window, bool enableValidation) {
 	if (enableValidation) {
 		SetupDebugMessenger();
 	}
+	CreateSurface(window);
 }
 
 VulkanContext::~VulkanContext() {
+	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	if (m_DebugMessenger != VK_NULL_HANDLE) {
 		DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 	}
-
-	if (m_Instance != VK_NULL_HANDLE) {
-		vkDestroyInstance(m_Instance, nullptr);
-	}
-
+	vkDestroyInstance(m_Instance, nullptr);
 	volkFinalize();
 }
 
@@ -77,6 +77,8 @@ void VulkanContext::CreateInstance(bool enableValidation) {
 		layers.push_back("VK_LAYER_KHRONOS_validation");
 	}
 
+	CheckExtensionsSupport(extensions);
+	CheckLayersSupport(layers);
 	VkInstanceCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 		.pApplicationInfo = &appInfo,
@@ -104,6 +106,42 @@ void VulkanContext::SetupDebugMessenger() {
 		.pfnUserCallback = DebugCallback,
 	};
 	CHECK_VK(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger));
+}
+
+void VulkanContext::CreateSurface(const lm::Window &window) {
+	CHECK_VK(glfwCreateWindowSurface(m_Instance, window.handle, nullptr, &m_Surface));
+}
+
+void VulkanContext::CheckExtensionsSupport(std::span<const char *> extensions) {
+	uint32_t count = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+	std::vector<VkExtensionProperties> available(count);
+	vkEnumerateInstanceExtensionProperties(nullptr, &count, available.data());
+
+	auto it = std::ranges::find_if(extensions, [&available](const char *name) {
+		return std::ranges::none_of(available, [name](const auto &prop) {
+			return std::strcmp(name, prop.extensionName) == 0;
+		});
+	});
+	if (it != extensions.end()) {
+		throw std::runtime_error{ "Required instance extension not supported: " + std::string{ *it } };
+	}
+}
+
+void VulkanContext::CheckLayersSupport(std::span<const char *> layers) {
+	uint32_t count = 0;
+	vkEnumerateInstanceLayerProperties(&count, nullptr);
+	std::vector<VkLayerProperties> available(count);
+	vkEnumerateInstanceLayerProperties(&count, available.data());
+
+	auto it = std::ranges::find_if(layers, [&available](const char *name) {
+		return std::ranges::none_of(available, [name](const auto &prop) {
+			return std::strcmp(name, prop.layerName) == 0;
+		});
+	});
+	if (it != layers.end()) {
+		throw std::runtime_error{ "Required instance layer not supported: " + std::string{ *it } };
+	}
 }
 
 namespace {
