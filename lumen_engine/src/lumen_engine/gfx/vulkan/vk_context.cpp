@@ -33,6 +33,9 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 
 VulkanContext::VulkanContext(const Window &window, bool enableValidation) {
 	CHECK_VK(volkInitialize());
+	if (volkGetInstanceVersion() < VK_API_VERSION_1_3) {
+		throw std::runtime_error{ "Vulkan 1.3 is not supported" };
+	}
 	CreateInstance(enableValidation);
 	if (enableValidation) {
 		SetupDebugMessenger();
