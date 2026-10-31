@@ -37,13 +37,11 @@ struct WindowDesc {
 struct Window {
 	GLFWwindow *handle{ nullptr };
 
-	Window() = default;
+	explicit Window(const WindowDesc &desc = {});
 	~Window();
+
 	Window(const Window &) = delete;
 	Window &operator=(const Window &) = delete;
-
-	void Create(const WindowDesc &desc = {});
-	void Destroy();
 
 	WindowExtent GetExtent() const;
 };

@@ -1,8 +1,10 @@
-#include "renderer.hpp"
+#include "lumen_engine/gfx/renderer.hpp"
 
 namespace lm {
 
-Renderer::Renderer(const Window &window) : m_Window{ window } {
+Renderer::Renderer(const Window &window) :
+		m_Window{ window },
+		m_Context{ m_Window } {
 }
 
 Renderer::~Renderer() {

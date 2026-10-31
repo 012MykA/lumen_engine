@@ -6,14 +6,12 @@
 #include <vulkan/vk_enum_string_helper.h>
 // clang-format on
 
-#include <format>
-#include <stdexcept>
+#include <source_location>
 
-#define CHECK_VK(expr) \
-	do { \
-		VkResult _res = (expr); \
-		if (_res != VK_SUCCESS) { \
-			throw std::runtime_error{ std::format("Vulkan error {} at {}:{} ({})", \
-					string_VkResult(_res), __FILE__, __LINE__, #expr) }; \
-		} \
-	} while (0)
+namespace lm {
+
+void CheckVk(VkResult result, std::source_location loc = std::source_location::current());
+
+} // namespace lm
+
+#define CHECK_VK(x) ::lm::CheckVk((x))

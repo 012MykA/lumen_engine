@@ -17,7 +17,6 @@ namespace lm {
 Application::Application(const ApplicationCmdArgs &args) : m_Args{ args } {
 	assert(!s_Instance && "Application already exists!");
 
-	m_Window.Create();
 	glfwSetWindowUserPointer(m_Window.handle, this);
 	InitGlfwCallbacks(m_Window.handle);
 

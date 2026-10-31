@@ -8,11 +8,7 @@
 
 namespace lm {
 
-Window::~Window() {
-	Destroy();
-}
-
-void Window::Create(const WindowDesc &desc) {
+Window::Window(const WindowDesc &desc) {
 	assert(handle == nullptr);
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	handle = glfwCreateWindow(desc.width, desc.height, desc.title.c_str(), nullptr, nullptr);
@@ -21,7 +17,7 @@ void Window::Create(const WindowDesc &desc) {
 	}
 }
 
-void Window::Destroy() {
+Window::~Window() {
 	if (!handle) {
 		return;
 	}
