@@ -20,6 +20,8 @@ constexpr std::array<const char *, 0> k_InstanceLayers;
 
 constexpr std::array<const char *, 0> k_InstanceExtensions;
 
+constexpr uint32_t k_VulkanApiVersion = VK_API_VERSION_1_3;
+
 // --- Debug Utils Messenger ---
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 		VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *);
@@ -33,7 +35,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 
 VulkanContext::VulkanContext(const Window &window, bool enableValidation) {
 	CHECK_VK(volkInitialize());
-	if (volkGetInstanceVersion() < VK_API_VERSION_1_3) {
+	if (volkGetInstanceVersion() < k_VulkanApiVersion) {
 		throw std::runtime_error{ "Vulkan 1.3 is not supported" };
 	}
 	CreateInstance(enableValidation);
@@ -41,6 +43,7 @@ VulkanContext::VulkanContext(const Window &window, bool enableValidation) {
 		SetupDebugMessenger();
 	}
 	CreateSurface(window);
+	PickPhysicalDevice();
 }
 
 VulkanContext::~VulkanContext() {
@@ -59,7 +62,7 @@ void VulkanContext::CreateInstance(bool enableValidation) {
 		.applicationVersion = VK_MAKE_VERSION(0, 1, 0),
 		.pEngineName = "Lumen Engine",
 		.engineVersion = VK_MAKE_VERSION(0, 1, 0),
-		.apiVersion = VK_API_VERSION_1_3,
+		.apiVersion = k_VulkanApiVersion,
 	};
 
 	// --- Extensions ---
@@ -115,7 +118,23 @@ void VulkanContext::CreateSurface(const lm::Window &window) {
 	CHECK_VK(glfwCreateWindowSurface(m_Instance, window.handle, nullptr, &m_Surface));
 }
 
-void VulkanContext::CheckExtensionsSupport(std::span<const char *> extensions) {
+void VulkanContext::PickPhysicalDevice() {
+	uint32_t count = 0;
+	CHECK_VK(vkEnumeratePhysicalDevices(m_Instance, &count, nullptr));
+	std::vector<VkPhysicalDevice> devices(count);
+	CHECK_VK(vkEnumeratePhysicalDevices(m_Instance, &count, devices.data()));
+	if (devices.empty()) {
+		throw std::runtime_error{ "Failed to find Graphics Device with Vulkan support" };
+	}
+
+	auto it = std::ranges::find_if(devices, [this](VkPhysicalDevice d) { return IsDeviceSuitable(d); });
+	if (it == devices.end()) {
+		throw std::runtime_error{ "Failed to find a suitable Graphics Device" };
+	}
+	m_PhysicalDevice = *it;
+}
+
+void VulkanContext::CheckExtensionsSupport(std::span<const char *> extensions) const {
 	uint32_t count = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
 	std::vector<VkExtensionProperties> available(count);
@@ -131,7 +150,7 @@ void VulkanContext::CheckExtensionsSupport(std::span<const char *> extensions) {
 	}
 }
 
-void VulkanContext::CheckLayersSupport(std::span<const char *> layers) {
+void VulkanContext::CheckLayersSupport(std::span<const char *> layers) const {
 	uint32_t count = 0;
 	vkEnumerateInstanceLayerProperties(&count, nullptr);
 	std::vector<VkLayerProperties> available(count);
@@ -145,6 +164,14 @@ void VulkanContext::CheckLayersSupport(std::span<const char *> layers) {
 	if (it != layers.end()) {
 		throw std::runtime_error{ "Required instance layer not supported: " + std::string{ *it } };
 	}
+}
+
+bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const {
+	VkPhysicalDeviceProperties props;
+	vkGetPhysicalDeviceProperties(device, &props);
+	bool supportsVersion = props.apiVersion >= k_VulkanApiVersion;
+
+	return supportsVersion;
 }
 
 namespace {

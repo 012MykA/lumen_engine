@@ -11,7 +11,7 @@ struct Window;
 
 class VulkanContext final {
 public:
-	VulkanContext(const Window &window, bool enableValidation = true);
+	explicit VulkanContext(const Window &window, bool enableValidation = true);
 	~VulkanContext();
 
 	VulkanContext(const VulkanContext &) = delete;
@@ -21,10 +21,13 @@ private:
 	void CreateInstance(bool enableValidation);
 	void SetupDebugMessenger();
 	void CreateSurface(const lm::Window &window);
+	void PickPhysicalDevice();
 
 private:
-	void CheckExtensionsSupport(std::span<const char *> extensions);
-	void CheckLayersSupport(std::span<const char *> layers);
+	void CheckExtensionsSupport(std::span<const char *> extensions) const;
+	void CheckLayersSupport(std::span<const char *> layers) const;
+
+	bool IsDeviceSuitable(VkPhysicalDevice device) const;
 
 private:
 	VkInstance m_Instance{ VK_NULL_HANDLE };
