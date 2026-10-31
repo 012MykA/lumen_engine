@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lumen_engine/lumen_engine.hpp>
+#include <lumen_engine.hpp>
 
 class ExampleLayer : public lm::Layer {
 public:

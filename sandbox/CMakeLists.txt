@@ -7,10 +7,7 @@ add_executable(${PROJECT_NAME}
     src/platform.cpp
 )
 
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        lumen_engine
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE lumen_engine)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
