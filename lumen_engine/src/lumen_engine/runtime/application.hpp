@@ -5,11 +5,14 @@
 #include "lumen_engine/core/window.hpp"
 #include "lumen_engine/runtime/app_cmd_args.hpp"
 
+#include <chrono>
 #include <type_traits>
 
 namespace lm {
 
 class Application {
+	using Clock = std::chrono::high_resolution_clock;
+
 public:
 	explicit Application(const ApplicationCmdArgs &args);
 	~Application();
@@ -53,6 +56,7 @@ public:
 
 private:
 	void OnEvent(Event &e);
+	void Frame();
 
 	static void InitGlfwCallbacks(GLFWwindow *handle);
 
@@ -63,6 +67,8 @@ private:
 	GlfwContext m_GlfwContext;
 	Window m_Window;
 	LayerStack m_LayerStack;
+
+	Clock::time_point m_LastTime;
 
 private:
 	inline static Application *s_Instance{ nullptr };

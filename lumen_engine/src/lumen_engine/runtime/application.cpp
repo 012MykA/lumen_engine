@@ -9,7 +9,6 @@
 #include <GLFW/glfw3.h>
 
 #include <cassert>
-#include <chrono>
 #include <stdexcept>
 
 namespace lm {
@@ -35,27 +34,11 @@ Application &Application::Get() {
 
 void Application::Run() {
 	m_Running = true;
-
-	auto lastTime = std::chrono::steady_clock::now();
+	m_LastTime = Clock::now();
 
 	while (!glfwWindowShouldClose(m_Window.handle) && m_Running) {
 		glfwPollEvents();
-
-		auto now = std::chrono::steady_clock::now();
-		float ts = std::chrono::duration<float>(now - lastTime).count();
-		lastTime = now;
-
-		for (auto &layer : m_LayerStack) {
-			layer->OnUpdate(ts);
-		}
-
-		for (auto &layer : m_LayerStack) {
-			layer->OnRender();
-		}
-
-		for (auto &layer : m_LayerStack) {
-			layer->OnUIRender();
-		}
+		Frame();
 	}
 }
 
@@ -75,6 +58,24 @@ void Application::OnEvent(Event &e) {
 	}
 }
 
+void Application::Frame() {
+	auto now = Clock::now();
+	float ts = std::chrono::duration<float>(now - m_LastTime).count();
+	m_LastTime = now;
+
+	for (auto &layer : m_LayerStack) {
+		layer->OnUpdate(ts);
+	}
+
+	for (auto &layer : m_LayerStack) {
+		layer->OnRender();
+	}
+
+	for (auto &layer : m_LayerStack) {
+		layer->OnUIRender();
+	}
+}
+
 void Application::InitGlfwCallbacks(GLFWwindow *handle) {
 	glfwSetWindowCloseCallback(handle, [](GLFWwindow *window) {
 		auto *self = static_cast<Application *>(glfwGetWindowUserPointer(window));
@@ -88,6 +89,7 @@ void Application::InitGlfwCallbacks(GLFWwindow *handle) {
 
 		WindowResizeEvent e{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 		self->OnEvent(e);
+		self->Frame();
 	});
 
 	glfwSetWindowFocusCallback(handle, [](GLFWwindow *window, int focused) {
