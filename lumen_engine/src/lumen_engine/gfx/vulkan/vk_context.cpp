@@ -78,6 +78,10 @@ VulkanContext::~VulkanContext() {
 	volkFinalize();
 }
 
+void VulkanContext::DeviceWaitIdle() const {
+	CHECK_VK(vkDeviceWaitIdle(m_Device));
+}
+
 void VulkanContext::CreateInstance() {
 	constexpr VkApplicationInfo appInfo{
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,

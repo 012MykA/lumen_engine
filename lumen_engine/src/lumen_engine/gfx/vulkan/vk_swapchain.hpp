@@ -19,9 +19,19 @@ public:
 
 	bool Recreate();
 
+	VkSwapchainKHR GetVkSwapchain() const { return m_Swapchain; }
+	VkExtent2D GetExtent() const { return m_Extent; }
+	VkImage GetImage(uint32_t i) const { return m_Images[i]; }
+	VkImageView GetImageView(uint32_t i) const { return m_ImageViews[i]; }
+	VkSemaphore GetRenderFinished(uint32_t i) const { return m_RenderFinished[i]; }
+
 private:
 	void CreateSwapchain();
 	void CreateImageViews();
+	void CreateSyncObjects();
+
+	void DestroyImageViews();
+	void DestroySyncObjects();
 
 private:
 	const VulkanContext &m_Ctx;
@@ -31,6 +41,7 @@ private:
 	VkSurfaceFormatKHR m_SurfaceFormat{};
 	std::vector<VkImage> m_Images;
 	std::vector<VkImageView> m_ImageViews;
+	std::vector<VkSemaphore> m_RenderFinished;
 };
 
 } // namespace lm

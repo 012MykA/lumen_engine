@@ -17,11 +17,16 @@ public:
 	VulkanContext(const VulkanContext &) = delete;
 	VulkanContext &operator=(const VulkanContext &) = delete;
 
+	void DeviceWaitIdle() const;
+
 	const lm::Window &GetWindow() const { return m_Window; }
 	VkSurfaceKHR GetVkSurface() const { return m_Surface; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return m_PhysicalDevice; }
 	const QueueFamilyIndices &GetQueueFamilyIndices() const { return m_QueueFamilyIndices; }
 	VkDevice GetVkDevice() const { return m_Device; }
+	VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
+	VkQueue GetPresentQueue() const { return m_PresentQueue; }
+	VkQueue GetComputeQueue() const { return m_ComputeQueue; }
 
 private:
 	void CreateInstance();

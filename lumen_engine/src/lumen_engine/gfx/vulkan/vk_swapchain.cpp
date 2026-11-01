@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <limits>
+#include <climits>
 #include <span>
 
 namespace lm {
@@ -24,12 +24,12 @@ VulkanSwapchain::VulkanSwapchain(const VulkanContext &ctx) :
 		m_Device{ ctx.GetVkDevice() } {
 	CreateSwapchain();
 	CreateImageViews();
+	CreateSyncObjects();
 }
 
 VulkanSwapchain::~VulkanSwapchain() {
-	for (auto &view : m_ImageViews) {
-		vkDestroyImageView(m_Device, view, nullptr);
-	}
+	DestroySyncObjects();
+	DestroyImageViews();
 	vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
 }
 
@@ -41,17 +41,17 @@ bool VulkanSwapchain::Recreate() {
 
 	CHECK_VK(vkDeviceWaitIdle(m_Device));
 
-	for (auto &view : m_ImageViews) {
-		vkDestroyImageView(m_Device, view, nullptr);
-	}
-	m_ImageViews.clear();
+	DestroySyncObjects();
+	DestroyImageViews();
 	m_Images.clear();
 
 	VkSwapchainKHR oldSwapchain = m_Swapchain;
 	CreateSwapchain();
-
 	vkDestroySwapchainKHR(m_Device, oldSwapchain, nullptr);
+
 	CreateImageViews();
+	CreateSyncObjects();
+
 	return true;
 }
 
@@ -135,6 +135,29 @@ void VulkanSwapchain::CreateImageViews() {
 	}
 }
 
+void VulkanSwapchain::CreateSyncObjects() {
+	assert(m_RenderFinished.empty());
+	VkSemaphoreCreateInfo info{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+	m_RenderFinished.resize(m_Images.size());
+	for (auto &s : m_RenderFinished) {
+		CHECK_VK(vkCreateSemaphore(m_Device, &info, nullptr, &s));
+	}
+}
+
+void VulkanSwapchain::DestroyImageViews() {
+	for (auto &view : m_ImageViews) {
+		vkDestroyImageView(m_Device, view, nullptr);
+	}
+	m_ImageViews.clear();
+}
+
+void VulkanSwapchain::DestroySyncObjects() {
+	for (auto s : m_RenderFinished) {
+		vkDestroySemaphore(m_Device, s, nullptr);
+	}
+	m_RenderFinished.clear();
+}
+
 namespace {
 
 uint32_t ChooseMinImageCount(const VkSurfaceCapabilitiesKHR &caps) {
@@ -148,7 +171,7 @@ uint32_t ChooseMinImageCount(const VkSurfaceCapabilitiesKHR &caps) {
 VkExtent2D ChooseSwapExtent(
 		const VkSurfaceCapabilitiesKHR &caps,
 		const lm::Window &window) {
-	if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+	if (caps.currentExtent.width != UINT32_MAX) {
 		return caps.currentExtent;
 	}
 	lm::WindowExtent extent = window.GetExtent();
