@@ -29,7 +29,6 @@ constexpr std::array<const char *, 0> k_InstanceExtensions;
 
 constexpr std::array k_DeviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 };
 
 void FillRequiredFeatures(DeviceFeatureChain &chain) {
