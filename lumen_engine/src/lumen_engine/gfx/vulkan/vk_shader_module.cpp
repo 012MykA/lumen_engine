@@ -1,4 +1,4 @@
-#include "vk_shader_module.hpp"
+#include "lumen_engine/gfx/vulkan/vk_shader_module.hpp"
 
 namespace lm {
 
