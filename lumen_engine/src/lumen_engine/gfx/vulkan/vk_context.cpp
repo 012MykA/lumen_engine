@@ -19,6 +19,8 @@ namespace lm {
 
 namespace {
 
+constexpr bool k_ValidationEnabled = true;
+
 constexpr uint32_t k_VulkanApiVersion = VK_API_VERSION_1_3;
 
 constexpr std::array<const char *, 0> k_InstanceLayers;
@@ -47,16 +49,16 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 
 } //namespace
 
-VulkanContext::VulkanContext(const Window &window, bool enableValidation) {
+VulkanContext::VulkanContext(const Window &window) : m_Window{ window } {
 	CHECK_VK(volkInitialize());
 	if (volkGetInstanceVersion() < k_VulkanApiVersion) {
 		throw std::runtime_error{ "Vulkan 1.3 is not supported" };
 	}
-	CreateInstance(enableValidation);
-	if (enableValidation) {
+	CreateInstance();
+	if constexpr (k_ValidationEnabled) {
 		SetupDebugMessenger();
 	}
-	CreateSurface(window);
+	CreateSurface();
 	PickPhysicalDevice();
 	CreateDevice();
 	CreateAllocator();
@@ -77,7 +79,7 @@ VulkanContext::~VulkanContext() {
 	volkFinalize();
 }
 
-void VulkanContext::CreateInstance(bool enableValidation) {
+void VulkanContext::CreateInstance() {
 	constexpr VkApplicationInfo appInfo{
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.pApplicationName = "",
@@ -95,13 +97,13 @@ void VulkanContext::CreateInstance(bool enableValidation) {
 	extensions.reserve(extensions.size() + glfwExtCount);
 	extensions.insert(extensions.end(), glfwExt, glfwExt + glfwExtCount);
 
-	if (enableValidation) {
+	if constexpr (k_ValidationEnabled) {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
 	// --- Layers ---
 	std::vector<const char *> layers(k_InstanceLayers.begin(), k_InstanceLayers.end());
-	if (enableValidation) {
+	if constexpr (k_ValidationEnabled) {
 		layers.push_back("VK_LAYER_KHRONOS_validation");
 	}
 
@@ -136,8 +138,8 @@ void VulkanContext::SetupDebugMessenger() {
 	CHECK_VK(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger));
 }
 
-void VulkanContext::CreateSurface(const lm::Window &window) {
-	CHECK_VK(glfwCreateWindowSurface(m_Instance, window.handle, nullptr, &m_Surface));
+void VulkanContext::CreateSurface() {
+	CHECK_VK(glfwCreateWindowSurface(m_Instance, m_Window.handle, nullptr, &m_Surface));
 }
 
 void VulkanContext::PickPhysicalDevice() {
@@ -149,7 +151,7 @@ void VulkanContext::PickPhysicalDevice() {
 		throw std::runtime_error{ "Failed to find Graphics Device with Vulkan support" };
 	}
 
-	auto it = std::ranges::find_if(devices, [this](VkPhysicalDevice d) { return IsDeviceSuitable(d); });
+	const auto it = std::ranges::find_if(devices, [this](VkPhysicalDevice d) { return IsDeviceSuitable(d); });
 	if (it == devices.end()) {
 		throw std::runtime_error{ "Failed to find a suitable Graphics Device" };
 	}
@@ -218,7 +220,7 @@ void VulkanContext::CheckExtensionsSupport(std::span<const char *> extensions) c
 	std::vector<VkExtensionProperties> available(count);
 	vkEnumerateInstanceExtensionProperties(nullptr, &count, available.data());
 
-	auto it = std::ranges::find_if(extensions, [&available](const char *name) {
+	const auto it = std::ranges::find_if(extensions, [&available](const char *name) {
 		return std::ranges::none_of(available, [name](const auto &prop) {
 			return std::strcmp(name, prop.extensionName) == 0;
 		});
@@ -234,7 +236,7 @@ void VulkanContext::CheckLayersSupport(std::span<const char *> layers) const {
 	std::vector<VkLayerProperties> available(count);
 	vkEnumerateInstanceLayerProperties(&count, available.data());
 
-	auto it = std::ranges::find_if(layers, [&available](const char *name) {
+	const auto it = std::ranges::find_if(layers, [&available](const char *name) {
 		return std::ranges::none_of(available, [name](const auto &prop) {
 			return std::strcmp(name, prop.layerName) == 0;
 		});

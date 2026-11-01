@@ -2,6 +2,7 @@
 
 #include "lumen_engine/core/window.hpp"
 #include "lumen_engine/gfx/vulkan/vk_context.hpp"
+#include "lumen_engine/gfx/vulkan/vk_swapchain.hpp"
 
 namespace lm {
 
@@ -17,6 +18,7 @@ public:
 private:
 	const Window &m_Window;
 	VulkanContext m_Context;
+	VulkanSwapchain m_Swapchain;
 };
 
 } // namespace lm

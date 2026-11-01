@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lumen_engine/gfx/vulkan/vk_common.hpp"
+#include "vk_common.hpp"
 
 #include <cstdint>
 #include <optional>
