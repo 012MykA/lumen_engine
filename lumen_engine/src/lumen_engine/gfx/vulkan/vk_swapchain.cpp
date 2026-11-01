@@ -52,6 +52,7 @@ bool VulkanSwapchain::Recreate() {
 
 	vkDestroySwapchainKHR(m_Device, oldSwapchain, nullptr);
 	CreateImageViews();
+	return true;
 }
 
 void VulkanSwapchain::CreateSwapchain() {
