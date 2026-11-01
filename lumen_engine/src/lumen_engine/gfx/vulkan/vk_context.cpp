@@ -59,6 +59,7 @@ VulkanContext::VulkanContext(const Window &window, bool enableValidation) {
 	CreateSurface(window);
 	PickPhysicalDevice();
 	CreateDevice();
+	CreateAllocator();
 }
 
 VulkanContext::~VulkanContext() {
@@ -66,6 +67,7 @@ VulkanContext::~VulkanContext() {
 		LUMEN_CORE_ERROR("failed to vkDeviceWaitIdle in VulkanContext destructor");
 	}
 
+	vmaDestroyAllocator(m_Allocator);
 	vkDestroyDevice(m_Device, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	if (m_DebugMessenger != VK_NULL_HANDLE) {
@@ -193,6 +195,21 @@ void VulkanContext::CreateDevice() {
 	vkGetDeviceQueue(m_Device, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
 	vkGetDeviceQueue(m_Device, indices.presentFamily.value(), 0, &m_PresentQueue);
 	vkGetDeviceQueue(m_Device, indices.computeFamily.value(), 0, &m_ComputeQueue);
+}
+
+void VulkanContext::CreateAllocator() {
+	VmaVulkanFunctions vulkanFuncs{
+		.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+		.vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+	};
+	VmaAllocatorCreateInfo createInfo{
+		.physicalDevice = m_PhysicalDevice,
+		.device = m_Device,
+		.pVulkanFunctions = &vulkanFuncs,
+		.instance = m_Instance,
+		.vulkanApiVersion = k_VulkanApiVersion,
+	};
+	CHECK_VK(vmaCreateAllocator(&createInfo, &m_Allocator));
 }
 
 void VulkanContext::CheckExtensionsSupport(std::span<const char *> extensions) const {

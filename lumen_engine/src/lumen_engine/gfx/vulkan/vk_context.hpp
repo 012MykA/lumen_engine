@@ -23,6 +23,7 @@ private:
 	void CreateSurface(const lm::Window &window);
 	void PickPhysicalDevice();
 	void CreateDevice();
+	void CreateAllocator();
 
 private:
 	void CheckExtensionsSupport(std::span<const char *> extensions) const;
@@ -42,6 +43,8 @@ private:
 	VkQueue m_GraphicsQueue{ VK_NULL_HANDLE };
 	VkQueue m_PresentQueue{ VK_NULL_HANDLE };
 	VkQueue m_ComputeQueue{ VK_NULL_HANDLE };
+
+	VmaAllocator m_Allocator{ VK_NULL_HANDLE };
 };
 
 } // namespace lm
