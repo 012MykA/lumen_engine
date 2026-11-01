@@ -5,6 +5,10 @@
 namespace lm {
 
 struct DeviceFeatureChain {
+	DeviceFeatureChain() = default;
+	DeviceFeatureChain(const DeviceFeatureChain &) = delete;
+	DeviceFeatureChain &operator=(const DeviceFeatureChain &) = delete;
+
 	VkPhysicalDeviceFeatures2 features2{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
 		.pNext = &extendedDynamicState,

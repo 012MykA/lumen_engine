@@ -30,12 +30,10 @@ constexpr std::array k_DeviceExtensions = {
 	VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 };
 
-DeviceFeatureChain GetReqDeviceFeatures() {
-	DeviceFeatureChain chain;
-	chain.features2.features.samplerAnisotropy = true;
-	chain.extendedDynamicState.extendedDynamicState = true;
-	chain.vk13.dynamicRendering = true;
-	return chain;
+void FillRequiredFeatures(DeviceFeatureChain &chain) {
+	chain.features2.features.samplerAnisotropy = VK_TRUE;
+	chain.vk13.dynamicRendering = VK_TRUE;
+	chain.vk13.synchronization2 = VK_TRUE;
 }
 
 // --- Debug Utils Messenger ---
@@ -64,6 +62,10 @@ VulkanContext::VulkanContext(const Window &window, bool enableValidation) {
 }
 
 VulkanContext::~VulkanContext() {
+	if (vkDeviceWaitIdle(m_Device) != VK_SUCCESS) {
+		LUMEN_CORE_ERROR("failed to vkDeviceWaitIdle in VulkanContext destructor");
+	}
+
 	vkDestroyDevice(m_Device, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	if (m_DebugMessenger != VK_NULL_HANDLE) {
@@ -173,7 +175,8 @@ void VulkanContext::CreateDevice() {
 		});
 	}
 
-	DeviceFeatureChain features = GetReqDeviceFeatures();
+	DeviceFeatureChain features;
+	FillRequiredFeatures(features);
 
 	VkDeviceCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
