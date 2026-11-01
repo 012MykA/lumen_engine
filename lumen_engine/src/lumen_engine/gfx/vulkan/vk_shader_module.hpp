@@ -12,6 +12,9 @@ public:
 	VulkanShaderModule(VkDevice device, std::span<const uint32_t> code);
 	~VulkanShaderModule();
 
+	VulkanShaderModule(const VulkanShaderModule &) = delete;
+	VulkanShaderModule &operator=(const VulkanShaderModule &) = delete;
+
 	VkShaderModule GetVkShaderModule() const { return m_ShaderModule; }
 
 private:

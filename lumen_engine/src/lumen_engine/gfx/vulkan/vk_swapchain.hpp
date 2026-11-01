@@ -14,6 +14,9 @@ public:
 	VulkanSwapchain(const VulkanContext &ctx);
 	~VulkanSwapchain();
 
+	VulkanSwapchain(const VulkanSwapchain &) = delete;
+	VulkanSwapchain &operator=(const VulkanSwapchain &) = delete;
+
 	bool Recreate();
 
 private:
