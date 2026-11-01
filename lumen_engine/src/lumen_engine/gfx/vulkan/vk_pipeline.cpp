@@ -1,5 +1,6 @@
 #include "lumen_engine/gfx/vulkan/vk_pipeline.hpp"
 
+#include <array>
 #include <utility> // for std::exchange
 
 namespace lm {
@@ -37,6 +38,112 @@ void VulkanPipeline::Destroy() {
 	m_Device = VK_NULL_HANDLE;
 	m_Pipeline = VK_NULL_HANDLE;
 	m_Layout = VK_NULL_HANDLE;
+}
+
+GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetShader(VkShaderModule shader) {
+	m_Shader = shader;
+	return *this;
+}
+
+GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetColorFormat(VkFormat format) {
+	m_ColorFormat = format;
+	return *this;
+}
+
+GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetCullMode(VkCullModeFlags mode, VkFrontFace front) {
+	m_CullMode = mode;
+	m_FrontFace = front;
+	return *this;
+}
+
+VulkanPipeline GraphicsPipelineBuilder::Build(VkDevice device, VkPipelineCache cache) const {
+	VkPipelineLayoutCreateInfo layoutInfo{ .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	VkPipelineLayout layout{ VK_NULL_HANDLE };
+	CHECK_VK(vkCreatePipelineLayout(device, &layoutInfo, nullptr, &layout));
+
+	std::array stages = {
+		VkPipelineShaderStageCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = VK_SHADER_STAGE_VERTEX_BIT,
+				.module = m_Shader,
+				.pName = "vertMain",
+		},
+		VkPipelineShaderStageCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+				.module = m_Shader,
+				.pName = "fragMain",
+		},
+	};
+
+	VkPipelineVertexInputStateCreateInfo vertexInput{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+	};
+	VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	};
+	VkPipelineViewportStateCreateInfo viewport{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+		.viewportCount = 1,
+		.scissorCount = 1,
+	};
+	VkPipelineRasterizationStateCreateInfo raster{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+		.polygonMode = VK_POLYGON_MODE_FILL,
+		.cullMode = m_CullMode,
+		.frontFace = m_FrontFace,
+		.lineWidth = 1.0f,
+	};
+	VkPipelineMultisampleStateCreateInfo msaa{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+		.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+	};
+	VkPipelineColorBlendAttachmentState blendAttachment{
+		.blendEnable = VK_FALSE,
+		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+				VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+	};
+	VkPipelineColorBlendStateCreateInfo blend{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+		.attachmentCount = 1,
+		.pAttachments = &blendAttachment,
+	};
+	constexpr std::array dynamicStates{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+	VkPipelineDynamicStateCreateInfo dynamic{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+		.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+		.pDynamicStates = dynamicStates.data(),
+	};
+	VkPipelineRenderingCreateInfo rendering{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+		.colorAttachmentCount = 1,
+		.pColorAttachmentFormats = &m_ColorFormat,
+	};
+
+	VkGraphicsPipelineCreateInfo createInfo{
+		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		.pNext = &rendering,
+		.stageCount = static_cast<uint32_t>(stages.size()),
+		.pStages = stages.data(),
+		.pVertexInputState = &vertexInput,
+		.pInputAssemblyState = &inputAssembly,
+		.pViewportState = &viewport,
+		.pRasterizationState = &raster,
+		.pMultisampleState = &msaa,
+		.pColorBlendState = &blend,
+		.pDynamicState = &dynamic,
+		.layout = layout,
+	};
+
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	const VkResult res = vkCreateGraphicsPipelines(device, cache, 1, &createInfo, nullptr, &pipeline);
+	if (res != VK_SUCCESS) {
+		vkDestroyPipelineLayout(device, layout, nullptr);
+		CHECK_VK(res);
+	}
+
+	return VulkanPipeline{ device, layout, pipeline };
 }
 
 } // namespace lm

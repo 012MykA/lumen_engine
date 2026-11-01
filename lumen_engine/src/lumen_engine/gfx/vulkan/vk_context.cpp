@@ -35,6 +35,7 @@ void FillRequiredFeatures(DeviceFeatureChain &chain) {
 	chain.features2.features.samplerAnisotropy = VK_TRUE;
 	chain.vk13.dynamicRendering = VK_TRUE;
 	chain.vk13.synchronization2 = VK_TRUE;
+	chain.vk11.shaderDrawParameters = VK_TRUE;
 }
 
 // --- Debug Utils Messenger ---
@@ -260,7 +261,8 @@ bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const {
 	chain.QueryFor(device);
 	bool supportsFeatures = chain.features2.features.samplerAnisotropy &&
 			chain.vk13.dynamicRendering &&
-			chain.vk13.synchronization2;
+			chain.vk13.synchronization2 &&
+			chain.vk11.shaderDrawParameters;
 
 	return supportsVersion && supportsFeatures && FindQueueFamilies(device, m_Surface).IsComplete();
 }

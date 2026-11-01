@@ -41,6 +41,12 @@ void VulkanPipelineCache::Save() const {
 	std::vector<char> data(size);
 	CHECK_VK(vkGetPipelineCacheData(m_Device, m_Cache, &size, data.data()));
 
+	auto parent = m_File.parent_path();
+	if (!parent.empty() && !std::filesystem::exists(parent)) {
+		std::filesystem::create_directories(parent);
+		LUMEN_CORE_INFO("Creating: {}", parent.string());
+	}
+
 	std::ofstream out{ m_File, std::ios::binary | std::ios::trunc };
 	out.write(data.data(), static_cast<std::streamsize>(size));
 }

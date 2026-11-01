@@ -1,5 +1,5 @@
-# TEMP
-imgui.ini
+# Shader Cache
+assets/cache/
 
 # Prerequisites
 *.d

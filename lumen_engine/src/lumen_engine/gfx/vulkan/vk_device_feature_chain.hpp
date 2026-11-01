@@ -16,6 +16,12 @@ struct DeviceFeatureChain {
 
 	VkPhysicalDeviceVulkan13Features vk13{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+		.pNext = &vk11,
+	};
+
+	VkPhysicalDeviceVulkan11Features vk11{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+		.pNext = nullptr,
 	};
 
 	void QueryFor(VkPhysicalDevice device) {

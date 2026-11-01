@@ -1,16 +1,25 @@
 #include "lumen_engine/gfx/renderer.hpp"
 
+#include "lumen_engine/gfx/vulkan/vk_shader_module.hpp"
 #include "lumen_engine/gfx/vulkan/vk_utils.hpp"
 
 #include <climits>
 
 namespace lm {
 
+namespace {
+
+static constexpr auto k_PipelineCachePath = "assets/cache/vk_pipeline_cache.bin";
+
+}
+
 Renderer::Renderer(const Window &window) :
 		m_Window{ window },
 		m_Context{ m_Window },
-		m_Swapchain{ m_Context } {
+		m_Swapchain{ m_Context },
+		m_PipelineCache{ m_Context.GetVkDevice(), k_PipelineCachePath } {
 	CreateFrames();
+	CreatePipelines();
 }
 
 Renderer::~Renderer() {
@@ -127,6 +136,18 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 	};
 	vkCmdBeginRendering(cmd, &rendering);
 	{
+		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TrianglePipeline->GetVkPipeline());
+		const VkExtent2D extent = m_Swapchain.GetExtent();
+		VkViewport viewport{
+			0.0f, 0.0f,
+			static_cast<float>(extent.width), static_cast<float>(extent.height),
+			0.0f, 1.0f
+		};
+		VkRect2D scissor{ { 0, 0 }, extent };
+		vkCmdSetViewport(cmd, 0, 1, &viewport);
+		vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+		vkCmdDraw(cmd, 3, 1, 0, 0);
 	}
 	vkCmdEndRendering(cmd);
 
@@ -162,6 +183,17 @@ void Renderer::CreateFrames() {
 		VkSemaphoreCreateInfo semInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		CHECK_VK(vkCreateSemaphore(device, &semInfo, nullptr, &f.imageAvailable));
 	}
+}
+
+void Renderer::CreatePipelines() {
+	VkDevice device = m_Context.GetVkDevice();
+
+	const auto shaderCode = ReadSpirV("assets/shaders/bin/triangle.spv");
+	VulkanShaderModule shader{ device, shaderCode };
+	m_TrianglePipeline.emplace(GraphicsPipelineBuilder{}
+					.SetShader(shader.GetVkShaderModule())
+					.SetColorFormat(m_Swapchain.GetFormat())
+					.Build(device, m_PipelineCache.GetVkPipelineCache()));
 }
 
 void Renderer::DestroyFrames() {

@@ -21,6 +21,7 @@ public:
 
 	VkSwapchainKHR GetVkSwapchain() const { return m_Swapchain; }
 	VkExtent2D GetExtent() const { return m_Extent; }
+	VkFormat GetFormat() const { return m_SurfaceFormat.format; }
 	VkImage GetImage(uint32_t i) const { return m_Images[i]; }
 	VkImageView GetImageView(uint32_t i) const { return m_ImageViews[i]; }
 	VkSemaphore GetRenderFinished(uint32_t i) const { return m_RenderFinished[i]; }

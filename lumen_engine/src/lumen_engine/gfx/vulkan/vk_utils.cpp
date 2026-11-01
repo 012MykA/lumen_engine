@@ -1,6 +1,5 @@
 #include "lumen_engine/gfx/vulkan/vk_utils.hpp"
 
-#include <format>
 #include <fstream>
 #include <stdexcept>
 
@@ -34,11 +33,11 @@ void TransitionImage(VkCommandBuffer cmd, VkImage image,
 std::vector<uint32_t> ReadSpirV(const std::filesystem::path &path) {
 	std::ifstream file(path, std::ios::binary | std::ios::ate);
 	if (!file) {
-		throw std::runtime_error{ std::format("failed to open shader: {}", path) };
+		throw std::runtime_error{ "failed to open shader: {}" + path.string() };
 	}
 	const size_t size = static_cast<size_t>(file.tellg());
 	if (size == 0 || size % sizeof(uint32_t) != 0) {
-		throw std::runtime_error{ std::format("Invalid SPIR-V file: {}", path) };
+		throw std::runtime_error{ "Invalid SPIR-V file: {}" + path.string() };
 	}
 	std::vector<uint32_t> buffer(size / sizeof(uint32_t));
 	file.seekg(0);

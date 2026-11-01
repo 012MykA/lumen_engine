@@ -26,4 +26,19 @@ private:
 	VkPipeline m_Pipeline{ VK_NULL_HANDLE };
 };
 
+class GraphicsPipelineBuilder {
+public:
+	GraphicsPipelineBuilder &SetShader(VkShaderModule shader);
+	GraphicsPipelineBuilder &SetColorFormat(VkFormat format);
+	GraphicsPipelineBuilder &SetCullMode(VkCullModeFlags mode, VkFrontFace front);
+
+	VulkanPipeline Build(VkDevice device, VkPipelineCache cache) const;
+
+private:
+	VkShaderModule m_Shader{ VK_NULL_HANDLE };
+	VkFormat m_ColorFormat{ VK_FORMAT_UNDEFINED };
+	VkCullModeFlags m_CullMode{ VK_CULL_MODE_NONE };
+	VkFrontFace m_FrontFace{ VK_FRONT_FACE_COUNTER_CLOCKWISE };
+};
+
 } // namespace lm
