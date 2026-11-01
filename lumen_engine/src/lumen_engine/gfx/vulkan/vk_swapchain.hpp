@@ -14,7 +14,7 @@ public:
 	VulkanSwapchain(const VulkanContext &ctx);
 	~VulkanSwapchain();
 
-	void Recreate();
+	bool Recreate();
 
 private:
 	void CreateSwapchain();
@@ -24,7 +24,8 @@ private:
 	const VulkanContext &m_Ctx;
 	VkDevice m_Device{ VK_NULL_HANDLE };
 	VkSwapchainKHR m_Swapchain{ VK_NULL_HANDLE };
-	VkSurfaceFormatKHR m_SurfaceFormat;
+	VkExtent2D m_Extent{ 0, 0 };
+	VkSurfaceFormatKHR m_SurfaceFormat{};
 	std::vector<VkImage> m_Images;
 	std::vector<VkImageView> m_ImageViews;
 };

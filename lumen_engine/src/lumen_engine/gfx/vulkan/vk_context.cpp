@@ -94,8 +94,10 @@ void VulkanContext::CreateInstance() {
 
 	uint32_t glfwExtCount = 0;
 	const char **glfwExt = glfwGetRequiredInstanceExtensions(&glfwExtCount);
-	extensions.reserve(extensions.size() + glfwExtCount);
-	extensions.insert(extensions.end(), glfwExt, glfwExt + glfwExtCount);
+	if (glfwExt != nullptr) {
+		extensions.reserve(extensions.size() + glfwExtCount);
+		extensions.insert(extensions.end(), glfwExt, glfwExt + glfwExtCount);
+	}
 
 	if constexpr (k_ValidationEnabled) {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -255,7 +257,7 @@ bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const {
 	chain.QueryFor(device);
 	bool supportsFeatures = chain.features2.features.samplerAnisotropy &&
 			chain.vk13.dynamicRendering &&
-			chain.extendedDynamicState.extendedDynamicState;
+			chain.vk13.synchronization2;
 
 	return supportsVersion && supportsFeatures && FindQueueFamilies(device, m_Surface).IsComplete();
 }

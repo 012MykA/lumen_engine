@@ -15,9 +15,7 @@ void Renderer::OnRender() {
 }
 
 void Renderer::OnResize(WindowExtent extent) {
-	if (extent.width != 0 && extent.height != 0) {
-		m_Swapchain.Recreate();
-	}
+	m_Swapchain.Recreate();
 }
 
 } // namespace lm

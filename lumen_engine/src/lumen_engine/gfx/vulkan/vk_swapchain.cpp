@@ -19,7 +19,9 @@ VkPresentModeKHR ChooseSwapPresentMode(std::span<const VkPresentModeKHR> availab
 
 } //namespace
 
-VulkanSwapchain::VulkanSwapchain(const VulkanContext &ctx) : m_Ctx{ ctx }, m_Device{ ctx.GetVkDevice() } {
+VulkanSwapchain::VulkanSwapchain(const VulkanContext &ctx) :
+		m_Ctx{ ctx },
+		m_Device{ ctx.GetVkDevice() } {
 	CreateSwapchain();
 	CreateImageViews();
 }
@@ -31,7 +33,14 @@ VulkanSwapchain::~VulkanSwapchain() {
 	vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
 }
 
-void VulkanSwapchain::Recreate() {
+bool VulkanSwapchain::Recreate() {
+	const WindowExtent fb = m_Ctx.GetWindow().GetExtent();
+	if (fb.width == 0 || fb.height == 0) {
+		return false;
+	}
+
+	CHECK_VK(vkDeviceWaitIdle(m_Device));
+
 	for (auto &view : m_ImageViews) {
 		vkDestroyImageView(m_Device, view, nullptr);
 	}
@@ -52,7 +61,7 @@ void VulkanSwapchain::CreateSwapchain() {
 	VkSurfaceCapabilitiesKHR surfaceCaps;
 	CHECK_VK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDevice, surface, &surfaceCaps));
 
-	const VkExtent2D swapchainExtent = ChooseSwapExtent(surfaceCaps, m_Ctx.GetWindow());
+	m_Extent = ChooseSwapExtent(surfaceCaps, m_Ctx.GetWindow());
 	const uint32_t minImageCount = ChooseMinImageCount(surfaceCaps);
 
 	uint32_t formatCount = 0;
@@ -80,7 +89,7 @@ void VulkanSwapchain::CreateSwapchain() {
 		.minImageCount = minImageCount,
 		.imageFormat = m_SurfaceFormat.format,
 		.imageColorSpace = m_SurfaceFormat.colorSpace,
-		.imageExtent = swapchainExtent,
+		.imageExtent = m_Extent,
 		.imageArrayLayers = 1,
 		.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 		.imageSharingMode = sameFamily ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT,
