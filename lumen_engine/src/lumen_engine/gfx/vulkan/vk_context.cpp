@@ -2,7 +2,7 @@
 
 #include "lumen_engine/core/log.hpp"
 #include "lumen_engine/core/window.hpp"
-#include "lumen_engine/gfx/vulkan/device_feature_chain.hpp"
+#include "lumen_engine/gfx/vulkan/vk_device_feature_chain.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>

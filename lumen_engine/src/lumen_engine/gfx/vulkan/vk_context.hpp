@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lumen_engine/gfx/vulkan/queue_family_indices.hpp"
 #include "lumen_engine/gfx/vulkan/vk_common.hpp"
+#include "lumen_engine/gfx/vulkan/vk_queue_family_indices.hpp"
 
 #include <span>
 
