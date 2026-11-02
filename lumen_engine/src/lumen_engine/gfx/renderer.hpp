@@ -1,11 +1,13 @@
 #pragma once
 
 #include "lumen_engine/core/window.hpp"
+#include "lumen_engine/gfx/vulkan/vk_buffer.hpp"
 #include "lumen_engine/gfx/vulkan/vk_context.hpp"
 #include "lumen_engine/gfx/vulkan/vk_frame_data.hpp"
 #include "lumen_engine/gfx/vulkan/vk_pipeline.hpp"
 #include "lumen_engine/gfx/vulkan/vk_pipeline_cache.hpp"
 #include "lumen_engine/gfx/vulkan/vk_swapchain.hpp"
+#include "lumen_engine/gfx/vulkan/vk_uploader.hpp"
 
 #include <array>
 #include <cstdint>

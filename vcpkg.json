@@ -4,6 +4,7 @@
   "dependencies": [
     "glfw3",
     "spdlog",
+    "glm",
 
     "volk",
     "vulkan-utility-libraries",
