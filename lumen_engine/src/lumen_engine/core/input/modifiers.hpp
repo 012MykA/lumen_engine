@@ -14,6 +14,8 @@ enum class Modifiers : uint8_t {
 	Super = 1 << 3,
 	CapsLock = 1 << 4,
 	NumLock = 1 << 5,
+
+	Ctrl = Control,
 };
 
 template <>
