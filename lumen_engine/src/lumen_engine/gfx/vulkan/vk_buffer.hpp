@@ -1,25 +1,25 @@
 #pragma once
 
 #include "lumen_engine/gfx/vulkan/vk_common.hpp"
+#include "lumen_engine/gfx/vulkan/vk_context.hpp"
 
 namespace lm {
 
-class VulkanBuffer {
+class VulkanBuffer final {
 public:
-	VulkanBuffer() = default;
-	VulkanBuffer(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage,
+	VulkanBuffer(
+			VmaAllocator allocator,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
 			VmaAllocationCreateFlags flags = 0);
 	~VulkanBuffer();
 
 	VulkanBuffer(const VulkanBuffer &) = delete;
 	VulkanBuffer &operator=(const VulkanBuffer &) = delete;
-	VulkanBuffer(VulkanBuffer &&other) noexcept;
-	VulkanBuffer &operator=(VulkanBuffer &&other) noexcept;
+	VulkanBuffer(VulkanBuffer &&) noexcept;
+	VulkanBuffer &operator=(VulkanBuffer &&) noexcept;
 
-	static VulkanBuffer CreateStaging(
-			VmaAllocator allocator,
-			const void *data,
-			VkDeviceSize size);
+	static VulkanBuffer CreateStaging(VmaAllocator allocator, const void *data, VkDeviceSize size);
 
 	VkBuffer GetVkBuffer() const { return m_Buffer; }
 	VkDeviceSize GetSize() const { return m_Size; }
