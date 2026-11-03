@@ -173,7 +173,7 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 		VkDeviceSize offset = 0;
 		vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
 		vkCmdBindIndexBuffer(cmd, m_IndexBuffer.GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDraw(cmd, 3, 1, 0, 0);
+		vkCmdDrawIndexed(cmd, 3, 1, 0, 0, 0);
 	}
 	vkCmdEndRendering(cmd);
 
