@@ -2,6 +2,7 @@
 
 #include "lumen_engine/gfx/vulkan/vk_shader_module.hpp"
 #include "lumen_engine/gfx/vulkan/vk_utils.hpp"
+#include "lumen_engine/gfx/vulkan/vk_vertex.hpp"
 
 #include <climits>
 
@@ -9,17 +10,38 @@ namespace lm {
 
 namespace {
 
-static constexpr auto k_PipelineCachePath = "assets/cache/vk_pipeline_cache.bin";
+constexpr auto k_PipelineCachePath = "assets/cache/vk_pipeline_cache.bin";
 
-}
+} //namespace
 
 Renderer::Renderer(const Window &window) :
 		m_Window{ window },
 		m_Context{ m_Window },
 		m_Swapchain{ m_Context },
-		m_PipelineCache{ m_Context.GetVkDevice(), k_PipelineCachePath } {
+		m_PipelineCache{ m_Context.GetVkDevice(), k_PipelineCachePath },
+		m_Uploader{
+			m_Context.GetVkDevice(),
+			m_Context.GetGraphicsQueue(),
+			m_Context.GetQueueFamilyIndices().graphicsFamily.value()
+		} {
 	CreateFrames();
 	CreatePipelines();
+
+	constexpr Vertex vertices[] = {
+		{ { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
+		{ { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
+		{ { 0.0f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
+	};
+
+	constexpr uint32_t indices[] = { 0, 1, 2 };
+
+	m_VertexBuffer = m_Uploader.UploadBuffer(vertices, sizeof(vertices),
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			m_Context.GetAllocator());
+
+	m_IndexBuffer = m_Uploader.UploadBuffer(indices, sizeof(indices),
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			m_Context.GetAllocator());
 }
 
 Renderer::~Renderer() {
@@ -147,6 +169,10 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 		vkCmdSetViewport(cmd, 0, 1, &viewport);
 		vkCmdSetScissor(cmd, 0, 1, &scissor);
 
+		VkBuffer vb = m_VertexBuffer.GetVkBuffer();
+		VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
+		vkCmdBindIndexBuffer(cmd, m_IndexBuffer.GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDraw(cmd, 3, 1, 0, 0);
 	}
 	vkCmdEndRendering(cmd);
@@ -188,11 +214,16 @@ void Renderer::CreateFrames() {
 void Renderer::CreatePipelines() {
 	VkDevice device = m_Context.GetVkDevice();
 
+	constexpr std::array bindings = { Vertex::GetBindingDescription() };
+	constexpr std::array attributes = Vertex::GetAttributeDescriptions();
+
 	const auto shaderCode = ReadSpirV("assets/shaders/bin/triangle.spv");
 	VulkanShaderModule shader{ device, shaderCode };
+
 	m_TrianglePipeline.emplace(GraphicsPipelineBuilder{}
 					.SetShader(shader.GetVkShaderModule())
 					.SetColorFormat(m_Swapchain.GetFormat())
+					.SetVertexInput(bindings, attributes)
 					.Build(device, m_PipelineCache.GetVkPipelineCache()));
 }
 

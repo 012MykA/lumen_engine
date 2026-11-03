@@ -8,7 +8,7 @@
 
 namespace lm {
 
-class VulkanUploader {
+class VulkanUploader final {
 public:
 	VulkanUploader(VkDevice device, VkQueue queue, uint32_t queueFamilyIndex);
 	~VulkanUploader();

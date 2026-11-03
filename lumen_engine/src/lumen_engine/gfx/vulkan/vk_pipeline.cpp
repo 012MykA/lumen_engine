@@ -56,6 +56,14 @@ GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetCullMode(VkCullModeFlags mo
 	return *this;
 }
 
+GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetVertexInput(
+		std::span<const VkVertexInputBindingDescription> bindingDesc,
+		std::span<const VkVertexInputAttributeDescription> attribDesc) {
+	m_Bindings.assign(bindingDesc.begin(), bindingDesc.end());
+	m_Attributes.assign(attribDesc.begin(), attribDesc.end());
+	return *this;
+}
+
 VulkanPipeline GraphicsPipelineBuilder::Build(VkDevice device, VkPipelineCache cache) const {
 	VkPipelineLayoutCreateInfo layoutInfo{ .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	VkPipelineLayout layout{ VK_NULL_HANDLE };
@@ -78,6 +86,10 @@ VulkanPipeline GraphicsPipelineBuilder::Build(VkDevice device, VkPipelineCache c
 
 	VkPipelineVertexInputStateCreateInfo vertexInput{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		.vertexBindingDescriptionCount = static_cast<uint32_t>(m_Bindings.size()),
+		.pVertexBindingDescriptions = m_Bindings.data(),
+		.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_Attributes.size()),
+		.pVertexAttributeDescriptions = m_Attributes.data(),
 	};
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,

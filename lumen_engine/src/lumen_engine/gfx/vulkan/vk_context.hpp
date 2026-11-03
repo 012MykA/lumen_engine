@@ -27,6 +27,7 @@ public:
 	VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
 	VkQueue GetPresentQueue() const { return m_PresentQueue; }
 	VkQueue GetComputeQueue() const { return m_ComputeQueue; }
+	VmaAllocator GetAllocator() const { return m_Allocator; }
 
 private:
 	void CreateInstance();

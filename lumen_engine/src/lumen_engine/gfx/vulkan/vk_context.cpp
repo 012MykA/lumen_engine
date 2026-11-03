@@ -253,9 +253,25 @@ void VulkanContext::CheckLayersSupport(std::span<const char *> layers) const {
 }
 
 bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const {
+	uint32_t count = 0;
+	CHECK_VK(vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr));
+	std::vector<VkExtensionProperties> available(count);
+	CHECK_VK(vkEnumerateDeviceExtensionProperties(device, nullptr, &count, available.data()));
+
+	auto unsupportedExtIt = std::ranges::find_if(k_DeviceExtensions, [&available](const char *name) {
+		return std::ranges::none_of(available, [&name](const auto &prop) {
+			return strcmp(name, prop.extensionName) == 0;
+		});
+	});
+	if (unsupportedExtIt != k_DeviceExtensions.end()) {
+		return false;
+	}
+
 	VkPhysicalDeviceProperties props;
 	vkGetPhysicalDeviceProperties(device, &props);
-	bool supportsVersion = props.apiVersion >= k_VulkanApiVersion;
+	if (props.apiVersion < k_VulkanApiVersion) {
+		return false;
+	}
 
 	DeviceFeatureChain chain;
 	chain.QueryFor(device);
@@ -263,8 +279,15 @@ bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const {
 			chain.vk13.dynamicRendering &&
 			chain.vk13.synchronization2 &&
 			chain.vk11.shaderDrawParameters;
+	if (!supportsFeatures) {
+		return false;
+	}
 
-	return supportsVersion && supportsFeatures && FindQueueFamilies(device, m_Surface).IsComplete();
+	if (!FindQueueFamilies(device, m_Surface).IsComplete()) {
+		return false;
+	}
+
+	return true;
 }
 
 namespace {

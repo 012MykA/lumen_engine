@@ -40,6 +40,8 @@ private:
 	VulkanSwapchain m_Swapchain;
 	VulkanPipelineCache m_PipelineCache;
 	std::optional<VulkanPipeline> m_TrianglePipeline;
+	VulkanUploader m_Uploader;
+	VulkanBuffer m_VertexBuffer, m_IndexBuffer;
 
 	std::array<FrameData, k_FramesInFlight> m_Frames{};
 	uint32_t m_FrameIndex{ 0 };

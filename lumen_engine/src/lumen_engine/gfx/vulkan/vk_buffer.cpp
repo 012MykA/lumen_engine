@@ -28,7 +28,7 @@ VulkanBuffer::VulkanBuffer(
 }
 
 VulkanBuffer::~VulkanBuffer() {
-	vmaDestroyBuffer(m_Allocator, m_Buffer, m_Allocation);
+	Destroy();
 }
 
 VulkanBuffer::VulkanBuffer(VulkanBuffer &&other) noexcept
@@ -50,15 +50,18 @@ VulkanBuffer &VulkanBuffer::operator=(VulkanBuffer &&other) noexcept {
 	return *this;
 }
 
-VulkanBuffer VulkanBuffer::CreateStaging(VmaAllocator allocator, const void *data, VkDeviceSize size) {
-	VulkanBuffer staging{ allocator, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+VulkanBuffer VulkanBuffer::CreateStaging(const void *data, VkDeviceSize size, VmaAllocator allocator) {
+	VulkanBuffer staging{ allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT };
 	std::memcpy(staging.m_Mapped, data, size);
+	CHECK_VK(vmaFlushAllocation(allocator, staging.m_Allocation, 0, VK_WHOLE_SIZE));
 	return staging;
 }
 
 void VulkanBuffer::Destroy() {
-	vmaDestroyBuffer(m_Allocator, m_Buffer, m_Allocation);
+	if (m_Buffer != VK_NULL_HANDLE) {
+		vmaDestroyBuffer(m_Allocator, m_Buffer, m_Allocation);
+	}
 	m_Buffer = VK_NULL_HANDLE;
 	m_Allocation = VK_NULL_HANDLE;
 	m_Mapped = nullptr;

@@ -7,6 +7,7 @@ VulkanUploader::VulkanUploader(VkDevice device, VkQueue queue, uint32_t queueFam
 		m_Queue{ queue } {
 	VkCommandPoolCreateInfo poolInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
 		.queueFamilyIndex = queueFamilyIndex,
 	};
 	CHECK_VK(vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_Pool));
@@ -29,6 +30,8 @@ VulkanUploader::~VulkanUploader() {
 }
 
 void VulkanUploader::ImmediateSubmit(const std::function<void(VkCommandBuffer)> &record) {
+	CHECK_VK(vkResetCommandPool(m_Device, m_Pool, 0));
+
 	VkCommandBufferBeginInfo beginInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
@@ -55,7 +58,7 @@ void VulkanUploader::ImmediateSubmit(const std::function<void(VkCommandBuffer)> 
 
 VulkanBuffer VulkanUploader::UploadBuffer(const void *data, VkDeviceSize size,
 		VkBufferUsageFlags usage, VmaAllocator allocator) {
-	VulkanBuffer staging = VulkanBuffer::CreateStaging(allocator, data, size);
+	VulkanBuffer staging = VulkanBuffer::CreateStaging(data, size, allocator);
 	VulkanBuffer gpu{ allocator, size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT };
 
 	ImmediateSubmit([&](VkCommandBuffer cmd) {

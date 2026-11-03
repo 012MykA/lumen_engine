@@ -2,6 +2,9 @@
 
 #include "lumen_engine/gfx/vulkan/vk_common.hpp"
 
+#include <span>
+#include <vector>
+
 namespace lm {
 
 class VulkanPipeline final {
@@ -31,6 +34,9 @@ public:
 	GraphicsPipelineBuilder &SetShader(VkShaderModule shader);
 	GraphicsPipelineBuilder &SetColorFormat(VkFormat format);
 	GraphicsPipelineBuilder &SetCullMode(VkCullModeFlags mode, VkFrontFace front);
+	GraphicsPipelineBuilder &SetVertexInput(
+			std::span<const VkVertexInputBindingDescription> bindingDesc,
+			std::span<const VkVertexInputAttributeDescription> attribDesc);
 
 	VulkanPipeline Build(VkDevice device, VkPipelineCache cache) const;
 
@@ -39,6 +45,8 @@ private:
 	VkFormat m_ColorFormat{ VK_FORMAT_UNDEFINED };
 	VkCullModeFlags m_CullMode{ VK_CULL_MODE_NONE };
 	VkFrontFace m_FrontFace{ VK_FRONT_FACE_COUNTER_CLOCKWISE };
+	std::vector<VkVertexInputBindingDescription> m_Bindings;
+	std::vector<VkVertexInputAttributeDescription> m_Attributes;
 };
 
 } // namespace lm

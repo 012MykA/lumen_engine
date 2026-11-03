@@ -12,7 +12,6 @@ ExampleLayer::ExampleLayer() :
 	}
 
 	lm::WindowExtent extent = window.GetExtent();
-	LUMEN_INFO("Window extent: {}x{}", extent.width, extent.height);
 }
 
 void ExampleLayer::OnEvent(lm::Event &event) {

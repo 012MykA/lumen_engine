@@ -23,7 +23,9 @@ VulkanPipelineCache::VulkanPipelineCache(VkDevice device, const std::filesystem:
 		.pInitialData = data.empty() ? nullptr : data.data(),
 	};
 	CHECK_VK(vkCreatePipelineCache(m_Device, &createInfo, nullptr, &m_Cache));
-	LUMEN_CORE_INFO("Pipeline cache loaded: {} bytes", data.size());
+	if (!data.empty()) {
+		LUMEN_CORE_TRACE("Pipeline cache loaded: {}", file.string());
+	}
 }
 
 VulkanPipelineCache::~VulkanPipelineCache() {
@@ -44,9 +46,7 @@ void VulkanPipelineCache::Save() const {
 	auto parent = m_File.parent_path();
 	if (!parent.empty() && !std::filesystem::exists(parent)) {
 		std::filesystem::create_directories(parent);
-		LUMEN_CORE_INFO("Creating: {}", parent.string());
 	}
-
 	std::ofstream out{ m_File, std::ios::binary | std::ios::trunc };
 	out.write(data.data(), static_cast<std::streamsize>(size));
 }
