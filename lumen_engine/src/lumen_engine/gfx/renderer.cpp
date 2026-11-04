@@ -28,12 +28,13 @@ Renderer::Renderer(const Window &window) :
 	CreatePipelines();
 
 	constexpr Vertex vertices[] = {
-		{ { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
-		{ { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
-		{ { 0.0f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
+		{ { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+		{ { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
+		{ { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
+		{ { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } }
 	};
 
-	constexpr uint32_t indices[] = { 0, 1, 2 };
+	constexpr uint32_t indices[] = { 0, 2, 1, 0, 3, 2 };
 
 	m_VertexBuffer = m_Uploader.UploadBuffer(vertices, sizeof(vertices),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -173,7 +174,7 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 		VkDeviceSize offset = 0;
 		vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
 		vkCmdBindIndexBuffer(cmd, m_IndexBuffer.GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmd, 3, 1, 0, 0, 0);
+		vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
 	}
 	vkCmdEndRendering(cmd);
 

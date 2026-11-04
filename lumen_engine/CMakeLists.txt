@@ -30,6 +30,9 @@ target_compile_definitions(lumen_engine
     PUBLIC
         ${LUMEN_PLATFORM_DEF}
         VK_NO_PROTOTYPES
+
+        GLM_FORCE_DEPTH_ZERO_TO_ONE
+        GLM_FORCE_RADIANS
 )
 
 find_package(spdlog CONFIG REQUIRED)
