@@ -20,7 +20,6 @@ void ExampleLayer::OnEvent(lm::Event &event) {
 
 	lm::EventDispatcher dp{ event };
 	dp.Dispatch<lm::WindowResizeEvent>([this](lm::WindowResizeEvent &e) { return OnWindowResize(e); });
-	dp.Dispatch<lm::KeyPressedEvent>([this](lm::KeyPressedEvent &e) { return OnKeyPressed(e); });
 }
 
 void ExampleLayer::OnUpdate(float ts) {
@@ -38,13 +37,5 @@ bool ExampleLayer::OnWindowResize(lm::WindowResizeEvent &e) {
 	if (extent.height > 0) {
 		m_Camera.SetAspectRatio(static_cast<float>(extent.width) / extent.height);
 	}
-	return false;
-}
-
-bool ExampleLayer::OnKeyPressed(lm::KeyPressedEvent &e) {
-	if (e.HasModifier(lm::Modifiers::Ctrl) && e.GetKey() == lm::Key::W) {
-		lm::Application::Get().Close();
-	}
-
 	return false;
 }

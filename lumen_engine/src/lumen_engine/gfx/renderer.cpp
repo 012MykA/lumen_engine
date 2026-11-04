@@ -12,9 +12,18 @@ constexpr auto PIPELINE_CACHE_PATH = "assets/cache/vk_pipeline_cache.bin";
 
 constexpr auto SHADER_PATH = "assets/shaders/bin/shader.spv";
 
-// std::pair<std::vector<Vertex>, std::vector<uint32_t>> BuildScene() {
-// 	return {};
-// }
+std::pair<std::vector<Vertex>, std::vector<uint32_t>> BuildScene() {
+	const std::vector<Vertex> vertices = {
+		{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
+		{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+		{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+		{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f } }
+	};
+
+	const std::vector<uint32_t> indices = { 0, 2, 1, 0, 3, 2 };
+
+	return { std::move(vertices), std::move(indices) };
+}
 
 } //namespace
 
@@ -31,16 +40,7 @@ Renderer::Renderer(const Window &window) :
 	CreateFrames();
 	CreatePipelines();
 
-	const std::vector<Vertex> vertices = {
-		{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-		{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-		{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
-		{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f } }
-	};
-
-	const std::vector<uint32_t> indices = { 0, 2, 1, 0, 3, 2 };
-
-	// auto [vertices, indices] = BuildScene();
+	auto [vertices, indices] = BuildScene();
 	m_IndexCount = static_cast<uint32_t>(indices.size());
 
 	m_VertexBuffer = m_Uploader.UploadBuffer(vertices.data(), vertices.size() * sizeof(Vertex),

@@ -13,7 +13,6 @@ public:
 
 private:
 	bool OnWindowResize(lm::WindowResizeEvent &e);
-	bool OnKeyPressed(lm::KeyPressedEvent &e);
 
 private:
 	lm::Renderer m_Renderer;
