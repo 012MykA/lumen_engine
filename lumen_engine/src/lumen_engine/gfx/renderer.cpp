@@ -20,7 +20,7 @@ std::pair<std::vector<Vertex>, std::vector<uint32_t>> BuildScene() {
 		{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f } }
 	};
 
-	const std::vector<uint32_t> indices = { 0, 2, 1, 0, 3, 2 };
+	const std::vector<uint32_t> indices = { 0, 1, 2, 0, 2, 3 };
 
 	return { std::move(vertices), std::move(indices) };
 }
@@ -236,6 +236,7 @@ void Renderer::CreatePipelines() {
 	m_Pipeline.emplace(GraphicsPipelineBuilder{}
 					.SetShader(shader.GetVkShaderModule())
 					.SetColorFormat(m_Swapchain.GetFormat())
+					.SetCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 					.SetVertexInput(bindings, attributes)
 					.SetPushConstants<glm::mat4>(/*stage=*/VK_SHADER_STAGE_VERTEX_BIT)
 					.Build(device, m_PipelineCache.GetVkPipelineCache()));
