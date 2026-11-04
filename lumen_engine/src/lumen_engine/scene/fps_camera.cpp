@@ -1,6 +1,8 @@
 #include "lumen_engine/scene/fps_camera.hpp"
 
 #include "lumen_engine/core/events/event_dispatcher.hpp"
+#include "lumen_engine/core/events/keyboard_events.hpp"
+#include "lumen_engine/core/events/window_events.hpp"
 #include "lumen_engine/core/input/input.hpp"
 #include "lumen_engine/core/window.hpp"
 
@@ -70,6 +72,7 @@ void FPSCamera::OnUpdate(float ts) {
 void FPSCamera::OnEvent(Event &event) {
 	EventDispatcher dp(event);
 	dp.Dispatch<KeyPressedEvent>([this](auto &e) { return OnKeyPressed(e); });
+	dp.Dispatch<WindowResizeEvent>([this](WindowResizeEvent &e) { return OnWindowResize(e); });
 }
 
 void FPSCamera::UpdateViewMatrix() const {
@@ -113,6 +116,13 @@ bool FPSCamera::OnKeyPressed(KeyPressedEvent &e) {
 		return true;
 	}
 
+	return false;
+}
+
+bool FPSCamera::OnWindowResize(WindowResizeEvent &e) {
+	if (e.GetWidth() != 0 && e.GetHeight() != 0) {
+		SetAspectRatio(static_cast<float>(e.GetWidth()) / e.GetHeight());
+	}
 	return false;
 }
 

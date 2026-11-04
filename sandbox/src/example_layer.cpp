@@ -9,7 +9,6 @@ ExampleLayer::ExampleLayer() :
 		m_Renderer{ APP_WINDOW },
 		m_Camera{ APP_WINDOW } {
 	m_Camera.SetPosition({ 0.0f, 0.0f, 2.0f });
-
 	if (IsSystemDarkTheme()) {
 		SetWindowDarkMode(APP_WINDOW.handle);
 	}
@@ -32,10 +31,6 @@ void ExampleLayer::OnRender() {
 }
 
 bool ExampleLayer::OnWindowResize(lm::WindowResizeEvent &e) {
-	const auto extent = e.GetExtent();
-	m_Renderer.OnResize(extent);
-	if (extent.height > 0) {
-		m_Camera.SetAspectRatio(static_cast<float>(extent.width) / extent.height);
-	}
+	m_Renderer.OnResize();
 	return false;
 }

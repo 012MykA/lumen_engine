@@ -38,8 +38,8 @@ protected:
 	bool IsViewDirty() const { return m_IsViewDirty; }
 	bool IsProjectionDirty() const { return m_IsProjectionDirty; }
 
-	void SetViewDirty(bool dirty = true) { m_IsViewDirty = dirty; }
-	void SetProjectionDirty(bool dirty = true) { m_IsProjectionDirty = dirty; }
+	void SetViewDirty(bool dirty = true);
+	void SetProjectionDirty(bool dirty = true);
 
 private:
 	glm::vec3 m_Position{ 0.0f };
@@ -50,6 +50,7 @@ private:
 
 	mutable bool m_IsViewDirty{ true };
 	mutable bool m_IsProjectionDirty{ true };
+	mutable bool m_IsViewProjDirty{ true };
 
 	float m_AspectRatio{ 0.0f };
 };

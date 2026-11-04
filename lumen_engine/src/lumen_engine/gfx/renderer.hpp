@@ -27,8 +27,7 @@ public:
 	void SetViewProjection(const glm::mat4 &vp) { m_ViewProj = vp; }
 
 	void OnRender();
-
-	void OnResize(WindowExtent extent);
+	void OnResize();
 
 private:
 	void RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex);

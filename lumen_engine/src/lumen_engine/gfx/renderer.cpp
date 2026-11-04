@@ -13,14 +13,14 @@ constexpr auto PIPELINE_CACHE_PATH = "assets/cache/vk_pipeline_cache.bin";
 constexpr auto SHADER_PATH = "assets/shaders/bin/shader.spv";
 
 std::pair<std::vector<Vertex>, std::vector<uint32_t>> BuildScene() {
-	const std::vector<Vertex> vertices = {
+	std::vector<Vertex> vertices = {
 		{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
 		{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
 		{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
 		{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f } }
 	};
 
-	const std::vector<uint32_t> indices = { 0, 1, 2, 0, 2, 3 };
+	std::vector<uint32_t> indices = { 0, 1, 2, 0, 2, 3 };
 
 	return { std::move(vertices), std::move(indices) };
 }
@@ -137,7 +137,7 @@ void Renderer::OnRender() {
 	m_FrameIndex = (m_FrameIndex + 1) % k_FramesInFlight;
 }
 
-void Renderer::OnResize(WindowExtent extent) {
+void Renderer::OnResize() {
 	m_NeedsResize = true;
 }
 

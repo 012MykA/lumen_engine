@@ -11,6 +11,7 @@
 #include <array>
 #include <cstring>
 #include <format>
+#include <iterator>
 #include <set>
 #include <string>
 #include <vector>
@@ -163,6 +164,18 @@ void VulkanContext::PickPhysicalDevice() {
 	}
 	m_PhysicalDevice = *it;
 	m_QueueFamilyIndices = FindQueueFamilies(m_PhysicalDevice, m_Surface);
+
+	{
+		VkPhysicalDeviceProperties props;
+		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
+		auto deviceIndex = std::distance(devices.begin(), it);
+		const char *fullType = string_VkPhysicalDeviceType(props.deviceType);
+		const char *deviceType = (fullType && std::strlen(fullType) > 24) ? fullType + 24 : fullType;
+		LUMEN_CORE_TRACE("Selected GPU {}: {}, type: {}",
+				deviceIndex,
+				props.deviceName,
+				deviceType);
+	}
 }
 
 void VulkanContext::CreateDevice() {

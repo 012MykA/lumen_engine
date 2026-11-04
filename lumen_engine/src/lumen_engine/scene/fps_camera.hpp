@@ -1,6 +1,5 @@
 #pragma once
 
-#include "lumen_engine/core/events/keyboard_events.hpp"
 #include "lumen_engine/scene/camera.hpp"
 
 namespace lm {
@@ -17,6 +16,8 @@ struct FPSCameraDesc {
 };
 
 struct Window;
+class KeyPressedEvent;
+class WindowResizeEvent;
 
 class FPSCamera : public Camera {
 public:
@@ -39,6 +40,7 @@ private:
 	void UpdateCameraVectors();
 
 	bool OnKeyPressed(KeyPressedEvent &e);
+	bool OnWindowResize(WindowResizeEvent &e);
 
 private:
 	const Window &m_Window;
