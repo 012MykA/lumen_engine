@@ -2,22 +2,28 @@
 
 #include "platform.hpp"
 
+#define APP_WINDOW lm::Application::Get().GetWindow()
+
 ExampleLayer::ExampleLayer() :
 		Layer{ "ExampleLayer" },
-		m_Renderer{ lm::Application::Get().GetWindow() } {
-	const auto &window = lm::Application::Get().GetWindow();
-
+		m_Renderer{ APP_WINDOW },
+		m_Camera{ APP_WINDOW } {
 	if (IsSystemDarkTheme()) {
-		SetWindowDarkMode(window.handle);
+		SetWindowDarkMode(APP_WINDOW.handle);
 	}
-
-	lm::WindowExtent extent = window.GetExtent();
 }
 
 void ExampleLayer::OnEvent(lm::Event &event) {
+	m_Camera.OnEvent(event);
+
 	lm::EventDispatcher dp{ event };
 	dp.Dispatch<lm::WindowResizeEvent>([this](lm::WindowResizeEvent &e) { return OnWindowResize(e); });
 	dp.Dispatch<lm::KeyPressedEvent>([this](lm::KeyPressedEvent &e) { return OnKeyPressed(e); });
+}
+
+void ExampleLayer::OnUpdate(float ts) {
+	m_Camera.OnUpdate(ts);
+	m_Renderer.SetViewProjection(m_Camera.GetViewProjection());
 }
 
 void ExampleLayer::OnRender() {
@@ -25,7 +31,11 @@ void ExampleLayer::OnRender() {
 }
 
 bool ExampleLayer::OnWindowResize(lm::WindowResizeEvent &e) {
-	m_Renderer.OnResize(e.GetExtent());
+	const auto extent = e.GetExtent();
+	m_Renderer.OnResize(extent);
+	if (extent.height > 0) {
+		m_Camera.SetAspectRatio(static_cast<float>(extent.width) / extent.height);
+	}
 	return false;
 }
 

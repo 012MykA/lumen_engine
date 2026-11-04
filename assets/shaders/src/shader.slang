@@ -1,5 +1,5 @@
 struct VertexInput {
-  float2 pos;
+  float3 pos;
   float3 color;
 };
 
@@ -8,10 +8,16 @@ struct VertexOutput {
   float4 sv_position : SV_Position;
 };
 
+struct PushConstants {
+  column_major float4x4 viewProj;
+};
+[[vk::push_constant]]
+PushConstants pc;
+
 [shader("vertex")]
 VertexOutput vertMain(VertexInput input) {
   VertexOutput output;
-  output.sv_position = float4(input.pos, 0.0, 1.0);
+  output.sv_position = mul(pc.viewProj, float4(input.pos, 1.0));
   output.color = input.color;
   return output;
 }

@@ -4,9 +4,8 @@ import subprocess
 SCRIPT_PATH = Path(__file__).resolve().parent
 
 SLANGC_PATH = "slangc"
-INPUT_SHADER = SCRIPT_PATH / "src/triangle.slang"
-OUTPUT_SPV = SCRIPT_PATH / "bin/triangle.spv"
-
+INPUT_SHADER = SCRIPT_PATH / "src/shader.slang"
+OUTPUT_SPV = SCRIPT_PATH / "bin/shader.spv"
 
 def main():
     args = [

@@ -9,6 +9,8 @@
 #include "lumen_engine/gfx/vulkan/vk_swapchain.hpp"
 #include "lumen_engine/gfx/vulkan/vk_uploader.hpp"
 
+#include <glm/glm.hpp>
+
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -21,6 +23,8 @@ class Renderer {
 public:
 	Renderer(const Window &window);
 	~Renderer();
+
+	void SetViewProjection(const glm::mat4 &vp) { m_ViewProj = vp; }
 
 	void OnRender();
 
@@ -39,13 +43,16 @@ private:
 	VulkanContext m_Context;
 	VulkanSwapchain m_Swapchain;
 	VulkanPipelineCache m_PipelineCache;
-	std::optional<VulkanPipeline> m_TrianglePipeline;
+	std::optional<VulkanPipeline> m_Pipeline;
 	VulkanUploader m_Uploader;
 	VulkanBuffer m_VertexBuffer, m_IndexBuffer;
 
 	std::array<FrameData, k_FramesInFlight> m_Frames{};
 	uint32_t m_FrameIndex{ 0 };
 	bool m_NeedsResize{ false };
+
+	glm::mat4 m_ViewProj{ 1.0f };
+	uint32_t m_IndexCount{ 0 };
 };
 
 } // namespace lm

@@ -65,7 +65,11 @@ GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetVertexInput(
 }
 
 VulkanPipeline GraphicsPipelineBuilder::Build(VkDevice device, VkPipelineCache cache) const {
-	VkPipelineLayoutCreateInfo layoutInfo{ .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	VkPipelineLayoutCreateInfo layoutInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.pushConstantRangeCount = m_PushConstant.size > 0 ? 1u : 0u,
+		.pPushConstantRanges = m_PushConstant.size > 0 ? &m_PushConstant : nullptr,
+	};
 	VkPipelineLayout layout{ VK_NULL_HANDLE };
 	CHECK_VK(vkCreatePipelineLayout(device, &layoutInfo, nullptr, &layout));
 

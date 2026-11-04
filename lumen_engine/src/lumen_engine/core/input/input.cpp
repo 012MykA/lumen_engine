@@ -14,11 +14,11 @@ GLFWwindow *Handle() {
 
 } // namespace
 
-bool Input::IsKeyDown(KeyCode key) {
+bool Input::IsKeyPressed(KeyCode key) {
 	return glfwGetKey(Handle(), key) == GLFW_PRESS;
 }
 
-bool Input::IsMouseButtonDown(MouseCode button) {
+bool Input::IsMouseButtonPressed(MouseCode button) {
 	return glfwGetMouseButton(Handle(), button) == GLFW_PRESS;
 }
 
@@ -28,8 +28,12 @@ std::pair<float, float> Input::GetMousePosition() {
 	return { static_cast<float>(x), static_cast<float>(y) };
 }
 
-void Input::SetCursorCaptures(bool captured) {
+void Input::SetCursorCaptured(bool captured) {
 	glfwSetInputMode(Handle(), GLFW_CURSOR, captured ? GLFW_CURSOR_CAPTURED : GLFW_CURSOR_NORMAL);
+}
+
+bool Input::IsCursorCaptured() {
+	return glfwGetInputMode(Handle(), GLFW_CURSOR) == GLFW_CURSOR_CAPTURED;
 }
 
 } // namespace lm

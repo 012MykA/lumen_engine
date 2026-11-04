@@ -7,7 +7,7 @@ public:
 	ExampleLayer();
 
 	void OnEvent(lm::Event &event) override;
-	// void OnUpdate(float /*ts*/) override;
+	void OnUpdate(float ts) override;
 	void OnRender() override;
 	// void OnUIRender() override;
 
@@ -17,4 +17,5 @@ private:
 
 private:
 	lm::Renderer m_Renderer;
+	lm::FPSCamera m_Camera;
 };

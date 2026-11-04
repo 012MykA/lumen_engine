@@ -38,6 +38,18 @@ public:
 			std::span<const VkVertexInputBindingDescription> bindingDesc,
 			std::span<const VkVertexInputAttributeDescription> attribDesc);
 
+	template <typename T>
+	GraphicsPipelineBuilder &SetPushConstants(VkShaderStageFlags stage, uint32_t offset = 0) {
+		static_assert(sizeof(T) <= 128, "maxPushConstantSize = 128");
+		static_assert(sizeof(T) % 4 == 0, "Alligment");
+		m_PushConstant = VkPushConstantRange{
+			.stageFlags = stage,
+			.offset = offset,
+			.size = sizeof(T),
+		};
+		return *this;
+	}
+
 	VulkanPipeline Build(VkDevice device, VkPipelineCache cache) const;
 
 private:
@@ -47,6 +59,7 @@ private:
 	VkFrontFace m_FrontFace{ VK_FRONT_FACE_COUNTER_CLOCKWISE };
 	std::vector<VkVertexInputBindingDescription> m_Bindings;
 	std::vector<VkVertexInputAttributeDescription> m_Attributes;
+	VkPushConstantRange m_PushConstant{};
 };
 
 } // namespace lm
