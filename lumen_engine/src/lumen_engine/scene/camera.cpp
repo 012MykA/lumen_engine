@@ -20,20 +20,19 @@ const glm::mat4 &Camera::GetProjection() const {
 
 const glm::mat4 &Camera::GetViewProjection() const {
 	if (m_IsViewDirty || m_IsProjectionDirty) {
-		// Updates view and proj if necessary
 		m_ViewProjectionMatrix = GetProjection() * GetView();
 	}
 	return m_ViewProjectionMatrix;
 }
 
-void Camera::SetPosition(const glm::vec3 &position) {
-	m_Position = position;
-	m_IsViewDirty = true;
+void Camera::SetPosition(const glm::vec3 &pos) {
+	m_Position = pos;
+	SetViewDirty();
 }
 
 void Camera::SetAspectRatio(float aspect) {
 	m_AspectRatio = aspect;
-	m_IsProjectionDirty = true;
+	SetProjectionDirty();
 }
 
 } // namespace lm

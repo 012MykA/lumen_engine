@@ -12,7 +12,7 @@ FPSCamera::FPSCamera(const Window &window, const FPSCameraDesc &desc) :
 	auto extent = window.GetExtent();
 	float aspect = static_cast<float>(extent.width) / (extent.height);
 	Camera::SetAspectRatio(aspect);
-	Input::SetCursorCaptured(true);
+	Input::SetCursorDisabled(true);
 
 	m_LastMouse = Input::GetMousePosition();
 
@@ -20,7 +20,7 @@ FPSCamera::FPSCamera(const Window &window, const FPSCameraDesc &desc) :
 }
 
 void FPSCamera::OnUpdate(float ts) {
-	if (!Input::IsCursorCaptured()) {
+	if (!Input::IsCursorDisabled()) {
 		m_FirstMouse = true;
 		return;
 	}
@@ -63,7 +63,7 @@ void FPSCamera::OnUpdate(float ts) {
 		// clang-format on
 
 		UpdateCameraVectors();
-		m_IsViewDirty = true;
+		SetViewDirty();
 	}
 }
 
@@ -73,18 +73,20 @@ void FPSCamera::OnEvent(Event &event) {
 }
 
 void FPSCamera::UpdateViewMatrix() const {
-	m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_Front, m_Up);
+	SetViewMatrix(glm::lookAt(GetPosition(), GetPosition() + m_Front, m_Up));
 }
 
 void FPSCamera::UpdateProjectionMatrix() const {
-	m_ProjectionMatrix = glm::perspective(
+	glm::mat4 projection = glm::perspective(
 			glm::radians(m_Desc.fov),
-			Camera::m_AspectRatio,
+			GetAspectRatio(),
 			m_Desc.nearClip,
 			m_Desc.farClip);
 
 	// Invert Y for Vulkan
-	m_ProjectionMatrix[1][1] *= -1;
+	projection[1][1] *= -1;
+
+	SetProjectionMatrix(projection);
 }
 
 void FPSCamera::UpdateCameraVectors() {
@@ -101,8 +103,8 @@ void FPSCamera::UpdateCameraVectors() {
 bool FPSCamera::OnKeyPressed(KeyPressedEvent &e) {
 	bool isRepeat = e.GetRepeatCount() > 0;
 	if (e.GetKey() == Key::Escape && !isRepeat) {
-		bool isLocked = Input::IsCursorCaptured();
-		Input::SetCursorCaptured(!isLocked);
+		bool isLocked = Input::IsCursorDisabled();
+		Input::SetCursorDisabled(!isLocked);
 
 		if (!isLocked) {
 			m_FirstMouse = true;

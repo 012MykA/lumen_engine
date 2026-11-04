@@ -18,6 +18,9 @@ public:
 
 	static void SetCursorCaptured(bool captured);
 	static bool IsCursorCaptured();
+
+	static void SetCursorDisabled(bool disabled);
+	static bool IsCursorDisabled();
 };
 
 } // namespace lm

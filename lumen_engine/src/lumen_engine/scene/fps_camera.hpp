@@ -27,8 +27,8 @@ public:
 
 public:
 	// clang-format off
-    void SetYaw(float yaw) { m_Yaw = yaw; UpdateCameraVectors(); }
-    void SetPitch(float pitch) { m_Pitch = pitch; UpdateCameraVectors(); }
+    void SetYaw(float yaw)     { m_Yaw = yaw;     UpdateCameraVectors(); SetViewDirty(); }
+    void SetPitch(float pitch) { m_Pitch = pitch; UpdateCameraVectors(); SetViewDirty(); }
 	// clang-format on
 
 protected:
@@ -52,7 +52,6 @@ private:
 	glm::vec3 m_Right{ 1.0f, 0.0f, 0.0f };
 	glm::vec3 m_WorldUp{ 0.0f, 1.0f, 0.0f };
 
-private:
 	std::pair<float, float> m_LastMouse{ 0.0f, 0.0f };
 	bool m_FirstMouse{ true };
 };

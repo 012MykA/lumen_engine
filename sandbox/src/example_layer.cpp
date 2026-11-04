@@ -8,6 +8,8 @@ ExampleLayer::ExampleLayer() :
 		Layer{ "ExampleLayer" },
 		m_Renderer{ APP_WINDOW },
 		m_Camera{ APP_WINDOW } {
+	m_Camera.SetPosition({ 0.0f, 0.0f, 2.0f });
+
 	if (IsSystemDarkTheme()) {
 		SetWindowDarkMode(APP_WINDOW.handle);
 	}

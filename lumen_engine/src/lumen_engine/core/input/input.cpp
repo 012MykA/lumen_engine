@@ -36,4 +36,12 @@ bool Input::IsCursorCaptured() {
 	return glfwGetInputMode(Handle(), GLFW_CURSOR) == GLFW_CURSOR_CAPTURED;
 }
 
+void Input::SetCursorDisabled(bool disabled) {
+	glfwSetInputMode(Handle(), GLFW_CURSOR, disabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+}
+
+bool Input::IsCursorDisabled() {
+	return glfwGetInputMode(Handle(), GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
+}
+
 } // namespace lm
