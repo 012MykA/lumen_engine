@@ -32,11 +32,14 @@ private:
 class GraphicsPipelineBuilder {
 public:
 	GraphicsPipelineBuilder &SetShader(VkShaderModule shader);
-	GraphicsPipelineBuilder &SetColorFormat(VkFormat format);
-	GraphicsPipelineBuilder &SetCullMode(VkCullModeFlags mode, VkFrontFace front);
+
 	GraphicsPipelineBuilder &SetVertexInput(
 			std::span<const VkVertexInputBindingDescription> bindingDesc,
 			std::span<const VkVertexInputAttributeDescription> attribDesc);
+
+	GraphicsPipelineBuilder &SetCullMode(VkCullModeFlags mode, VkFrontFace front);
+	GraphicsPipelineBuilder &SetColorFormat(VkFormat format);
+	GraphicsPipelineBuilder &SetDepthFormat(VkFormat format);
 
 	template <typename T>
 	GraphicsPipelineBuilder &SetPushConstants(VkShaderStageFlags stage, uint32_t offset = 0) {
@@ -60,6 +63,7 @@ private:
 	std::vector<VkVertexInputBindingDescription> m_Bindings;
 	std::vector<VkVertexInputAttributeDescription> m_Attributes;
 	VkPushConstantRange m_PushConstant{};
+	VkFormat m_DepthFormat{ VK_FORMAT_UNDEFINED };
 };
 
 } // namespace lm

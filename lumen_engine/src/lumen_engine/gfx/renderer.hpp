@@ -4,6 +4,7 @@
 #include "lumen_engine/gfx/vulkan/vk_buffer.hpp"
 #include "lumen_engine/gfx/vulkan/vk_context.hpp"
 #include "lumen_engine/gfx/vulkan/vk_frame_data.hpp"
+#include "lumen_engine/gfx/vulkan/vk_image.hpp"
 #include "lumen_engine/gfx/vulkan/vk_pipeline.hpp"
 #include "lumen_engine/gfx/vulkan/vk_pipeline_cache.hpp"
 #include "lumen_engine/gfx/vulkan/vk_swapchain.hpp"
@@ -19,6 +20,7 @@ namespace lm {
 
 class Renderer {
 	static constexpr uint32_t k_FramesInFlight{ 3 };
+	static constexpr VkFormat k_DepthFormat{ VK_FORMAT_D32_SFLOAT };
 
 public:
 	Renderer(const Window &window);
@@ -34,6 +36,7 @@ private:
 
 	void CreateFrames();
 	void CreatePipelines();
+	void CreateDepthImage();
 
 	void DestroyFrames();
 
@@ -44,7 +47,7 @@ private:
 	VulkanPipelineCache m_PipelineCache;
 	std::optional<VulkanPipeline> m_Pipeline;
 	VulkanUploader m_Uploader;
-	VulkanBuffer m_VertexBuffer, m_IndexBuffer;
+	VulkanImage m_DepthImage;
 
 	std::array<FrameData, k_FramesInFlight> m_Frames{};
 	uint32_t m_FrameIndex{ 0 };
@@ -52,6 +55,8 @@ private:
 
 	glm::mat4 m_ViewProj{ 1.0f };
 	uint32_t m_IndexCount{ 0 };
+
+	VulkanBuffer m_VertexBuffer, m_IndexBuffer;
 };
 
 } // namespace lm

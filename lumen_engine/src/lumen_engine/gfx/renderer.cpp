@@ -14,13 +14,21 @@ constexpr auto SHADER_PATH = "assets/shaders/bin/shader.spv";
 
 std::pair<std::vector<Vertex>, std::vector<uint32_t>> BuildScene() {
 	std::vector<Vertex> vertices = {
-		{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-		{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-		{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
-		{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f } }
+		{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+		{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+		{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
+		{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
+
+		{ { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+		{ { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+		{ { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
+		{ { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
 	};
 
-	std::vector<uint32_t> indices = { 0, 1, 2, 0, 2, 3 };
+	std::vector<uint32_t> indices = {
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4
+	};
 
 	return { std::move(vertices), std::move(indices) };
 }
@@ -39,6 +47,7 @@ Renderer::Renderer(const Window &window) :
 		} {
 	CreateFrames();
 	CreatePipelines();
+	CreateDepthImage();
 
 	auto [vertices, indices] = BuildScene();
 	m_IndexCount = static_cast<uint32_t>(indices.size());
@@ -50,6 +59,8 @@ Renderer::Renderer(const Window &window) :
 	m_IndexBuffer = m_Uploader.UploadBuffer(indices.data(), indices.size() * sizeof(uint32_t),
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			m_Context.GetAllocator());
+
+	// m_Texture = VulkanImage
 }
 
 Renderer::~Renderer() {
@@ -63,6 +74,7 @@ void Renderer::OnRender() {
 		if (!m_Swapchain.Recreate()) {
 			return;
 		}
+		CreateDepthImage();
 		m_NeedsResize = false;
 	}
 
@@ -147,7 +159,15 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 	TransitionImage(cmd, image,
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
-			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+
+	TransitionImage(cmd, m_DepthImage.GetImage(),
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, 0,
+			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+			VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+			VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	VkRenderingAttachmentInfo color{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -157,12 +177,21 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 		.clearValue{ .color{ { 0.02f, 0.03f, 0.08f, 1.0f } } },
 	};
+	VkRenderingAttachmentInfo depth{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+		.imageView = m_DepthImage.GetImageView(),
+		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		.clearValue{ .depthStencil{ 1.0f, 0 } },
+	};
 	VkRenderingInfo rendering{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 		.renderArea{ { 0, 0 }, m_Swapchain.GetExtent() },
 		.layerCount = 1,
 		.colorAttachmentCount = 1,
 		.pColorAttachments = &color,
+		.pDepthAttachment = &depth,
 	};
 	vkCmdBeginRendering(cmd, &rendering);
 	{
@@ -193,7 +222,8 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 	TransitionImage(cmd, image,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			VK_PIPELINE_STAGE_2_NONE, 0);
+			VK_PIPELINE_STAGE_2_NONE, 0,
+			VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Renderer::CreateFrames() {
@@ -235,11 +265,23 @@ void Renderer::CreatePipelines() {
 
 	m_Pipeline.emplace(GraphicsPipelineBuilder{}
 					.SetShader(shader.GetVkShaderModule())
-					.SetColorFormat(m_Swapchain.GetFormat())
-					.SetCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 					.SetVertexInput(bindings, attributes)
+					.SetCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.SetColorFormat(m_Swapchain.GetFormat())
+					.SetDepthFormat(k_DepthFormat)
 					.SetPushConstants<glm::mat4>(/*stage=*/VK_SHADER_STAGE_VERTEX_BIT)
 					.Build(device, m_PipelineCache.GetVkPipelineCache()));
+}
+
+void Renderer::CreateDepthImage() {
+	m_DepthImage = VulkanImage{
+		m_Context.GetVkDevice(),
+		m_Context.GetAllocator(),
+		m_Swapchain.GetExtent(),
+		k_DepthFormat,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_IMAGE_ASPECT_DEPTH_BIT,
+	};
 }
 
 void Renderer::DestroyFrames() {

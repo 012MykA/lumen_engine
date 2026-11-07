@@ -56,6 +56,11 @@ GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetCullMode(VkCullModeFlags mo
 	return *this;
 }
 
+GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetDepthFormat(VkFormat format) {
+	m_DepthFormat = format;
+	return *this;
+}
+
 GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetVertexInput(
 		std::span<const VkVertexInputBindingDescription> bindingDesc,
 		std::span<const VkVertexInputAttributeDescription> attribDesc) {
@@ -115,6 +120,12 @@ VulkanPipeline GraphicsPipelineBuilder::Build(VkDevice device, VkPipelineCache c
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
 		.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
 	};
+	VkPipelineDepthStencilStateCreateInfo depthStencil{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+		.depthTestEnable = (m_DepthFormat != VK_FORMAT_UNDEFINED) ? VK_TRUE : VK_FALSE,
+		.depthWriteEnable = (m_DepthFormat != VK_FORMAT_UNDEFINED) ? VK_TRUE : VK_FALSE,
+		.depthCompareOp = VK_COMPARE_OP_LESS,
+	};
 	VkPipelineColorBlendAttachmentState blendAttachment{
 		.blendEnable = VK_FALSE,
 		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -135,6 +146,7 @@ VulkanPipeline GraphicsPipelineBuilder::Build(VkDevice device, VkPipelineCache c
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 		.colorAttachmentCount = 1,
 		.pColorAttachmentFormats = &m_ColorFormat,
+		.depthAttachmentFormat = m_DepthFormat,
 	};
 
 	VkGraphicsPipelineCreateInfo createInfo{
@@ -147,6 +159,7 @@ VulkanPipeline GraphicsPipelineBuilder::Build(VkDevice device, VkPipelineCache c
 		.pViewportState = &viewport,
 		.pRasterizationState = &raster,
 		.pMultisampleState = &msaa,
+		.pDepthStencilState = &depthStencil,
 		.pColorBlendState = &blend,
 		.pDynamicState = &dynamic,
 		.layout = layout,

@@ -1,11 +1,13 @@
 struct VertexInput {
   float3 pos;
   float3 color;
+  float2 texCoord;
 };
 
 struct VertexOutput {
-  float3 color;
   float4 sv_position : SV_Position;
+  float3 color;
+  float2 texCoord : TEXCOORD0;
 };
 
 struct PushConstants {
@@ -19,6 +21,7 @@ VertexOutput vertMain(VertexInput input) {
   VertexOutput output;
   output.sv_position = mul(pc.viewProj, float4(input.pos, 1.0));
   output.color = input.color;
+  output.texCoord = input.texCoord;
   return output;
 }
 
