@@ -12,11 +12,13 @@ VulkanImage::VulkanImage(
 		VkExtent2D extent,
 		VkFormat format,
 		VkImageUsageFlags usage,
-		VkImageAspectFlags aspect) :
+		VkImageAspectFlags aspect,
+		uint32_t mipLevels) :
 		m_Device{ device },
 		m_Allocator{ allocator },
 		m_Format{ format },
-		m_Extent{ extent } {
+		m_Extent{ extent },
+		m_MipLevels{ mipLevels } {
 	VkImageCreateInfo imageInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		.imageType = VK_IMAGE_TYPE_2D,
@@ -41,7 +43,7 @@ VulkanImage::VulkanImage(
 		.image = m_Image,
 		.viewType = VK_IMAGE_VIEW_TYPE_2D,
 		.format = format,
-		.subresourceRange = { aspect, 0, 1, 0, 1 },
+		.subresourceRange = { aspect, 0, m_MipLevels, 0, 1 },
 	};
 	const VkResult res = vkCreateImageView(m_Device, &viewInfo, nullptr, &m_ImageView);
 	if (res != VK_SUCCESS) {

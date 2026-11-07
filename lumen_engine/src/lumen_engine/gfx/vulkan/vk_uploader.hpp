@@ -3,6 +3,7 @@
 #include "lumen_engine/gfx/vulkan/vk_buffer.hpp"
 #include "lumen_engine/gfx/vulkan/vk_common.hpp"
 #include "lumen_engine/gfx/vulkan/vk_context.hpp"
+#include "lumen_engine/gfx/vulkan/vk_image.hpp"
 
 #include <functional>
 
@@ -20,6 +21,9 @@ public:
 
 	VulkanBuffer UploadBuffer(const void *data, VkDeviceSize size,
 			VkBufferUsageFlags usage, VmaAllocator allocator);
+
+	VulkanImage UploadImage(const void *pixels, uint32_t width, uint32_t height,
+			VkFormat format, VmaAllocator allocator);
 
 private:
 	VkDevice m_Device{ VK_NULL_HANDLE };
