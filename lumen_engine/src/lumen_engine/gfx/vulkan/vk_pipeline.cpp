@@ -61,6 +61,11 @@ GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetDepthFormat(VkFormat format
 	return *this;
 }
 
+GraphicsPipelineBuilder &GraphicsPipelineBuilder::AddDescriptorSetLayout(VkDescriptorSetLayout layout) {
+	m_SetLayouts.push_back(layout);
+	return *this;
+}
+
 GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetVertexInput(
 		std::span<const VkVertexInputBindingDescription> bindingDesc,
 		std::span<const VkVertexInputAttributeDescription> attribDesc) {
@@ -72,6 +77,8 @@ GraphicsPipelineBuilder &GraphicsPipelineBuilder::SetVertexInput(
 VulkanPipeline GraphicsPipelineBuilder::Build(VkDevice device, VkPipelineCache cache) const {
 	VkPipelineLayoutCreateInfo layoutInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.setLayoutCount = static_cast<uint32_t>(m_SetLayouts.size()),
+		.pSetLayouts = m_SetLayouts.data(),
 		.pushConstantRangeCount = m_PushConstant.size > 0 ? 1u : 0u,
 		.pPushConstantRanges = m_PushConstant.size > 0 ? &m_PushConstant : nullptr,
 	};

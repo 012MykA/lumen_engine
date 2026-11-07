@@ -41,6 +41,8 @@ public:
 	GraphicsPipelineBuilder &SetColorFormat(VkFormat format);
 	GraphicsPipelineBuilder &SetDepthFormat(VkFormat format);
 
+	GraphicsPipelineBuilder &AddDescriptorSetLayout(VkDescriptorSetLayout layout);
+
 	template <typename T>
 	GraphicsPipelineBuilder &SetPushConstants(VkShaderStageFlags stage, uint32_t offset = 0) {
 		static_assert(sizeof(T) <= 128, "maxPushConstantSize = 128");
@@ -62,6 +64,7 @@ private:
 	VkFrontFace m_FrontFace{ VK_FRONT_FACE_COUNTER_CLOCKWISE };
 	std::vector<VkVertexInputBindingDescription> m_Bindings;
 	std::vector<VkVertexInputAttributeDescription> m_Attributes;
+	std::vector<VkDescriptorSetLayout> m_SetLayouts;
 	VkPushConstantRange m_PushConstant{};
 	VkFormat m_DepthFormat{ VK_FORMAT_UNDEFINED };
 };
