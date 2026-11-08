@@ -49,7 +49,7 @@ void VulkanPipelineCache::Save() const {
 	}
 
 	auto tmpFile = m_File;
-	tmpFile.replace_extension(".tmp");
+	tmpFile += ".tmp";
 	bool writeSuccess = false;
 	{
 		std::ofstream out{ tmpFile, std::ios::binary | std::ios::trunc };
