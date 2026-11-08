@@ -47,8 +47,29 @@ void VulkanPipelineCache::Save() const {
 	if (!parent.empty() && !std::filesystem::exists(parent)) {
 		std::filesystem::create_directories(parent);
 	}
-	std::ofstream out{ m_File, std::ios::binary | std::ios::trunc };
-	out.write(data.data(), static_cast<std::streamsize>(size));
+
+	auto tmpFile = m_File;
+	tmpFile.replace_extension(".tmp");
+	bool writeSuccess = false;
+	{
+		std::ofstream out{ tmpFile, std::ios::binary | std::ios::trunc };
+		if (out.is_open()) {
+			out.write(data.data(), static_cast<std::streamsize>(data.size()));
+			writeSuccess = out.good();
+		}
+	}
+
+	if (writeSuccess) {
+		std::error_code ec;
+		std::filesystem::rename(tmpFile, m_File, ec);
+		if (ec) {
+			LUMEN_CORE_ERROR("failed to replace pipeline cache: {}", ec.message());
+			std::filesystem::remove(tmpFile, ec);
+		}
+	} else {
+		std::error_code ec;
+		std::filesystem::remove(tmpFile, ec);
+	}
 }
 
 } // namespace lm

@@ -64,7 +64,8 @@ VulkanImage::VulkanImage(VulkanImage &&other) noexcept :
 		m_Allocation{ std::exchange(other.m_Allocation, VK_NULL_HANDLE) },
 		m_ImageView{ std::exchange(other.m_ImageView, VK_NULL_HANDLE) },
 		m_Format{ other.m_Format },
-		m_Extent{ other.m_Extent } {}
+		m_Extent{ other.m_Extent },
+		m_MipLevels{ std::exchange(other.m_MipLevels, 0) } {}
 
 VulkanImage &VulkanImage::operator=(VulkanImage &&other) noexcept {
 	if (this != &other) {
@@ -76,6 +77,7 @@ VulkanImage &VulkanImage::operator=(VulkanImage &&other) noexcept {
 		m_ImageView = std::exchange(other.m_ImageView, VK_NULL_HANDLE);
 		m_Format = other.m_Format;
 		m_Extent = other.m_Extent;
+		m_MipLevels = std::exchange(other.m_MipLevels, 0);
 	}
 	return *this;
 }

@@ -21,6 +21,7 @@ const glm::mat4 &Camera::GetProjection() const {
 const glm::mat4 &Camera::GetViewProjection() const {
 	if (m_IsViewProjDirty) {
 		m_ViewProjectionMatrix = GetProjection() * GetView();
+		m_IsViewProjDirty = false;
 	}
 	return m_ViewProjectionMatrix;
 }
