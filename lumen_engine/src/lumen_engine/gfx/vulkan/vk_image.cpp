@@ -24,7 +24,7 @@ VulkanImage::VulkanImage(
 		.imageType = VK_IMAGE_TYPE_2D,
 		.format = m_Format,
 		.extent = { m_Extent.width, m_Extent.height, 1 },
-		.mipLevels = 1,
+		.mipLevels = m_MipLevels,
 		.arrayLayers = 1,
 		.samples = VK_SAMPLE_COUNT_1_BIT,
 		.tiling = VK_IMAGE_TILING_OPTIMAL,
