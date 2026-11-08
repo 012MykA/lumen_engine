@@ -8,6 +8,7 @@
 
     "volk",
     "vulkan-utility-libraries",
-    "vulkan-memory-allocator"
+    "vulkan-memory-allocator",
+    "stb"
   ]
 }

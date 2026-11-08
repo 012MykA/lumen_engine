@@ -7,6 +7,7 @@
 #include "lumen_engine/gfx/vulkan/vk_image.hpp"
 #include "lumen_engine/gfx/vulkan/vk_pipeline.hpp"
 #include "lumen_engine/gfx/vulkan/vk_pipeline_cache.hpp"
+#include "lumen_engine/gfx/vulkan/vk_sampler.hpp"
 #include "lumen_engine/gfx/vulkan/vk_swapchain.hpp"
 #include "lumen_engine/gfx/vulkan/vk_uploader.hpp"
 
@@ -35,8 +36,11 @@ private:
 	void RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex);
 
 	void CreateFrames();
+	void CreateDescriptors();
 	void CreatePipelines();
 	void CreateDepthImage();
+	
+	void CreateTexture();
 
 	void DestroyFrames();
 
@@ -57,6 +61,11 @@ private:
 	uint32_t m_IndexCount{ 0 };
 
 	VulkanBuffer m_VertexBuffer, m_IndexBuffer;
+	VulkanImage m_Texture;
+	std::optional<VulkanSampler> m_Sampler;
+	VkDescriptorSetLayout m_SetLayout{ VK_NULL_HANDLE };
+	VkDescriptorPool m_DescriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSet m_TextureSet{ VK_NULL_HANDLE };
 };
 
 } // namespace lm

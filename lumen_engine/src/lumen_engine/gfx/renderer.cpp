@@ -4,31 +4,28 @@
 #include "lumen_engine/gfx/vulkan/vk_utils.hpp"
 #include "lumen_engine/gfx/vulkan/vk_vertex.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#include <format>
+
+#define PIPELINE_CACHE_PATH "assets/cache/vk_pipeline_cache.bin"
+#define SHADER_PATH "assets/shaders/bin/shader.spv"
+#define TEXTURE_PATH "assets/textures/texture4k.jpg"
+
 namespace lm {
 
 namespace {
 
-constexpr auto PIPELINE_CACHE_PATH = "assets/cache/vk_pipeline_cache.bin";
-
-constexpr auto SHADER_PATH = "assets/shaders/bin/shader.spv";
-
 std::pair<std::vector<Vertex>, std::vector<uint32_t>> BuildScene() {
 	std::vector<Vertex> vertices = {
-		{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-		{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-		{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-		{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
-
-		{ { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-		{ { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-		{ { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-		{ { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
+		{ { -0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
+		{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
+		{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f } },
+		{ { -0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f } },
 	};
 
-	std::vector<uint32_t> indices = {
-		0, 1, 2, 2, 3, 0,
-		4, 5, 6, 6, 7, 4
-	};
+	std::vector<uint32_t> indices = { 0, 1, 2, 2, 3, 0 };
 
 	return { std::move(vertices), std::move(indices) };
 }
@@ -46,6 +43,10 @@ Renderer::Renderer(const Window &window) :
 			m_Context.GetQueueFamilyIndices().graphicsFamily.value()
 		} {
 	CreateFrames();
+
+	CreateTexture();
+	CreateDescriptors();
+
 	CreatePipelines();
 	CreateDepthImage();
 
@@ -59,13 +60,15 @@ Renderer::Renderer(const Window &window) :
 	m_IndexBuffer = m_Uploader.UploadBuffer(indices.data(), indices.size() * sizeof(uint32_t),
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			m_Context.GetAllocator());
-
-	// m_Texture = VulkanImage
 }
 
 Renderer::~Renderer() {
 	m_Context.DeviceWaitIdle();
 	DestroyFrames();
+
+	VkDevice device = m_Context.GetVkDevice();
+	vkDestroyDescriptorPool(device, m_DescriptorPool, nullptr);
+	vkDestroyDescriptorSetLayout(device, m_SetLayout, nullptr);
 }
 
 void Renderer::OnRender() {
@@ -215,6 +218,9 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 		vkCmdPushConstants(cmd, m_Pipeline->GetVkPipelineLayout(),
 				VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m_ViewProj);
 
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				m_Pipeline->GetVkPipelineLayout(), 0, 1, &m_TextureSet, 0, nullptr);
+
 		vkCmdDrawIndexed(cmd, m_IndexCount, 1, 0, 0, 0);
 	}
 	vkCmdEndRendering(cmd);
@@ -269,6 +275,7 @@ void Renderer::CreatePipelines() {
 					.SetCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 					.SetColorFormat(m_Swapchain.GetFormat())
 					.SetDepthFormat(k_DepthFormat)
+					.AddDescriptorSetLayout(m_SetLayout)
 					.SetPushConstants<glm::mat4>(/*stage=*/VK_SHADER_STAGE_VERTEX_BIT)
 					.Build(device, m_PipelineCache.GetVkPipelineCache()));
 }
@@ -282,6 +289,69 @@ void Renderer::CreateDepthImage() {
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		VK_IMAGE_ASPECT_DEPTH_BIT,
 	};
+}
+
+void Renderer::CreateDescriptors() {
+	VkDevice device = m_Context.GetVkDevice();
+
+	VkDescriptorSetLayoutBinding binding{
+		.binding = 0,
+		.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		.descriptorCount = 1,
+		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+	};
+	VkDescriptorSetLayoutCreateInfo layoutInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.bindingCount = 1,
+		.pBindings = &binding,
+	};
+	CHECK_VK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_SetLayout));
+
+	VkDescriptorPoolSize poolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 };
+	VkDescriptorPoolCreateInfo poolInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.maxSets = 1,
+		.poolSizeCount = 1,
+		.pPoolSizes = &poolSize,
+	};
+	CHECK_VK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &m_DescriptorPool));
+
+	VkDescriptorSetAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.descriptorPool = m_DescriptorPool,
+		.descriptorSetCount = 1,
+		.pSetLayouts = &m_SetLayout,
+	};
+	CHECK_VK(vkAllocateDescriptorSets(device, &allocInfo, &m_TextureSet));
+
+	VkDescriptorImageInfo imageInfo{
+		.sampler = m_Sampler->GetVkSampler(),
+		.imageView = m_Texture.GetImageView(),
+		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	};
+	VkWriteDescriptorSet write{
+		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		.dstSet = m_TextureSet,
+		.dstBinding = 0,
+		.descriptorCount = 1,
+		.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		.pImageInfo = &imageInfo,
+	};
+	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+}
+
+void Renderer::CreateTexture() {
+	int texWidth, texHeight, texChannels;
+	stbi_uc *pixels = stbi_load(TEXTURE_PATH, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	if (!pixels) {
+		throw std::runtime_error{ std::format("failed to load texture: {}", TEXTURE_PATH) };
+	}
+	m_Texture = m_Uploader.UploadImage(pixels, texWidth, texHeight,
+			VK_FORMAT_R8G8B8A8_SRGB, m_Context.GetAllocator());
+
+	VkPhysicalDeviceProperties props;
+	vkGetPhysicalDeviceProperties(m_Context.GetVkPhysicalDevice(), &props);
+	m_Sampler.emplace(m_Context.GetVkDevice(), props.limits.maxSamplerAnisotropy);
 }
 
 void Renderer::DestroyFrames() {

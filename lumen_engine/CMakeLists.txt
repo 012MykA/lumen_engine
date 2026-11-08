@@ -41,6 +41,7 @@ find_package(volk CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(VulkanUtilityLibraries CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(Stb REQUIRED)
 
 target_link_libraries(lumen_engine
     PUBLIC
@@ -55,4 +56,6 @@ target_link_libraries(lumen_engine
 target_include_directories(lumen_engine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+
+    ${Stb_INCLUDE_DIR}
 )
