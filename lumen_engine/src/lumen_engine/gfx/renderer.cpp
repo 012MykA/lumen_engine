@@ -349,6 +349,8 @@ void Renderer::CreateTexture() {
 	m_Texture = m_Uploader.UploadImage(pixels, texWidth, texHeight,
 			VK_FORMAT_R8G8B8A8_SRGB, m_Context.GetAllocator());
 
+	stbi_image_free(pixels);
+
 	VkPhysicalDeviceProperties props;
 	vkGetPhysicalDeviceProperties(m_Context.GetVkPhysicalDevice(), &props);
 	m_Sampler.emplace(m_Context.GetVkDevice(), props.limits.maxSamplerAnisotropy);
