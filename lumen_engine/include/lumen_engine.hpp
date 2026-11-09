@@ -20,6 +20,8 @@
 #include "lumen_engine/runtime/application.hpp"
 
 // --- Graphics ---
+#include "lumen_engine/gfx/mesh.hpp"
+#include "lumen_engine/gfx/primitives.hpp"
 #include "lumen_engine/gfx/renderer.hpp"
 
 // --- Scene ---

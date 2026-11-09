@@ -17,4 +17,6 @@ private:
 private:
 	lm::Renderer m_Renderer;
 	lm::FPSCamera m_Camera;
+	lm::Mesh m_Cube;
+	float m_Time{ 0.0f };
 };

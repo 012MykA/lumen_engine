@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE ENGINE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lumen_engine/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lumen_engine/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/*.cpp
 )
 add_library(lumen_engine STATIC ${ENGINE_SOURCES})
 

@@ -15,6 +15,7 @@ Sampler2D albedo;
 
 struct PushConstants {
   column_major float4x4 viewProj;
+  column_major float4x4 model;
 };
 [[vk::push_constant]]
 PushConstants pc;
@@ -22,7 +23,7 @@ PushConstants pc;
 [shader("vertex")]
 VertexOutput vertMain(VertexInput input) {
   VertexOutput output;
-  output.sv_position = mul(pc.viewProj, float4(input.pos, 1.0));
+  output.sv_position = mul(pc.viewProj, mul(pc.model, float4(input.pos, 1.0)));
   output.color = input.normal;
   output.texCoord = input.texCoord;
   return output;

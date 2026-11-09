@@ -15,23 +15,6 @@
 
 namespace lm {
 
-namespace {
-
-std::pair<std::vector<Vertex>, std::vector<uint32_t>> BuildScene() {
-	std::vector<Vertex> vertices = {
-		{ { -0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
-		{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-		{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f } },
-		{ { -0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f } },
-	};
-
-	std::vector<uint32_t> indices = { 0, 1, 2, 2, 3, 0 };
-
-	return { std::move(vertices), std::move(indices) };
-}
-
-} //namespace
-
 Renderer::Renderer(const Window &window) :
 		m_Window{ window },
 		m_Context{ m_Window },
@@ -49,17 +32,6 @@ Renderer::Renderer(const Window &window) :
 
 	CreatePipelines();
 	CreateDepthImage();
-
-	auto [vertices, indices] = BuildScene();
-	m_IndexCount = static_cast<uint32_t>(indices.size());
-
-	m_VertexBuffer = m_Uploader.UploadBuffer(vertices.data(), vertices.size() * sizeof(Vertex),
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			m_Context.GetAllocator());
-
-	m_IndexBuffer = m_Uploader.UploadBuffer(indices.data(), indices.size() * sizeof(uint32_t),
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			m_Context.GetAllocator());
 }
 
 Renderer::~Renderer() {
@@ -69,6 +41,19 @@ Renderer::~Renderer() {
 	VkDevice device = m_Context.GetVkDevice();
 	vkDestroyDescriptorPool(device, m_DescriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(device, m_SetLayout, nullptr);
+}
+
+Mesh Renderer::CreateMesh(const MeshData &data) {
+	return Mesh{ m_Uploader, m_Context.GetAllocator(), data.vertices, data.indices };
+}
+
+void Renderer::BeginScene(const glm::mat4 &viewProj) {
+	m_ViewProj = viewProj;
+	m_DrawList.clear();
+}
+
+void Renderer::Submit(const Mesh &mesh, const glm::mat4 &model) {
+	m_DrawList.emplace_back(&mesh, model);
 }
 
 void Renderer::OnRender() {
@@ -209,18 +194,16 @@ void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
 		vkCmdSetViewport(cmd, 0, 1, &viewport);
 		vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-		VkBuffer vb = m_VertexBuffer.GetVkBuffer();
-		VkDeviceSize offset = 0;
-		vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
-		vkCmdBindIndexBuffer(cmd, m_IndexBuffer.GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		for (const DrawItem &item : m_DrawList) {
+			const PushConstants pc{ .viewProj = m_ViewProj, .model = item.model };
+			vkCmdPushConstants(cmd, m_Pipeline->GetVkPipelineLayout(),
+					VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pc);
 
-		vkCmdPushConstants(cmd, m_Pipeline->GetVkPipelineLayout(),
-				VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m_ViewProj);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					m_Pipeline->GetVkPipelineLayout(), 0, 1, &m_TextureSet, 0, nullptr);
 
-		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				m_Pipeline->GetVkPipelineLayout(), 0, 1, &m_TextureSet, 0, nullptr);
-
-		vkCmdDrawIndexed(cmd, m_IndexCount, 1, 0, 0, 0);
+			item.mesh->Draw(cmd);
+		}
 	}
 	vkCmdEndRendering(cmd);
 
@@ -275,7 +258,7 @@ void Renderer::CreatePipelines() {
 					.SetColorFormat(m_Swapchain.GetFormat())
 					.SetDepthFormat(k_DepthFormat)
 					.AddDescriptorSetLayout(m_SetLayout)
-					.SetPushConstants<glm::mat4>(/*stage=*/VK_SHADER_STAGE_VERTEX_BIT)
+					.SetPushConstants<PushConstants>(VK_SHADER_STAGE_VERTEX_BIT)
 					.Build(device, m_PipelineCache.GetVkPipelineCache()));
 }
 
