@@ -42,6 +42,7 @@ public:
 
 	void OnRender();
 	void OnResize();
+	void WaitIdle() const;
 
 private:
 	void RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex);

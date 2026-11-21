@@ -15,6 +15,10 @@ ExampleLayer::ExampleLayer() :
 	}
 }
 
+ExampleLayer::~ExampleLayer() {
+	m_Renderer.WaitIdle();
+}
+
 void ExampleLayer::OnEvent(lm::Event &event) {
 	m_Camera.OnEvent(event);
 

@@ -35,7 +35,7 @@ Renderer::Renderer(const Window &window) :
 }
 
 Renderer::~Renderer() {
-	m_Context.DeviceWaitIdle();
+	WaitIdle();
 	DestroyFrames();
 
 	VkDevice device = m_Context.GetVkDevice();
@@ -139,6 +139,10 @@ void Renderer::OnRender() {
 
 void Renderer::OnResize() {
 	m_NeedsResize = true;
+}
+
+void Renderer::WaitIdle() const {
+	m_Context.DeviceWaitIdle();
 }
 
 void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
