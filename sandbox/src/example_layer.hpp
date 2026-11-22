@@ -20,4 +20,5 @@ private:
 	lm::FPSCamera m_Camera;
 	lm::Mesh m_Cube;
 	float m_Time{ 0.0f };
+	float m_TimeStep{ 0.0f };
 };

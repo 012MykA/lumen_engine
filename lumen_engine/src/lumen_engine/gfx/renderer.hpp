@@ -5,7 +5,9 @@
 #include "lumen_engine/gfx/primitives.hpp"
 #include "lumen_engine/gfx/vulkan/vk_buffer.hpp"
 #include "lumen_engine/gfx/vulkan/vk_context.hpp"
+#include "lumen_engine/gfx/vulkan/vk_descriptors.hpp"
 #include "lumen_engine/gfx/vulkan/vk_frame_data.hpp"
+#include "lumen_engine/gfx/vulkan/vk_global_ubo.hpp"
 #include "lumen_engine/gfx/vulkan/vk_image.hpp"
 #include "lumen_engine/gfx/vulkan/vk_pipeline.hpp"
 #include "lumen_engine/gfx/vulkan/vk_pipeline_cache.hpp"
@@ -13,6 +15,7 @@
 #include "lumen_engine/gfx/vulkan/vk_sampler.hpp"
 #include "lumen_engine/gfx/vulkan/vk_swapchain.hpp"
 #include "lumen_engine/gfx/vulkan/vk_uploader.hpp"
+#include "lumen_engine/scene/camera.hpp"
 
 #include <glm/glm.hpp>
 
@@ -46,7 +49,7 @@ public:
 
 	Mesh CreateMesh(const MeshData &data);
 
-	void BeginScene(const glm::mat4 &viewProj);
+	void BeginScene(const Camera &camera, float time, float dt);
 	void Submit(const Mesh &mesh, const glm::mat4 &model);
 
 	bool BeginFrame();
@@ -57,8 +60,6 @@ public:
 	void WaitIdle() const;
 
 private:
-	void RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex);
-
 	void CreateFrames();
 	void CreateDescriptors();
 	void CreatePipelines();
@@ -77,20 +78,27 @@ private:
 	VulkanUploader m_Uploader;
 	VulkanImage m_DepthImage;
 
+	std::optional<DescriptorAllocator> m_DescriptorAllocator;
+
+	VkDescriptorSetLayout m_GlobalSetLayout{ VK_NULL_HANDLE }; // set 0
+	VkDescriptorSetLayout m_MaterialSetLayout{ VK_NULL_HANDLE }; // set 1
+
+	std::array<VulkanBuffer, k_FramesInFlight> m_GlobalUBOs;
+	std::array<VkDescriptorSet, k_FramesInFlight> m_GlobalSets{};
+	GlobalUBO m_SceneData{};
+
+	VkDescriptorSet m_TextureSet{ VK_NULL_HANDLE };
+	VulkanImage m_Texture;
+	std::optional<VulkanSampler> m_Sampler;
+
 	std::array<FrameData, k_FramesInFlight> m_Frames{};
 	uint32_t m_FrameIndex{ 0 };
 
-	bool m_NeedsResize{ false };
 	FrameContext m_FrameCtx{};
 	bool m_FrameActive{ false };
-	glm::mat4 m_ViewProj{ 1.0f };
 	std::vector<DrawItem> m_DrawList;
 
-	VulkanImage m_Texture;
-	std::optional<VulkanSampler> m_Sampler;
-	VkDescriptorSetLayout m_SetLayout{ VK_NULL_HANDLE };
-	VkDescriptorPool m_DescriptorPool{ VK_NULL_HANDLE };
-	VkDescriptorSet m_TextureSet{ VK_NULL_HANDLE };
+	bool m_NeedsResize{ false };
 };
 
 } // namespace lm

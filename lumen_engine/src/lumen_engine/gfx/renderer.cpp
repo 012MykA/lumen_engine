@@ -9,8 +9,12 @@
 #include <format>
 
 #define PIPELINE_CACHE_PATH "assets/cache/vk_pipeline_cache.bin"
-#define SHADER_PATH "assets/shaders/bin/shader.spv"
+#define SHADER_PATH "assets/shaders/bin/pretty_shader.slang.spv"
 #define TEXTURE_PATH "assets/textures/texture4k.jpg"
+
+#define DARK_BLUE { 0.02f, 0.03f, 0.08f, 1.0f }
+#define GRAY { 0.1f, 0.1f, 0.1f, 1.0f }
+#define CLEAR_COLOR GRAY
 
 namespace lm {
 
@@ -38,16 +42,22 @@ Renderer::~Renderer() {
 	DestroyFrames();
 
 	VkDevice device = m_Context.GetVkDevice();
-	vkDestroyDescriptorPool(device, m_DescriptorPool, nullptr);
-	vkDestroyDescriptorSetLayout(device, m_SetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, m_GlobalSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, m_MaterialSetLayout, nullptr);
 }
 
 Mesh Renderer::CreateMesh(const MeshData &data) {
 	return Mesh{ m_Uploader, m_Context.GetAllocator(), data.vertices, data.indices };
 }
 
-void Renderer::BeginScene(const glm::mat4 &viewProj) {
-	m_ViewProj = viewProj;
+void Renderer::BeginScene(const Camera &camera, float time, float dt) {
+	m_SceneData = GlobalUBO{
+		.view = camera.GetView(),
+		.proj = camera.GetProjection(),
+		.viewProj = camera.GetViewProjection(),
+		.cameraPos = glm::vec4{ camera.GetPosition(), 1.0f },
+		.time = { time, dt, 0.0f, 0.0f },
+	};
 	m_DrawList.clear();
 }
 
@@ -124,7 +134,7 @@ void Renderer::RenderScene() {
 		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-		.clearValue{ .color{ { 0.02f, 0.03f, 0.08f, 1.0f } } },
+		.clearValue{ .color{ CLEAR_COLOR } },
 	};
 	VkRenderingAttachmentInfo depth{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -156,13 +166,23 @@ void Renderer::RenderScene() {
 		vkCmdSetViewport(cmd, 0, 1, &viewport);
 		vkCmdSetScissor(cmd, 0, 1, &scissor);
 
+		// Bind GlobalUBO
+		m_GlobalUBOs[m_FrameCtx.frameIndex].Write(&m_SceneData, sizeof(GlobalUBO));
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				m_Pipeline->GetVkPipelineLayout(), 0,
+				1, &m_GlobalSets[m_FrameCtx.frameIndex],
+				0, nullptr);
+
 		for (const DrawItem &item : m_DrawList) {
-			const PushConstants pc{ .viewProj = m_ViewProj, .model = item.model };
+			const PushConstants pc{ .model = item.model };
 			vkCmdPushConstants(cmd, m_Pipeline->GetVkPipelineLayout(),
 					VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pc);
 
+			// Bind Material
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					m_Pipeline->GetVkPipelineLayout(), 0, 1, &m_TextureSet, 0, nullptr);
+					m_Pipeline->GetVkPipelineLayout(), 1,
+					1, &m_TextureSet,
+					0, nullptr);
 
 			item.mesh->Draw(cmd);
 		}
@@ -273,15 +293,16 @@ void Renderer::CreatePipelines() {
 	const auto shaderCode = ReadSpirV(SHADER_PATH);
 	VulkanShaderModule shader{ device, shaderCode };
 
-	m_Pipeline.emplace(GraphicsPipelineBuilder{}
-					.SetShader(shader.GetVkShaderModule())
-					.SetVertexInput(bindings, attributes)
-					.SetCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
-					.SetColorFormat(m_Swapchain.GetFormat())
-					.SetDepthFormat(k_DepthFormat)
-					.AddDescriptorSetLayout(m_SetLayout)
-					.SetPushConstants<PushConstants>(VK_SHADER_STAGE_VERTEX_BIT)
-					.Build(device, m_PipelineCache.GetVkPipelineCache()));
+	m_Pipeline = GraphicsPipelineBuilder{}
+						 .SetShader(shader.GetVkShaderModule())
+						 .SetVertexInput(bindings, attributes)
+						 .SetCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+						 .SetColorFormat(m_Swapchain.GetFormat())
+						 .SetDepthFormat(k_DepthFormat)
+						 .AddDescriptorSetLayout(m_GlobalSetLayout) // set 0
+						 .AddDescriptorSetLayout(m_MaterialSetLayout) // set 1
+						 .SetPushConstants<PushConstants>(VK_SHADER_STAGE_VERTEX_BIT)
+						 .Build(device, m_PipelineCache.GetVkPipelineCache());
 }
 
 void Renderer::CreateDepthImage() {
@@ -298,50 +319,37 @@ void Renderer::CreateDepthImage() {
 void Renderer::CreateDescriptors() {
 	VkDevice device = m_Context.GetVkDevice();
 
-	VkDescriptorSetLayoutBinding binding{
-		.binding = 0,
-		.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		.descriptorCount = 1,
-		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+	constexpr std::array ratios = {
+		DescriptorAllocator::PoolRatio{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1.0f },
+		DescriptorAllocator::PoolRatio{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1.0f },
 	};
-	VkDescriptorSetLayoutCreateInfo layoutInfo{
-		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		.bindingCount = 1,
-		.pBindings = &binding,
-	};
-	CHECK_VK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_SetLayout));
+	m_DescriptorAllocator.emplace(device, 16u, ratios);
 
-	VkDescriptorPoolSize poolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 };
-	VkDescriptorPoolCreateInfo poolInfo{
-		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-		.maxSets = 1,
-		.poolSizeCount = 1,
-		.pPoolSizes = &poolSize,
-	};
-	CHECK_VK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &m_DescriptorPool));
+	m_GlobalSetLayout = DescriptorSetLayoutBuilder{}
+								.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+										VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+								.Build(device);
 
-	VkDescriptorSetAllocateInfo allocInfo{
-		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		.descriptorPool = m_DescriptorPool,
-		.descriptorSetCount = 1,
-		.pSetLayouts = &m_SetLayout,
-	};
-	CHECK_VK(vkAllocateDescriptorSets(device, &allocInfo, &m_TextureSet));
+	m_MaterialSetLayout = DescriptorSetLayoutBuilder{}
+								  .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+								  .Build(device);
 
-	VkDescriptorImageInfo imageInfo{
-		.sampler = m_Sampler->GetVkSampler(),
-		.imageView = m_Texture.GetImageView(),
-		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-	};
-	VkWriteDescriptorSet write{
-		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		.dstSet = m_TextureSet,
-		.dstBinding = 0,
-		.descriptorCount = 1,
-		.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		.pImageInfo = &imageInfo,
-	};
-	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+	for (uint32_t i = 0; i < k_FramesInFlight; ++i) {
+		m_GlobalUBOs[i] = VulkanBuffer::CreateMapped(m_Context.GetAllocator(),
+				sizeof(GlobalUBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+		m_GlobalSets[i] = m_DescriptorAllocator->Allocate(m_GlobalSetLayout);
+
+		DescriptorWriter{}
+				.WriteBuffer(0, m_GlobalUBOs[i].GetVkBuffer(), sizeof(GlobalUBO), 0,
+						VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+				.Update(device, m_GlobalSets[i]);
+	}
+
+	m_TextureSet = m_DescriptorAllocator->Allocate(m_MaterialSetLayout);
+	DescriptorWriter{}
+			.WriteImage(0, m_Texture.GetImageView(), m_Sampler->GetVkSampler(),
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+			.Update(device, m_TextureSet);
 }
 
 void Renderer::CreateTexture() {

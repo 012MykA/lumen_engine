@@ -19,7 +19,10 @@ public:
 	VulkanBuffer(VulkanBuffer &&) noexcept;
 	VulkanBuffer &operator=(VulkanBuffer &&) noexcept;
 
-	static VulkanBuffer CreateStaging(const void *data, VkDeviceSize size, VmaAllocator allocator);
+	static VulkanBuffer CreateStaging(VmaAllocator allocator, const void *data, VkDeviceSize size);
+	static VulkanBuffer CreateMapped(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage);
+
+	void Write(const void *data, VkDeviceSize size, VkDeviceSize offset = 0);
 
 	VkBuffer GetVkBuffer() const { return m_Buffer; }
 	VkDeviceSize GetSize() const { return m_Size; }

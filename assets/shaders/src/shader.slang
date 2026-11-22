@@ -10,20 +10,32 @@ struct VertexOutput {
   float2 texCoord : TEXCOORD0;
 };
 
-[[vk::binding(0, 0)]]
-Sampler2D albedo;
+struct GlobalData {
+  float4x4 view;
+  float4x4 proj;
+  float4x4 viewProj;
+  float4 cameraPos;
+  float4 time;
+};
 
 struct PushConstants {
-  column_major float4x4 viewProj;
-  column_major float4x4 model;
+  float4x4 model;
 };
+
+[[vk::binding(0, 0)]]
+ConstantBuffer<GlobalData> gGlobal;
+
+[[vk::binding(0, 1)]]
+Sampler2D gTexture;
+
 [[vk::push_constant]]
-PushConstants pc;
+PushConstants gPush;
 
 [shader("vertex")]
 VertexOutput vertMain(VertexInput input) {
   VertexOutput output;
-  output.sv_position = mul(pc.viewProj, mul(pc.model, float4(input.pos, 1.0)));
+  output.sv_position =
+      mul(gGlobal.viewProj, mul(gPush.model, float4(input.pos, 1.0)));
   output.color = input.normal;
   output.texCoord = input.texCoord;
   return output;
@@ -31,5 +43,5 @@ VertexOutput vertMain(VertexInput input) {
 
 [shader("fragment")]
 float4 fragMain(VertexOutput inVert) : SV_Target {
-  return albedo.Sample(inVert.texCoord);
+  return gTexture.Sample(inVert.texCoord);
 }

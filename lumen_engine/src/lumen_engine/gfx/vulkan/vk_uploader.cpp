@@ -61,7 +61,7 @@ void VulkanUploader::ImmediateSubmit(const std::function<void(VkCommandBuffer)> 
 
 VulkanBuffer VulkanUploader::UploadBuffer(const void *data, VkDeviceSize size,
 		VkBufferUsageFlags usage, VmaAllocator allocator) {
-	VulkanBuffer staging = VulkanBuffer::CreateStaging(data, size, allocator);
+	VulkanBuffer staging = VulkanBuffer::CreateStaging(allocator, data, size);
 	VulkanBuffer gpu{ allocator, size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT };
 
 	ImmediateSubmit([&](VkCommandBuffer cmd) {
@@ -85,7 +85,7 @@ VulkanBuffer VulkanUploader::UploadBuffer(const void *data, VkDeviceSize size,
 VulkanImage VulkanUploader::UploadImage(const void *pixels, uint32_t width, uint32_t height,
 		VkFormat format, VmaAllocator allocator) {
 	const VkDeviceSize size = static_cast<VkDeviceSize>(width) * height * 4;
-	VulkanBuffer staging = VulkanBuffer::CreateStaging(pixels, size, allocator);
+	VulkanBuffer staging = VulkanBuffer::CreateStaging(allocator, pixels, size);
 
 	const uint32_t mips = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 	VulkanImage image{

@@ -1,5 +1,6 @@
 #include "lumen_engine/gfx/vulkan/vk_buffer.hpp"
 
+#include <cassert>
 #include <cstring>
 #include <utility>
 
@@ -50,12 +51,27 @@ VulkanBuffer &VulkanBuffer::operator=(VulkanBuffer &&other) noexcept {
 	return *this;
 }
 
-VulkanBuffer VulkanBuffer::CreateStaging(const void *data, VkDeviceSize size, VmaAllocator allocator) {
+VulkanBuffer VulkanBuffer::CreateStaging(VmaAllocator allocator, const void *data, VkDeviceSize size) {
 	VulkanBuffer staging{ allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT };
 	std::memcpy(staging.m_Mapped, data, size);
 	CHECK_VK(vmaFlushAllocation(allocator, staging.m_Allocation, 0, VK_WHOLE_SIZE));
 	return staging;
+}
+
+VulkanBuffer VulkanBuffer::CreateMapped(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage) {
+	return VulkanBuffer{
+		allocator,
+		size,
+		usage,
+		VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
+	};
+}
+
+void VulkanBuffer::Write(const void *data, VkDeviceSize size, VkDeviceSize offset) {
+	assert(m_Mapped && size + offset <= m_Size);
+	std::memcpy(static_cast<char *>(m_Mapped) + offset, data, size);
+	CHECK_VK(vmaFlushAllocation(m_Allocator, m_Allocation, offset, size));
 }
 
 void VulkanBuffer::Destroy() {
