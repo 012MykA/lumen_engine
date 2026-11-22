@@ -37,8 +37,8 @@ void FPSCamera::OnUpdate(float ts) {
     if (Input::IsKeyPressed(Key::A)) { SetPosition(GetPosition() - m_Right * speed); }
     if (Input::IsKeyPressed(Key::D)) { SetPosition(GetPosition() + m_Right * speed); }
 
-    if (Input::IsKeyPressed(Key::E)) { SetPosition(GetPosition() + m_Up * speed); }
-    if (Input::IsKeyPressed(Key::Q)) { SetPosition(GetPosition() - m_Up * speed); }
+    if (Input::IsKeyPressed(Key::E)) { SetPosition(GetPosition() + m_WorldUp * speed); }
+    if (Input::IsKeyPressed(Key::Q)) { SetPosition(GetPosition() - m_WorldUp * speed); }
 	// clang-format on
 
 	auto [mouseX, mouseY] = Input::GetMousePosition();
@@ -76,7 +76,7 @@ void FPSCamera::OnEvent(Event &event) {
 }
 
 void FPSCamera::UpdateViewMatrix() const {
-	SetViewMatrix(glm::lookAt(GetPosition(), GetPosition() + m_Front, m_Up));
+	SetViewMatrix(glm::lookAt(GetPosition(), GetPosition() + m_Front, m_WorldUp));
 }
 
 void FPSCamera::UpdateProjectionMatrix() const {
@@ -100,7 +100,6 @@ void FPSCamera::UpdateCameraVectors() {
 
 	m_Front = glm::normalize(front);
 	m_Right = glm::normalize(glm::cross(m_Front, m_WorldUp));
-	m_Up = glm::normalize(glm::cross(m_Right, m_Front));
 }
 
 bool FPSCamera::OnKeyPressed(KeyPressedEvent &e) {
