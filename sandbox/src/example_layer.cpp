@@ -29,20 +29,23 @@ void ExampleLayer::OnEvent(lm::Event &event) {
 void ExampleLayer::OnUpdate(float ts) {
 	m_Camera.OnUpdate(ts);
 	m_Time += ts;
-
-	m_Renderer.BeginScene(m_Camera.GetViewProjection());
-	int rows = 10, cols = 10;
-	for (int i = 0; i < cols; i++) {
-		for (int j = 0; j < rows; j++) {
-			glm::mat4 model = glm::translate(glm::mat4{ 1.0f }, glm::vec3{ i * 2.0f, j * 2.0f, -4.0f });
-			model = glm::rotate(model, m_Time * (0.5f + 0.25f * static_cast<float>(i)), glm::vec3{ 0.0f, 1.0f, 0.0f });
-			m_Renderer.Submit(m_Cube, model);
-		}
-	}
 }
 
 void ExampleLayer::OnRender() {
-	m_Renderer.OnRender();
+	if (m_Renderer.BeginFrame()) {
+		m_Renderer.BeginScene(m_Camera.GetViewProjection());
+		int rows = 10, cols = 10;
+		for (int i = 0; i < cols; i++) {
+			for (int j = 0; j < rows; j++) {
+				glm::mat4 model = glm::translate(glm::mat4{ 1.0f }, glm::vec3{ i * 2.0f, j * 2.0f, -4.0f });
+				model = glm::rotate(model, m_Time * (0.5f + 0.25f * static_cast<float>(i)), glm::vec3{ 0.0f, 1.0f, 0.0f });
+				m_Renderer.Submit(m_Cube, model);
+			}
+		}
+		m_Renderer.RenderScene();
+
+		m_Renderer.EndFrame();
+	}
 }
 
 bool ExampleLayer::OnWindowResize(lm::WindowResizeEvent &e) {

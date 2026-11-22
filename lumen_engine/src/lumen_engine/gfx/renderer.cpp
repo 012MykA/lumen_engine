@@ -55,11 +55,13 @@ void Renderer::Submit(const Mesh &mesh, const glm::mat4 &model) {
 	m_DrawList.emplace_back(&mesh, model);
 }
 
-void Renderer::OnRender() {
+bool Renderer::BeginFrame() {
+	assert(!m_FrameActive && "Renderer::BeginFrame called twice");
 	VkDevice device = m_Context.GetVkDevice();
+
 	if (m_NeedsResize) {
 		if (!m_Swapchain.Recreate()) {
-			return;
+			return false;
 		}
 		CreateDepthImage();
 		m_NeedsResize = false;
@@ -73,7 +75,7 @@ void Renderer::OnRender() {
 			frame.imageAvailable, VK_NULL_HANDLE, &imageIndex);
 	if (res == VK_ERROR_OUT_OF_DATE_KHR) {
 		m_NeedsResize = true;
-		return;
+		return false;
 	}
 	if (res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR) {
 		CHECK_VK(res);
@@ -86,12 +88,101 @@ void Renderer::OnRender() {
 		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
 	};
 	CHECK_VK(vkBeginCommandBuffer(frame.cmd, &begin));
-	{
-		RecordCommands(frame.cmd, imageIndex);
-	}
-	CHECK_VK(vkEndCommandBuffer(frame.cmd));
 
-	VkSemaphore renderFinished = m_Swapchain.GetRenderFinished(imageIndex);
+	m_FrameCtx = FrameContext{
+		.cmd = frame.cmd,
+		.image = m_Swapchain.GetImage(imageIndex),
+		.imageView = m_Swapchain.GetImageView(imageIndex),
+		.extent = m_Swapchain.GetExtent(),
+		.imageIndex = imageIndex,
+		.frameIndex = m_FrameIndex,
+	};
+
+	TransitionImage(m_FrameCtx.cmd, m_FrameCtx.image,
+			/*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED, /*newLayout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			/*srcStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*srcAccess=*/0,
+			/*dstStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*dstAccess=*/VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			/*aspect=*/VK_IMAGE_ASPECT_COLOR_BIT);
+
+	TransitionImage(m_FrameCtx.cmd, m_DepthImage.GetImage(),
+			/*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED, /*newLayout=*/VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+			/*srcStage=*/VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, /*srcAccess=*/VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			/*dstStage=*/VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, /*dstAccess=*/VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+			/*aspect=*/VK_IMAGE_ASPECT_DEPTH_BIT);
+
+	m_FrameActive = true;
+	return true;
+}
+
+void Renderer::RenderScene() {
+	assert(m_FrameActive);
+	VkCommandBuffer cmd = m_FrameCtx.cmd;
+
+	VkRenderingAttachmentInfo color{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+		.imageView = m_FrameCtx.imageView,
+		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.clearValue{ .color{ { 0.02f, 0.03f, 0.08f, 1.0f } } },
+	};
+	VkRenderingAttachmentInfo depth{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+		.imageView = m_DepthImage.GetImageView(),
+		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		.clearValue{ .depthStencil{ 1.0f, 0 } },
+	};
+	VkRenderingInfo rendering{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+		.renderArea{ { 0, 0 }, m_FrameCtx.extent },
+		.layerCount = 1,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &color,
+		.pDepthAttachment = &depth,
+	};
+	vkCmdBeginRendering(cmd, &rendering);
+	{
+		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetVkPipeline());
+
+		const VkExtent2D extent = m_Swapchain.GetExtent();
+		VkViewport viewport{
+			0.0f, 0.0f,
+			static_cast<float>(extent.width), static_cast<float>(extent.height),
+			0.0f, 1.0f
+		};
+		VkRect2D scissor{ { 0, 0 }, extent };
+		vkCmdSetViewport(cmd, 0, 1, &viewport);
+		vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+		for (const DrawItem &item : m_DrawList) {
+			const PushConstants pc{ .viewProj = m_ViewProj, .model = item.model };
+			vkCmdPushConstants(cmd, m_Pipeline->GetVkPipelineLayout(),
+					VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pc);
+
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					m_Pipeline->GetVkPipelineLayout(), 0, 1, &m_TextureSet, 0, nullptr);
+
+			item.mesh->Draw(cmd);
+		}
+	}
+	vkCmdEndRendering(cmd);
+}
+
+void Renderer::EndFrame() {
+	assert(m_FrameActive && "Renderer::EndFrame called without Renderer::BeginFrame");
+
+	TransitionImage(m_FrameCtx.cmd, m_FrameCtx.image,
+			/*oldLayout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, /*newLayout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			/*srcStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*srcAccess=*/VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			/*dstStage=*/VK_PIPELINE_STAGE_2_NONE, /*dstAccess=*/0,
+			/*aspect=*/VK_IMAGE_ASPECT_COLOR_BIT);
+	CHECK_VK(vkEndCommandBuffer(m_FrameCtx.cmd));
+
+	FrameData &frame = m_Frames[m_FrameIndex];
+
+	VkSemaphore renderFinished = m_Swapchain.GetRenderFinished(m_FrameCtx.imageIndex);
 	VkSemaphoreSubmitInfo wait{
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
 		.semaphore = frame.imageAvailable,
@@ -124,9 +215,9 @@ void Renderer::OnRender() {
 		.pWaitSemaphores = &renderFinished,
 		.swapchainCount = 1,
 		.pSwapchains = &swapchain,
-		.pImageIndices = &imageIndex,
+		.pImageIndices = &m_FrameCtx.imageIndex,
 	};
-	res = vkQueuePresentKHR(m_Context.GetPresentQueue(), &present);
+	VkResult res = vkQueuePresentKHR(m_Context.GetPresentQueue(), &present);
 	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
 		m_NeedsResize = true;
 	} else {
@@ -134,6 +225,7 @@ void Renderer::OnRender() {
 	}
 
 	m_FrameIndex = (m_FrameIndex + 1) % k_FramesInFlight;
+	m_FrameActive = false;
 }
 
 void Renderer::OnResize() {
@@ -142,79 +234,6 @@ void Renderer::OnResize() {
 
 void Renderer::WaitIdle() const {
 	m_Context.DeviceWaitIdle();
-}
-
-void Renderer::RecordCommands(VkCommandBuffer cmd, uint32_t imageIndex) {
-	VkImage image = m_Swapchain.GetImage(imageIndex);
-
-	TransitionImage(cmd, image,
-			/*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED, /*newLayout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			/*srcStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*srcAccess=*/0,
-			/*dstStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*dstAccess=*/VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			/*aspect=*/VK_IMAGE_ASPECT_COLOR_BIT);
-
-	TransitionImage(cmd, m_DepthImage.GetImage(),
-			/*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED, /*newLayout=*/VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-			/*srcStage=*/VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, /*srcAccess=*/VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-			/*dstStage=*/VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, /*dstAccess=*/VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-			/*aspect=*/VK_IMAGE_ASPECT_DEPTH_BIT);
-
-	VkRenderingAttachmentInfo color{
-		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = m_Swapchain.GetImageView(imageIndex),
-		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-		.clearValue{ .color{ { 0.02f, 0.03f, 0.08f, 1.0f } } },
-	};
-	VkRenderingAttachmentInfo depth{
-		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = m_DepthImage.GetImageView(),
-		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-		.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		.clearValue{ .depthStencil{ 1.0f, 0 } },
-	};
-	VkRenderingInfo rendering{
-		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-		.renderArea{ { 0, 0 }, m_Swapchain.GetExtent() },
-		.layerCount = 1,
-		.colorAttachmentCount = 1,
-		.pColorAttachments = &color,
-		.pDepthAttachment = &depth,
-	};
-	vkCmdBeginRendering(cmd, &rendering);
-	{
-		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetVkPipeline());
-
-		const VkExtent2D extent = m_Swapchain.GetExtent();
-		VkViewport viewport{
-			0.0f, 0.0f,
-			static_cast<float>(extent.width), static_cast<float>(extent.height),
-			0.0f, 1.0f
-		};
-		VkRect2D scissor{ { 0, 0 }, extent };
-		vkCmdSetViewport(cmd, 0, 1, &viewport);
-		vkCmdSetScissor(cmd, 0, 1, &scissor);
-
-		for (const DrawItem &item : m_DrawList) {
-			const PushConstants pc{ .viewProj = m_ViewProj, .model = item.model };
-			vkCmdPushConstants(cmd, m_Pipeline->GetVkPipelineLayout(),
-					VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pc);
-
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					m_Pipeline->GetVkPipelineLayout(), 0, 1, &m_TextureSet, 0, nullptr);
-
-			item.mesh->Draw(cmd);
-		}
-	}
-	vkCmdEndRendering(cmd);
-
-	TransitionImage(cmd, image,
-			/*oldLayout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, /*newLayout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			/*srcStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*srcAccess=*/VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			/*dstStage=*/VK_PIPELINE_STAGE_2_NONE, /*dstAccess=*/0,
-			/*aspect=*/VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Renderer::CreateFrames() {

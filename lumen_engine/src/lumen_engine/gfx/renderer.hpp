@@ -31,6 +31,15 @@ class Renderer {
 	static constexpr uint32_t k_FramesInFlight{ 3 };
 	static constexpr VkFormat k_DepthFormat{ VK_FORMAT_D32_SFLOAT };
 
+	struct FrameContext {
+		VkCommandBuffer cmd{ VK_NULL_HANDLE };
+		VkImage image{ VK_NULL_HANDLE };
+		VkImageView imageView{ VK_NULL_HANDLE };
+		VkExtent2D extent{ 0, 0 };
+		uint32_t imageIndex{ 0 };
+		uint32_t frameIndex{ 0 };
+	};
+
 public:
 	Renderer(const Window &window);
 	~Renderer();
@@ -40,7 +49,10 @@ public:
 	void BeginScene(const glm::mat4 &viewProj);
 	void Submit(const Mesh &mesh, const glm::mat4 &model);
 
-	void OnRender();
+	bool BeginFrame();
+	void RenderScene();
+	void EndFrame();
+
 	void OnResize();
 	void WaitIdle() const;
 
@@ -67,8 +79,10 @@ private:
 
 	std::array<FrameData, k_FramesInFlight> m_Frames{};
 	uint32_t m_FrameIndex{ 0 };
-	bool m_NeedsResize{ false };
 
+	bool m_NeedsResize{ false };
+	FrameContext m_FrameCtx{};
+	bool m_FrameActive{ false };
 	glm::mat4 m_ViewProj{ 1.0f };
 	std::vector<DrawItem> m_DrawList;
 
