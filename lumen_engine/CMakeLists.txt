@@ -59,3 +59,11 @@ target_include_directories(lumen_engine PUBLIC
 
     ${Stb_INCLUDE_DIR}
 )
+
+find_package(Python3 REQUIRED)
+add_custom_target(compile_shaders
+    COMMAND ${Python3_EXECUTABLE} assets/shaders/compile.py
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Compiling shaders..."
+)
+add_dependencies(lumen_engine compile_shaders)

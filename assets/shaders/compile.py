@@ -8,6 +8,8 @@ INPUT_SHADER = SCRIPT_PATH / "src/shader.slang"
 OUTPUT_SPV = SCRIPT_PATH / "bin/shader.spv"
 
 def main():
+    OUTPUT_SPV.parent.mkdir(parents=True, exist_ok=True)
+
     args = [
         SLANGC_PATH,
         INPUT_SHADER,
@@ -24,7 +26,7 @@ def main():
         "-o",
         OUTPUT_SPV,
     ]
-    subprocess.run(args)
+    subprocess.run(args, check=True)
 
 
 if __name__ == "__main__":
