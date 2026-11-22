@@ -4,6 +4,7 @@
 #include "lumen_engine/runtime/application.hpp"
 
 #include <stdexcept>
+#include <cstdlib>
 
 namespace lm {
 
