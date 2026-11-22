@@ -4,7 +4,6 @@
 #include "lumen_engine/gfx/vulkan/vk_utils.hpp"
 #include "lumen_engine/gfx/vulkan/vk_vertex.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 #include <format>
