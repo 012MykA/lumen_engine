@@ -56,6 +56,7 @@ VulkanContext::VulkanContext(const Window &window) : m_Window{ window } {
 		throw std::runtime_error{ "Vulkan 1.3 is not supported" };
 	}
 	CreateInstance();
+	debug::SetEnabled(k_ValidationEnabled);
 	if constexpr (k_ValidationEnabled) {
 		SetupDebugMessenger();
 	}
@@ -76,6 +77,7 @@ VulkanContext::~VulkanContext() {
 	if (m_DebugMessenger != VK_NULL_HANDLE) {
 		DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 	}
+	debug::SetEnabled(false);
 	vkDestroyInstance(m_Instance, nullptr);
 	volkFinalize();
 }
@@ -214,6 +216,14 @@ void VulkanContext::CreateDevice() {
 	vkGetDeviceQueue(m_Device, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
 	vkGetDeviceQueue(m_Device, indices.presentFamily.value(), 0, &m_PresentQueue);
 	vkGetDeviceQueue(m_Device, indices.computeFamily.value(), 0, &m_ComputeQueue);
+
+	debug::SetObjectName(m_Device, m_GraphicsQueue, "Graphics Queue");
+	if (m_PresentQueue != m_GraphicsQueue) {
+		debug::SetObjectName(m_Device, m_PresentQueue, "Present Queue");
+	}
+	if (m_ComputeQueue != m_GraphicsQueue) {
+		debug::SetObjectName(m_Device, m_ComputeQueue, "Compute Queue");
+	}
 }
 
 void VulkanContext::CreateAllocator() {

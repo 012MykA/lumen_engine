@@ -1,11 +1,12 @@
 #include "lumen_engine/gfx/vulkan/vk_swapchain.hpp"
 
 #include "lumen_engine/core/window.hpp"
+#include "lumen_engine/gfx/vulkan/vk_debug.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <climits>
+#include <format>
 #include <span>
 
 namespace lm {
@@ -110,6 +111,11 @@ void VulkanSwapchain::CreateSwapchain() {
 	CHECK_VK(vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &imageCount, nullptr));
 	m_Images.resize(imageCount);
 	CHECK_VK(vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &imageCount, m_Images.data()));
+
+	debug::SetObjectName(m_Device, m_Swapchain, "Swapchain");
+	for (size_t i = 0; i < m_Images.size(); ++i) {
+		m_Ctx.SetDebugName(m_Images[i], std::format("Swapchain Image {}", i));
+	}
 }
 
 void VulkanSwapchain::CreateImageViews() {
@@ -132,6 +138,8 @@ void VulkanSwapchain::CreateImageViews() {
 			},
 		};
 		CHECK_VK(vkCreateImageView(m_Device, &imageInfo, nullptr, &m_ImageViews[i]));
+
+		m_Ctx.SetDebugName(m_ImageViews[i], std::format("Swapchain View {}", i));
 	}
 }
 
@@ -139,8 +147,9 @@ void VulkanSwapchain::CreateSyncObjects() {
 	assert(m_RenderFinished.empty());
 	VkSemaphoreCreateInfo info{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	m_RenderFinished.resize(m_Images.size());
-	for (auto &s : m_RenderFinished) {
-		CHECK_VK(vkCreateSemaphore(m_Device, &info, nullptr, &s));
+	for (size_t i = 0; i < m_RenderFinished.size(); ++i) {
+		CHECK_VK(vkCreateSemaphore(m_Device, &info, nullptr, &m_RenderFinished[i]));
+		m_Ctx.SetDebugName(m_RenderFinished[i], std::format("RenderFinished {}", i));
 	}
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lumen_engine/gfx/vulkan/vk_common.hpp"
+#include "lumen_engine/gfx/vulkan/vk_debug.hpp"
 #include "lumen_engine/gfx/vulkan/vk_queue_family_indices.hpp"
 
 #include <span>
@@ -17,8 +18,6 @@ public:
 	VulkanContext(const VulkanContext &) = delete;
 	VulkanContext &operator=(const VulkanContext &) = delete;
 
-	void DeviceWaitIdle() const;
-
 	const lm::Window &GetWindow() const { return m_Window; }
 	VkSurfaceKHR GetVkSurface() const { return m_Surface; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return m_PhysicalDevice; }
@@ -28,6 +27,13 @@ public:
 	VkQueue GetPresentQueue() const { return m_PresentQueue; }
 	VkQueue GetComputeQueue() const { return m_ComputeQueue; }
 	VmaAllocator GetAllocator() const { return m_Allocator; }
+
+	void DeviceWaitIdle() const;
+
+	template <typename T>
+	void SetDebugName(T handle, std::string_view name) const {
+		debug::SetObjectName(m_Device, handle, name);
+	}
 
 private:
 	void CreateInstance();

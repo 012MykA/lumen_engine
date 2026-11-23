@@ -12,11 +12,16 @@
 #define SHADER_PATH "assets/shaders/bin/pretty_shader.slang.spv"
 #define TEXTURE_PATH "assets/textures/texture4k.jpg"
 
-#define DARK_BLUE { 0.02f, 0.03f, 0.08f, 1.0f }
-#define GRAY { 0.1f, 0.1f, 0.1f, 1.0f }
-#define CLEAR_COLOR GRAY
-
 namespace lm {
+
+namespace {
+
+constexpr VkClearColorValue k_GrayColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+constexpr VkClearColorValue k_DarkBlueColor = { 0.02f, 0.03f, 0.08f, 1.0f };
+
+constexpr VkClearColorValue k_ClearColor = k_GrayColor;
+
+} //namespace
 
 Renderer::Renderer(const Window &window) :
 		m_Window{ window },
@@ -134,7 +139,7 @@ void Renderer::RenderScene() {
 		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-		.clearValue{ .color{ CLEAR_COLOR } },
+		.clearValue{ .color{ k_ClearColor } },
 	};
 	VkRenderingAttachmentInfo depth{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,

@@ -9,7 +9,6 @@ Target features: PBR, Ray Tracing, Path Tracing, SSR, SSAO, MSAA, FXAA and other
 
 - [ ] `Mesh` (vertex/index buffers + draw), `Texture`, `Material`
 - [ ] Scene: `Transform`, object list, lightweight ECS (e.g. `entt`) or a simple node tree
-- [ ] `DescriptorAllocator` with growable pools, `DescriptorSetLayoutBuilder`, `DescriptorWriter`
 - [ ] Per-frame UBO (camera, time, lights), one per frame in flight; `set = 0` global, `set = 1` material
 - [ ] Frame-indexed deletion queue: resize and resource unloading without `vkDeviceWaitIdle`
 - [ ] Refactor `Renderer` into a `RenderContext` (frame, commands) and a set of `RenderPass`es
