@@ -13,7 +13,12 @@ struct Color {
 	float r, g, b, a;
 };
 namespace color {
-constexpr Color Pass{ 0.3f, 0.69f, 0.31f, 1.0f };
+
+constexpr Color Pass{ 0.30f, 0.69f, 0.31f, 1.0f };
+constexpr Color Transfer{ 0.25f, 0.55f, 0.90f, 1.0f };
+constexpr Color Barrier{ 0.60f, 0.60f, 0.60f, 1.0f };
+constexpr Color Ui{ 0.95f, 0.60f, 0.15f, 1.0f };
+
 } // namespace color
 
 void SetEnabled(bool enabled);

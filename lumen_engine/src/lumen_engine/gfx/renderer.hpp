@@ -47,7 +47,7 @@ public:
 	Renderer(const Window &window);
 	~Renderer();
 
-	Mesh CreateMesh(const MeshData &data);
+	Mesh CreateMesh(const MeshData &data, std::string_view name = "Mesh");
 
 	void BeginScene(const Camera &camera, float time, float dt);
 	void Submit(const Mesh &mesh, const glm::mat4 &model);

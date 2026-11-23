@@ -8,7 +8,7 @@ ExampleLayer::ExampleLayer() :
 		Layer{ "ExampleLayer" },
 		m_Renderer{ APP_WINDOW },
 		m_Camera{ APP_WINDOW },
-		m_Cube{ m_Renderer.CreateMesh(lm::MakeCube()) } {
+		m_Cube{ m_Renderer.CreateMesh(lm::MakeCube(), "Cube") } {
 	m_Camera.SetPosition({ 0.0f, 0.0f, 2.0f });
 	if (IsSystemDarkTheme()) {
 		SetWindowDarkMode(APP_WINDOW.handle);

@@ -19,6 +19,9 @@ public:
 
 	void Draw(VkCommandBuffer cmd) const;
 
+	const VulkanBuffer &GetVertexBuffer() const { return m_VertexBuffer; }
+	const VulkanBuffer &GetIndexBuffer() const { return m_IndexBuffer; }
+
 private:
 	VulkanBuffer m_VertexBuffer, m_IndexBuffer;
 	uint32_t m_IndexCount{ 0 };

@@ -51,8 +51,13 @@ Renderer::~Renderer() {
 	vkDestroyDescriptorSetLayout(device, m_MaterialSetLayout, nullptr);
 }
 
-Mesh Renderer::CreateMesh(const MeshData &data) {
-	return Mesh{ m_Uploader, m_Context.GetAllocator(), data.vertices, data.indices };
+Mesh Renderer::CreateMesh(const MeshData &data, std::string_view name) {
+	Mesh mesh{ m_Uploader, m_Context.GetAllocator(), data.vertices, data.indices };
+
+	m_Context.SetDebugName(mesh.GetVertexBuffer().GetVkBuffer(), std::format("{} VB", name));
+	m_Context.SetDebugName(mesh.GetIndexBuffer().GetVkBuffer(), std::format("{} IB", name));
+
+	return mesh;
 }
 
 void Renderer::BeginScene(const Camera &camera, float time, float dt) {
@@ -113,17 +118,21 @@ bool Renderer::BeginFrame() {
 		.frameIndex = m_FrameIndex,
 	};
 
-	TransitionImage(m_FrameCtx.cmd, m_FrameCtx.image,
-			/*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED, /*newLayout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			/*srcStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*srcAccess=*/0,
-			/*dstStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*dstAccess=*/VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			/*aspect=*/VK_IMAGE_ASPECT_COLOR_BIT);
+	{
+		debug::ScopedLabel label{ m_FrameCtx.cmd, "Frame Setup", debug::color::Barrier };
 
-	TransitionImage(m_FrameCtx.cmd, m_DepthImage.GetImage(),
-			/*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED, /*newLayout=*/VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-			/*srcStage=*/VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, /*srcAccess=*/VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-			/*dstStage=*/VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, /*dstAccess=*/VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-			/*aspect=*/VK_IMAGE_ASPECT_DEPTH_BIT);
+		TransitionImage(m_FrameCtx.cmd, m_FrameCtx.image,
+				/*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED, /*newLayout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				/*srcStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*srcAccess=*/0,
+				/*dstStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*dstAccess=*/VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				/*aspect=*/VK_IMAGE_ASPECT_COLOR_BIT);
+
+		TransitionImage(m_FrameCtx.cmd, m_DepthImage.GetImage(),
+				/*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED, /*newLayout=*/VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+				/*srcStage=*/VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, /*srcAccess=*/VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+				/*dstStage=*/VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, /*dstAccess=*/VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+				/*aspect=*/VK_IMAGE_ASPECT_DEPTH_BIT);
+	}
 
 	m_FrameActive = true;
 	return true;
@@ -132,6 +141,8 @@ bool Renderer::BeginFrame() {
 void Renderer::RenderScene() {
 	assert(m_FrameActive);
 	VkCommandBuffer cmd = m_FrameCtx.cmd;
+
+	debug::ScopedLabel label{ cmd, "Forward Pass" };
 
 	VkRenderingAttachmentInfo color{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -198,11 +209,15 @@ void Renderer::RenderScene() {
 void Renderer::EndFrame() {
 	assert(m_FrameActive && "Renderer::EndFrame called without Renderer::BeginFrame");
 
-	TransitionImage(m_FrameCtx.cmd, m_FrameCtx.image,
-			/*oldLayout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, /*newLayout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			/*srcStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*srcAccess=*/VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			/*dstStage=*/VK_PIPELINE_STAGE_2_NONE, /*dstAccess=*/0,
-			/*aspect=*/VK_IMAGE_ASPECT_COLOR_BIT);
+	{
+		debug::ScopedLabel label{ m_FrameCtx.cmd, "Present Transition", debug::color::Barrier };
+
+		TransitionImage(m_FrameCtx.cmd, m_FrameCtx.image,
+				/*oldLayout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, /*newLayout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				/*srcStage=*/VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, /*srcAccess=*/VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				/*dstStage=*/VK_PIPELINE_STAGE_2_NONE, /*dstAccess=*/0,
+				/*aspect=*/VK_IMAGE_ASPECT_COLOR_BIT);
+	}
 	CHECK_VK(vkEndCommandBuffer(m_FrameCtx.cmd));
 
 	FrameData &frame = m_Frames[m_FrameIndex];
@@ -263,7 +278,9 @@ void Renderer::WaitIdle() const {
 
 void Renderer::CreateFrames() {
 	VkDevice device = m_Context.GetVkDevice();
-	for (auto &f : m_Frames) {
+	for (uint32_t i = 0; i < k_FramesInFlight; ++i) {
+		FrameData &f = m_Frames[i];
+
 		VkCommandPoolCreateInfo poolInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 			.queueFamilyIndex = m_Context.GetQueueFamilyIndices().graphicsFamily.value(),
@@ -286,6 +303,11 @@ void Renderer::CreateFrames() {
 
 		VkSemaphoreCreateInfo semInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		CHECK_VK(vkCreateSemaphore(device, &semInfo, nullptr, &f.imageAvailable));
+
+		m_Context.SetDebugName(f.pool, std::format("Frame {} Pool", i));
+		m_Context.SetDebugName(f.cmd, std::format("Frame {} Cmd", i));
+		m_Context.SetDebugName(f.inFlight, std::format("Frame {} InFlight Fence", i));
+		m_Context.SetDebugName(f.imageAvailable, std::format("Frame {} ImageAvailable", i));
 	}
 }
 
@@ -308,6 +330,9 @@ void Renderer::CreatePipelines() {
 						 .AddDescriptorSetLayout(m_MaterialSetLayout) // set 1
 						 .SetPushConstants<PushConstants>(VK_SHADER_STAGE_VERTEX_BIT)
 						 .Build(device, m_PipelineCache.GetVkPipelineCache());
+
+	m_Context.SetDebugName(m_Pipeline->GetVkPipeline(), "Forward Pipeline");
+	m_Context.SetDebugName(m_Pipeline->GetVkPipelineLayout(), "Forward Pipeline Layout");
 }
 
 void Renderer::CreateDepthImage() {
@@ -319,6 +344,9 @@ void Renderer::CreateDepthImage() {
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		VK_IMAGE_ASPECT_DEPTH_BIT,
 	};
+
+	m_Context.SetDebugName(m_DepthImage.GetImage(), "Depth Image");
+	m_Context.SetDebugName(m_DepthImage.GetImageView(), "Depth View");
 }
 
 void Renderer::CreateDescriptors() {
@@ -339,6 +367,9 @@ void Renderer::CreateDescriptors() {
 								  .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 								  .Build(device);
 
+	m_Context.SetDebugName(m_GlobalSetLayout, "Global Set Layout (set 0)");
+	m_Context.SetDebugName(m_MaterialSetLayout, "Material Set Layout (set 1)");
+
 	for (uint32_t i = 0; i < k_FramesInFlight; ++i) {
 		m_GlobalUBOs[i] = VulkanBuffer::CreateMapped(m_Context.GetAllocator(),
 				sizeof(GlobalUBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
@@ -348,6 +379,9 @@ void Renderer::CreateDescriptors() {
 				.WriteBuffer(0, m_GlobalUBOs[i].GetVkBuffer(), sizeof(GlobalUBO), 0,
 						VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 				.Update(device, m_GlobalSets[i]);
+
+		m_Context.SetDebugName(m_GlobalUBOs[i].GetVkBuffer(), std::format("Global UBO {}", i));
+		m_Context.SetDebugName(m_GlobalSets[i], std::format("Global Set {}", i));
 	}
 
 	m_TextureSet = m_DescriptorAllocator->Allocate(m_MaterialSetLayout);
@@ -355,6 +389,8 @@ void Renderer::CreateDescriptors() {
 			.WriteImage(0, m_Texture.GetImageView(), m_Sampler->GetVkSampler(),
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 			.Update(device, m_TextureSet);
+
+	m_Context.SetDebugName(m_TextureSet, "Texture Set");
 }
 
 void Renderer::CreateTexture() {
@@ -371,6 +407,10 @@ void Renderer::CreateTexture() {
 	VkPhysicalDeviceProperties props;
 	vkGetPhysicalDeviceProperties(m_Context.GetVkPhysicalDevice(), &props);
 	m_Sampler.emplace(m_Context.GetVkDevice(), props.limits.maxSamplerAnisotropy);
+
+	m_Context.SetDebugName(m_Texture.GetImage(), "Texture " TEXTURE_PATH);
+	m_Context.SetDebugName(m_Texture.GetImageView(), "Texture View");
+	m_Context.SetDebugName(m_Sampler->GetVkSampler(), "Default Sampler");
 }
 
 void Renderer::DestroyFrames() {
